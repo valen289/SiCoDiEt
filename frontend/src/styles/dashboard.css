@@ -1,0 +1,109 @@
+/* ===== SICODIET - Dashboard ===== */
+
+.dashboard {
+  padding: 0;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: var(--white);
+  border-radius: 0.5rem;
+  padding: 1.25rem;
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  color: var(--text-light);
+}
+
+/* Alertas Section */
+.alertas-section {
+  margin-top: 2rem;
+}
+
+.alertas-section h2 {
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.alerta-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--white);
+  border-radius: 0.375rem;
+  border-left: 4px solid;
+  margin-bottom: 0.5rem;
+  box-shadow: var(--shadow);
+}
+
+.alerta-stock_critico {
+  border-left-color: var(--danger);
+}
+
+.alerta-stock_bajo {
+  border-left-color: var(--warning);
+}
+
+.alerta-item .badge {
+  flex-shrink: 0;
+}
+
+/* Responsive */
+@media (max-width: 767px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .stat-card {
+    padding: 1rem;
+  }
+
+  .stat-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .stat-value {
+    font-size: 1.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}

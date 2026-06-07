@@ -1,0 +1,255 @@
+/* ===== SICODIET - Alert Toast Notifications ===== */
+
+.alert-container {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 400px;
+  pointer-events: none;
+}
+
+.alert-custom {
+  background: var(--white);
+  border-radius: 0.5rem;
+  box-shadow: var(--shadow-lg);
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  pointer-events: auto;
+  border-left: 4px solid;
+  animation: alert-slide-in 0.3s ease;
+}
+
+.alert-custom.alert-success {
+  border-left-color: var(--primary);
+}
+
+.alert-custom.alert-danger {
+  border-left-color: var(--danger);
+}
+
+.alert-custom.alert-warning {
+  border-left-color: var(--warning);
+}
+
+.alert-custom.alert-info {
+  border-left-color: var(--info);
+}
+
+.alert-custom-icon {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.alert-custom-content {
+  flex: 1;
+}
+
+.alert-custom-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 0.125rem;
+}
+
+.alert-custom-message {
+  font-size: 0.85rem;
+  color: var(--text-light);
+}
+
+.alert-custom-close {
+  background: none;
+  border: none;
+  color: var(--text-light);
+  padding: 0.25rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.2s;
+}
+
+.alert-custom-close:hover {
+  color: var(--text);
+}
+
+.alert-custom-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+/* Animations */
+.alert-animate-slide-right {
+  animation: alert-slide-in-right 0.3s ease;
+}
+
+.alert-animate-slide-left {
+  animation: alert-slide-in-left 0.3s ease;
+}
+
+.alert-animate-slide-down {
+  animation: alert-slide-in-down 0.3s ease;
+}
+
+.alert-animate-slide-up {
+  animation: alert-slide-in-up 0.3s ease;
+}
+
+.alert-animate-fade-right {
+  animation: alert-fade-in-right 0.3s ease;
+}
+
+.alert-animate-bounce-right {
+  animation: alert-bounce-in-right 0.5s ease;
+}
+
+.alert-animate-shake-right {
+  animation: alert-shake-in-right 0.5s ease;
+}
+
+.alert-exit {
+  animation: alert-exit 0.3s ease forwards;
+}
+
+@keyframes alert-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes alert-slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes alert-slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes alert-slide-in-down {
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes alert-slide-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes alert-fade-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(50%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes alert-bounce-in-right {
+  0% {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  60% {
+    opacity: 1;
+    transform: translateX(-10%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@keyframes alert-shake-in-right {
+  0% {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  20% {
+    transform: translateX(-5%);
+  }
+  40% {
+    transform: translateX(5%);
+  }
+  60% {
+    transform: translateX(-3%);
+  }
+  80% {
+    transform: translateX(3%);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes alert-exit {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+/* Responsive */
+@media (max-width: 575px) {
+  .alert-container {
+    top: 0.5rem;
+    right: 0.5rem;
+    left: 0.5rem;
+    max-width: none;
+  }
+
+  .alert-custom {
+    padding: 0.75rem 1rem;
+  }
+
+  .alert-custom-title {
+    font-size: 0.85rem;
+  }
+
+  .alert-custom-message {
+    font-size: 0.8rem;
+  }
+}

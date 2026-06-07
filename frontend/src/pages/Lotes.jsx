@@ -1,0 +1,199 @@
+import { useState, useEffect } from 'react';
+import api from '../services/api';
+import { useAlert } from '../context/AlertContext';
+import { useSEO } from '../hooks/useSEO';
+import { Plus, Edit2, Trash2, Package } from 'lucide-react';
+import '../styles/lotes.css';
+
+export default function Lotes() {
+  const { success, error, confirm } = useAlert();
+  useSEO({ title: 'Lotes de Ganado', description: 'Administración de lotes de ganado con consumo estimado e insumos requeridos.' });
+  const [lotes, setLotes] = useState([]);
+  const [insumos, setInsumos] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [editingLote, setEditingLote] = useState(null);
+  const [form, setForm] = useState({
+    nombre: '', tipo_animal: '', cantidad_animales: '',
+    consumo_estimado_diario: '', observaciones: ''
+  });
+
+  useEffect(() => { loadLotes(); loadInsumos(); }, []);
+
+  const loadLotes = async () => {
+    try {
+      const res = await api.get('/lotes');
+      setLotes(res.data.lotes);
+    } catch (err) { console.error('Error:', err); }
+  };
+
+  const loadInsumos = async () => {
+    try {
+      const res = await api.get('/insumos');
+      setInsumos(res.data.insumos);
+    } catch (err) { console.error('Error:', err); }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      if (editingLote) {
+        await api.put(`/lotes/${editingLote.id}`, form);
+        success('Lote actualizado');
+      } else {
+        await api.post('/lotes', form);
+        success('Lote creado');
+      }
+      setShowModal(false);
+      setEditingLote(null);
+      loadLotes();
+    } catch (err) {
+      error(err.response?.data?.error || 'Error');
+    }
+  };
+
+  const handleEdit = (lote) => {
+    setEditingLote(lote);
+    setForm({
+      nombre: lote.nombre, tipo_animal: lote.tipo_animal,
+      cantidad_animales: lote.cantidad_animales,
+      consumo_estimado_diario: lote.consumo_estimado_diario,
+      observaciones: lote.observaciones || ''
+    });
+    setShowModal(true);
+  };
+
+  const handleDelete = async (lote) => {
+    const confirmed = await confirm({
+      title: 'Eliminar Lote',
+      message: `¿Estás seguro que deseas eliminar el lote "${lote.nombre}"?`,
+      type: 'warning', confirmText: 'Sí, eliminar', cancelText: 'Cancelar',
+    });
+    if (!confirmed) return;
+    try {
+      await api.delete(`/lotes/${lote.id}`);
+      success('Lote eliminado');
+      loadLotes();
+    } catch (err) {
+      error(err.response?.data?.error || 'Error al eliminar');
+    }
+  };
+
+  return (
+    <div className="lotes-page">
+      <header className="page-header d-flex justify-content-between align-items-center mb-4">
+        <h1 className="h3 mb-0 d-flex align-items-center gap-2">
+          <Package size={22} /> Lotes de Ganado
+        </h1>
+        <div className="lotes__header-actions">
+          <button className="lotes__btn lotes__btn--primary" onClick={() => {
+            setEditingLote(null);
+            setForm({ nombre: '', tipo_animal: '', cantidad_animales: '', consumo_estimado_diario: '', observaciones: '' });
+            setShowModal(true);
+          }}>
+            <Plus size={16} /> Nuevo Lote
+          </button>
+        </div>
+      </header>
+
+      <section aria-label="Listado de lotes">
+        <div className="lotes__grid" role="list">
+          {lotes.length === 0 && (
+            <div className="lotes__empty-state">
+              <Package size={48} />
+              <p>No hay lotes registrados</p>
+              <button className="lotes__btn lotes__btn--primary" onClick={() => setShowModal(true)}>
+                <Plus size={16} /> Crear primer lote
+              </button>
+            </div>
+          )}
+          {lotes.map(lote => (
+            <article key={lote.id} className="lotes__card-wrapper" role="listitem">
+              <div className="lotes__card">
+                <div className="lotes__card-top">
+                  <div>
+                    <h3 className="lotes__card-name">{lote.nombre}</h3>
+                    <p className="lotes__card-meta">{lote.tipo_animal}</p>
+                  </div>
+                  <div className="lotes__card-actions">
+                    <button className="lotes__card-action-btn" onClick={() => handleEdit(lote)} aria-label="Editar">
+                      <Edit2 size={14} />
+                    </button>
+                    <button className="lotes__card-action-btn lotes__card-action-btn--danger" onClick={() => handleDelete(lote)} aria-label="Eliminar">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+
+                <hr className="lotes__divider" />
+
+                <div className="lotes__details-row">
+                  <div className="lotes__detail-col">
+                    <span className="lotes__detail-label">Animales</span>
+                    <strong className="lotes__detail-value">{lote.cantidad_animales}</strong>
+                  </div>
+                  <div className="lotes__detail-col" style={{ textAlign: 'right' }}>
+                    <span className="lotes__detail-label">Consumo diario</span>
+                    <strong className="lotes__detail-value">{lote.consumo_estimado_diario} kg</strong>
+                  </div>
+                </div>
+
+                {lote.insumos_requeridos?.length > 0 && (
+                  <div className="lotes__insumos-section">
+                    <h4 className="lotes__insumos-title">Insumos requeridos</h4>
+                    {lote.insumos_requeridos.map(li => (
+                      <div key={li.id} className="lotes__insumo-item">
+                        <span>{li.nombre}</span>
+                        <strong>{li.cantidad_requerida} {li.unidad}</strong>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      {showModal && (
+        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="h5 mb-0">{editingLote ? 'Editar Lote' : 'Nuevo Lote'}</h3>
+              <button type="button" className="btn-close" onClick={() => setShowModal(false)}></button>
+            </div>
+            <div className="modal-body">
+              <form onSubmit={handleSubmit}>
+                <div className="mb-3">
+                  <label className="form-label">Nombre</label>
+                  <input className="form-control" value={form.nombre} onChange={e => setForm({...form, nombre: e.target.value})} required />
+                </div>
+                <div className="mb-3">
+                  <label className="form-label">Tipo de Animal</label>
+                  <input className="form-control" value={form.tipo_animal} onChange={e => setForm({...form, tipo_animal: e.target.value})} required />
+                </div>
+                <div className="row g-3 mb-3">
+                  <div className="col-6">
+                    <label className="form-label">Cantidad de Animales</label>
+                    <input type="number" className="form-control" value={form.cantidad_animales} onChange={e => setForm({...form, cantidad_animales: e.target.value})} required />
+                  </div>
+                  <div className="col-6">
+                    <label className="form-label">Consumo Estimado Diario (kg)</label>
+                    <input type="number" step="0.01" className="form-control" value={form.consumo_estimado_diario} onChange={e => setForm({...form, consumo_estimado_diario: e.target.value})} />
+                  </div>
+                </div>
+                <div className="mb-3">
+                  <label className="form-label">Observaciones</label>
+                  <textarea className="form-control" value={form.observaciones} onChange={e => setForm({...form, observaciones: e.target.value})} rows="3" />
+                </div>
+                <div className="modal-actions">
+                  <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
+                  <button type="submit" className="btn btn-success">Guardar</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

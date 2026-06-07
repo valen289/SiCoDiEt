@@ -1,0 +1,119 @@
+/* ===== SICODIET - Ganado ===== */
+
+.ganado-page {
+  padding: 0;
+}
+
+.ganado-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.stat-card {
+  background: var(--white);
+  border-radius: 0.5rem;
+  box-shadow: var(--shadow);
+  padding: 1.25rem;
+  text-align: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.stat-total {
+  border-top: 3px solid var(--primary);
+}
+
+.stat-lechera {
+  border-top: 3px solid #0dcaf0;
+}
+
+.stat-seco {
+  border-top: 3px solid var(--warning);
+}
+
+.stat-terneros {
+  border-top: 3px solid var(--primary);
+}
+
+.stat-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 0.75rem;
+}
+
+.stat-total .stat-icon {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.stat-lechera .stat-icon {
+  background: rgba(13, 202, 240, 0.1);
+  color: #0dcaf0;
+}
+
+.stat-seco .stat-icon {
+  background: rgba(255, 193, 7, 0.1);
+  color: var(--warning);
+}
+
+.stat-terneros .stat-icon {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 0.25rem;
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+/* Responsive */
+@media (max-width: 991px) {
+  .ganado-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 575px) {
+  .ganado-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .stat-card {
+    padding: 1rem;
+  }
+
+  .stat-value {
+    font-size: 1.25rem;
+  }
+
+  .stat-icon {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+@media (max-width: 400px) {
+  .ganado-stats {
+    grid-template-columns: 1fr;
+  }
+}

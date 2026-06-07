@@ -1,0 +1,175 @@
+/* ===== SICODIET - Base Styles ===== */
+
+:root {
+  --primary: #588157;
+  --primary-dark: #3A5A40;
+  --primary-light: #F8F6F0;
+  --primary-rgb: 88, 129, 87;
+  --danger: #C1553B;
+  --warning: #e6a817;
+  --info: #0dcaf0;
+  --text: #344E41;
+  --text-light: #4A5548;
+  --bg: #F8F6F0;
+  --white: #ffffff;
+  --border: #A3B18A;
+  --divider: #DAD7CD;
+  --shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  --shadow-lg: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  overflow-x: hidden;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+}
+
+input, select, textarea {
+  font-family: inherit;
+  font-size: 14px;
+}
+
+img, svg {
+  max-width: 100%;
+  height: auto;
+}
+
+table {
+  max-width: 100%;
+}
+
+/* ===== Bootstrap Overrides ===== */
+.btn-success {
+  background-color: var(--primary);
+  border-color: var(--primary);
+}
+
+.btn-success:hover, .btn-success:focus, .btn-success:active {
+  background-color: var(--primary-dark);
+  border-color: var(--primary-dark);
+}
+
+.btn-outline-success {
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+.btn-outline-success:hover {
+  background-color: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.text-primary-custom {
+  color: var(--primary) !important;
+}
+
+.bg-primary-custom {
+  background-color: var(--primary) !important;
+}
+
+/* ===== Page Header ===== */
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.page-header h1, .page-header h2, .page-header h3 {
+  margin-bottom: 0;
+}
+
+/* ===== Card Grid System ===== */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+/* ===== Loading Spinner ===== */
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 3rem;
+}
+
+/* ===== Responsive Breakpoints ===== */
+
+/* Large Desktop 1920px+ */
+@media (min-width: 1920px) {
+  body { font-size: 16px; }
+  .container { max-width: 1600px; }
+  h1 { font-size: 2.25rem; }
+  h2 { font-size: 1.75rem; }
+  h3 { font-size: 1.375rem; }
+}
+
+/* Desktop 1200px - 1919px */
+@media (min-width: 1200px) and (max-width: 1919px) {
+  body { font-size: 15px; }
+}
+
+/* Tablet Landscape 992px - 1199px */
+@media (min-width: 992px) and (max-width: 1199px) {
+  body { font-size: 15px; }
+  .page-header { flex-wrap: wrap; }
+}
+
+/* Tablet 768px - 991px */
+@media (min-width: 768px) and (max-width: 991px) {
+  body { font-size: 15px; }
+  .page-header { flex-direction: column; align-items: flex-start; }
+  .card-grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+}
+
+/* Mobile Landscape 576px - 767px */
+@media (min-width: 576px) and (max-width: 767px) {
+  body { font-size: 14px; }
+  .page-header { flex-direction: column; align-items: flex-start; }
+  .card-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+  button, [role="button"], .btn { min-height: 44px; }
+  input, select, textarea { font-size: 16px; }
+}
+
+/* Mobile 481px - 575px */
+@media (min-width: 481px) and (max-width: 575px) {
+  body { font-size: 14px; }
+  h1 { font-size: 1.5rem; }
+  h2 { font-size: 1.25rem; }
+  h3 { font-size: 1.1rem; }
+  .card-grid { grid-template-columns: 1fr; }
+  button, [role="button"], .btn { min-height: 40px; }
+}
+
+/* Mobile Small max 480px */
+@media (max-width: 480px) {
+  body { font-size: 13px; }
+  h1 { font-size: 1.35rem; }
+  h2 { font-size: 1.15rem; }
+  h3 { font-size: 1rem; }
+  .card-grid { grid-template-columns: 1fr; }
+  button, [role="button"], .btn { min-height: 40px; }
+  .page-header { gap: 0.75rem; }
+}

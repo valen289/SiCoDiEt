@@ -1,0 +1,13 @@
+# /robots.txt
+User-agent: *
+Allow: /
+
+# Block admin/private areas
+Disallow: /api/
+Disallow: /admin/
+Disallow: /private/
+
+# Don't block resources needed for rendering
+# Allow: /assets/
+
+Sitemap: https://sicodiet.com/sitemap.xml

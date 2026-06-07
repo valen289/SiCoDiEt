@@ -1,0 +1,771 @@
+/* ===== SICODIET - Dietas (BEM) ===== */
+
+.dietas-container {
+  padding: 0;
+}
+
+/* ===== Dieta Form Card ===== */
+.dietas__form-card {
+  background: var(--white);
+  border-radius: 0.5rem;
+  box-shadow: var(--shadow);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.dietas__section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--primary-light);
+  color: var(--primary);
+}
+
+/* ===== Ingredientes Table ===== */
+.dietas__ingredientes-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.dietas__ingredientes-table th,
+.dietas__ingredientes-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.dietas__ingredientes-table th {
+  background: var(--bg);
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  color: var(--text-light);
+}
+
+.dietas__ingredientes-table td input,
+.dietas__ingredientes-table td select {
+  width: 100%;
+  min-width: 80px;
+}
+
+/* ===== Mobile Ingredientes ===== */
+.dietas__mobile-ingredientes {
+  display: none;
+}
+
+.dietas__desktop-table {
+  display: block;
+}
+
+.dietas__ingrediente-card {
+  background: var(--bg);
+  border-radius: 0.375rem;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  border: 1px solid var(--border);
+}
+
+.dietas__ingrediente-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.dietas__ingrediente-num {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.dietas__ingrediente-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* ===== Action Buttons (Table) ===== */
+.dietas__action-group {
+  display: flex;
+  gap: 0.375rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.dietas__action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.375rem;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-light);
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0;
+}
+
+.dietas__action-btn:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.dietas__action-btn--danger {
+  color: var(--danger);
+}
+
+.dietas__action-btn--danger:hover {
+  background: rgba(193, 85, 59, 0.1);
+  color: var(--danger);
+}
+
+.dietas__action-btn--settings {
+  color: var(--text-light);
+}
+
+/* ===== Add Ingredient Button ===== */
+.dietas__add-ingredient-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  border: 1px dashed var(--border);
+  border-radius: 0.375rem;
+  background: transparent;
+  color: var(--primary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 1.5rem;
+}
+
+.dietas__add-ingredient-btn:hover {
+  background: var(--primary-light);
+  border-color: var(--primary);
+}
+
+/* ===== Form Actions (Bottom Buttons) ===== */
+.dietas__form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+/* ===== Nutritional Summary Grid ===== */
+.dietas__nutri-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.dietas__nutri-card {
+  background: var(--white);
+  border-radius: 0.5rem;
+  padding: 1.25rem 1rem;
+  box-shadow: var(--shadow);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.dietas__nutri-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: var(--primary-light);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dietas__nutri-label {
+  font-size: 0.7rem;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.dietas__nutri-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+/* ===== Economic Results Grid ===== */
+.dietas__econ-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.dietas__econ-card {
+  background: var(--white);
+  border-radius: 0.5rem;
+  padding: 1.25rem 1rem;
+  box-shadow: var(--shadow);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.dietas__econ-card--income {
+  border-top: 3px solid var(--primary);
+}
+
+.dietas__econ-card--positive {
+  border-top: 3px solid var(--primary);
+}
+
+.dietas__econ-card--negative {
+  border-top: 3px solid var(--danger);
+}
+
+.dietas__econ-label {
+  font-size: 0.7rem;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  margin-bottom: 0.25rem;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.dietas__econ-value {
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.dietas__econ-sub {
+  font-size: 0.75rem;
+  color: var(--text-light);
+  margin-top: 0.25rem;
+  line-height: 1.3;
+}
+
+/* ===== Simulation Comparison ===== */
+.dietas__simulation-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.dietas__scenario-card {
+  background: var(--white);
+  border-radius: 0.5rem;
+  padding: 1.25rem;
+  box-shadow: var(--shadow);
+}
+
+.dietas__scenario-card--current {
+  border-left: 4px solid var(--text-light);
+}
+
+.dietas__scenario-card--simulated {
+  border-left: 4px solid var(--primary);
+}
+
+.dietas__scenario-card--simulated.dietas__scenario-card--better {
+  border-left-color: var(--primary);
+}
+
+.dietas__scenario-card--simulated.dietas__scenario-card--worse {
+  border-left-color: var(--danger);
+}
+
+.dietas__scenario-card--placeholder {
+  opacity: 0.5;
+  border: 2px dashed var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 12.5rem;
+}
+
+.dietas__scenario-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.dietas__scenario-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.dietas__scenario-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+}
+
+.dietas__scenario-row--highlight {
+  font-weight: 600;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+}
+
+/* ===== Dieta Cards (List) ===== */
+.dietas__card {
+  background: var(--white);
+  border-radius: 0.5rem;
+  box-shadow: var(--shadow);
+  margin-bottom: 1rem;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.dietas__card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.dietas__card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+}
+
+.dietas__card-body {
+  padding: 1.25rem;
+}
+
+.dietas__metric {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.dietas__metric:last-child {
+  border-bottom: none;
+}
+
+.dietas__metric--negative .dietas__metric-value {
+  color: var(--danger);
+}
+
+.dietas__metric-label {
+  font-size: 0.875rem;
+  color: var(--text-light);
+}
+
+.dietas__metric-value {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.dietas__card-expanded {
+  padding: 1.25rem;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.dietas__expanded-section {
+  margin-bottom: 1rem;
+}
+
+.dietas__expanded-section:last-child {
+  margin-bottom: 0;
+}
+
+.dietas__card-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+
+/* ===== Dieta Card - Lista Registrada ===== */
+.dietas__lista-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 1rem;
+}
+
+.dietas__lista-card {
+  background: var(--white);
+  border-radius: 0.5rem;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.dietas__lista-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.dietas__lista-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  user-select: none;
+}
+
+.dietas__lista-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 0.375rem;
+}
+
+.dietas__lista-lote {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.625rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--primary);
+  color: #fff;
+}
+
+.dietas__lista-chevron {
+  color: var(--text-light);
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+
+.dietas__lista-chevron--open {
+  transform: rotate(180deg);
+}
+
+.dietas__lista-body {
+  padding: 1rem 1.25rem;
+}
+
+.dietas__lista-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem 1.25rem;
+}
+
+.dietas__lista-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.dietas__lista-metric-label {
+  font-size: 0.75rem;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.dietas__lista-metric-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.dietas__lista-metric-value--positive {
+  color: var(--primary);
+}
+
+.dietas__lista-metric-value--negative {
+  color: var(--danger);
+}
+
+.dietas__lista-gasto {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.dietas__lista-gasto-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.375rem;
+}
+
+.dietas__lista-gasto-label {
+  font-size: 0.8rem;
+  color: var(--text-light);
+}
+
+.dietas__lista-gasto-value {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.dietas__lista-gasto-bar {
+  height: 0.375rem;
+  background: var(--divider);
+  border-radius: 0.25rem;
+  overflow: hidden;
+}
+
+.dietas__lista-gasto-fill {
+  height: 100%;
+  border-radius: 0.25rem;
+  transition: width 0.3s ease;
+}
+
+.dietas__lista-gasto-fill--low {
+  background: var(--primary);
+}
+
+.dietas__lista-gasto-fill--medium {
+  background: var(--warning);
+}
+
+.dietas__lista-gasto-fill--high {
+  background: var(--danger);
+}
+
+.dietas__lista-expanded {
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.dietas__lista-section {
+  margin-bottom: 0.75rem;
+}
+
+.dietas__lista-section:last-child {
+  margin-bottom: 0;
+}
+
+.dietas__lista-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--primary);
+  margin-bottom: 0.5rem;
+}
+
+.dietas__lista-section-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.375rem 1rem;
+}
+
+.dietas__lista-section-grid--3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.dietas__lista-section-item {
+  font-size: 0.8rem;
+  color: var(--text-light);
+}
+
+.dietas__lista-section-item strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.dietas__lista-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.dietas__lista-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.dietas__lista-btn--edit {
+  color: var(--primary);
+  border-color: var(--border);
+}
+
+.dietas__lista-btn--edit:hover {
+  background: var(--primary-light);
+  border-color: var(--primary);
+}
+
+.dietas__lista-btn--delete {
+  color: var(--danger);
+  border-color: var(--border);
+}
+
+.dietas__lista-btn--delete:hover {
+  background: rgba(193, 85, 59, 0.1);
+  border-color: var(--danger);
+}
+
+@media (max-width: 767px) {
+  .dietas__lista-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dietas__lista-metrics {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem 1rem;
+  }
+
+  .dietas__lista-section-grid--3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .dietas__lista-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .dietas__lista-footer {
+    flex-direction: column;
+  }
+
+  .dietas__lista-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ===== Form Range ===== */
+.dietas__form-range {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+  outline: none;
+  -webkit-appearance: none;
+}
+
+.dietas__form-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: var(--shadow);
+}
+
+.dietas__form-range::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: var(--shadow);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 1199px) {
+  .dietas__nutri-grid,
+  .dietas__econ-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 991px) {
+  .dietas__simulation-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dietas__desktop-table {
+    display: none;
+  }
+
+  .dietas__mobile-ingredientes {
+    display: block;
+  }
+}
+
+@media (max-width: 767px) {
+  .dietas__nutri-grid,
+  .dietas__econ-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .dietas__form-card {
+    padding: 1rem;
+  }
+
+  .dietas__ingredientes-table th,
+  .dietas__ingredientes-table td {
+    padding: 0.5rem;
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 575px) {
+  .dietas__nutri-grid,
+  .dietas__econ-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dietas__scenario-card {
+    padding: 1rem;
+  }
+
+  .dietas__form-actions {
+    flex-direction: column;
+  }
+
+  .dietas__form-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

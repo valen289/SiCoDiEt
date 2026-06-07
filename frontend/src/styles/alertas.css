@@ -1,0 +1,260 @@
+/* ===== SICODIET - Alertas (BEM) ===== */
+
+.alertas-page {
+  padding: 0;
+}
+
+/* ===== Header Actions ===== */
+.alertas__header-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.alertas__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--primary);
+  cursor: pointer;
+  transition: all 0.2s;
+  min-height: 2.5rem;
+}
+
+.alertas__btn:hover {
+  background: var(--primary-light);
+  border-color: var(--primary);
+}
+
+/* ===== Filters ===== */
+.alertas__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  align-items: center;
+}
+
+.alertas__filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.875rem;
+  border-radius: 0.375rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--text-light);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.alertas__filter-btn:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+.alertas__filter-btn--active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+.alertas__filter-btn--active:hover {
+  background: var(--primary-dark);
+}
+
+.alertas__count {
+  font-size: 0.8rem;
+  color: var(--text-light);
+  margin-left: auto;
+}
+
+/* ===== Alertas List ===== */
+.alertas__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* ===== Alerta Card ===== */
+.alertas__card {
+  background: var(--white);
+  border-radius: 0.5rem;
+  box-shadow: var(--shadow);
+  display: flex;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.alertas__card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.alertas__card--read {
+  opacity: 0.7;
+}
+
+.alertas__indicator {
+  width: 4px;
+  flex-shrink: 0;
+}
+
+.alertas__body {
+  flex: 1;
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.alertas__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.alertas__header-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.alertas__mensaje {
+  font-size: 0.875rem;
+  color: var(--text-light);
+  margin: 0;
+}
+
+.alertas__insumo {
+  font-size: 0.8rem;
+  color: var(--text-light);
+  margin-top: 0.25rem;
+}
+
+/* ===== Alerta Actions ===== */
+.alertas__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 1.25rem;
+  border-left: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.alertas__action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.375rem;
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--text-light);
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0;
+}
+
+.alertas__action-btn:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+.alertas__action-btn--danger {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.alertas__action-btn--danger:hover {
+  background: rgba(193, 85, 59, 0.1);
+  color: var(--danger);
+}
+
+.alertas__action-btn--success {
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+.alertas__action-btn--success:hover {
+  background: var(--primary);
+  color: #fff;
+}
+
+/* ===== Empty State ===== */
+.alertas__empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-light);
+}
+
+.alertas__empty-state svg {
+  opacity: 0.25;
+  margin-bottom: 1rem;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 767px) {
+  .alertas__card {
+    flex-direction: column;
+  }
+
+  .alertas__indicator {
+    width: 100%;
+    height: 4px;
+  }
+
+  .alertas__actions {
+    border-left: none;
+    border-top: 1px solid var(--border);
+    justify-content: flex-end;
+    padding: 0.75rem 1rem;
+  }
+
+  .alertas__body {
+    padding: 0.75rem 1rem;
+  }
+
+  .alertas__header-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .alertas__btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .alertas__filters {
+    flex-direction: column;
+  }
+
+  .alertas__filter-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .alertas__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .alertas__count {
+    margin-left: 0;
+    margin-top: 0.5rem;
+  }
+}
