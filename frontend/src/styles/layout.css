@@ -189,6 +189,45 @@
   font-weight: 600;
 }
 
+.sidebar-nav-row,
+.drawer-nav-row {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+}
+
+.sidebar-nav-row .sidebar-nav-item,
+.drawer-nav-row .drawer-nav-item {
+  flex: 1;
+  min-width: 0;
+}
+
+.sidebar-delete-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: none;
+  color: #dc3545;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s;
+  padding: 0;
+}
+
+.sidebar-nav-row:hover .sidebar-delete-btn,
+.drawer-nav-row:hover .sidebar-delete-btn {
+  opacity: 1;
+}
+
+.sidebar-delete-btn:hover {
+  background: rgba(220, 53, 69, 0.12);
+}
+
 .sidebar-add-btn {
   display: flex;
   align-items: center;

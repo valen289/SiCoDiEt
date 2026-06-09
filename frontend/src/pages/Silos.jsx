@@ -266,9 +266,6 @@ export default function Silos() {
           <span>{tipoActual?.label || 'Alimentos'} - Stock</span>
         </h1>
         <div className="silos__header-actions" role="group" aria-label="Acciones de stock">
-          <button className="silos__btn silos__btn--secondary" onClick={handleVerHistorial} disabled={insumos.length === 0}>
-            <History size={16} aria-hidden="true" /> <span>Historial</span>
-          </button>
           <button className="silos__btn silos__btn--primary" onClick={() => {
             setEditingInsumo(null);
             setForm({ nombre: '', tipo_insumo: selectedTipo || 'silo', unidad: 'kg', capacidad_maxima: '', stock_actual: '', stock_minimo: '' });
@@ -316,12 +313,14 @@ export default function Silos() {
                       <p className="insumo-meta">Unidad: {insumo.unidad}</p>
                       <p className="insumo-meta">Capacidad: {formatNumber(insumo.capacidad_maxima, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} {insumo.unidad}</p>
                     </div>
-                    <button className="btn btn-sm btn-light insumo-edit-btn" onClick={() => handleEdit(insumo)} type="button" aria-label={`Editar ${insumo.nombre}`}>
-                      <Edit2 size={14} /> Editar
-                    </button>
-                    <button className="btn btn-sm btn-outline-secondary" onClick={() => handleVerHistorial(insumo)} aria-label={`Historial ${insumo.nombre}`}>
-                      <History size={14} />
-                    </button>
+                    <div className="insumo-card-actions">
+                      <button className="btn btn-sm btn-light insumo-edit-btn" onClick={() => handleEdit(insumo)} type="button" aria-label={`Editar ${insumo.nombre}`}>
+                        <Edit2 size={14} /> Editar
+                      </button>
+                      <button className="btn btn-sm btn-outline-secondary" onClick={() => handleVerHistorial(insumo)} aria-label={`Historial ${insumo.nombre}`}>
+                        <History size={14} />
+                      </button>
+                    </div>
                   </div>
 
                   <hr className="insumo-divider" />

@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../context/AlertContext';
 import {
   Wheat, Package, LineChart, LogOut, Calculator, Menu, X, User,
-  Database, Droplets, UserCog, Users, Bell, Plus, History
+  Database, Droplets, UserCog, Users, Bell, Plus, History, Trash2
 } from 'lucide-react';
 import '../styles/layout.css';
 
@@ -32,6 +32,16 @@ export default function Layout() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [showAddUnitModal, setShowAddUnitModal] = useState(false);
   const [newUnitForm, setNewUnitForm] = useState({ nombre: '', tipo: 'silo' });
+  const [customFoodTypes, setCustomFoodTypes] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('sicodiet-custom-food-types') || '[]'); }
+    catch { return []; }
+  });
+  const [hiddenFoodTypes, setHiddenFoodTypes] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('sicodiet-hidden-food-types') || '[]'); }
+    catch { return []; }
+  });
+
+  const visibleFoodTypes = foodTypes.filter(t => !hiddenFoodTypes.includes(t.value));
 
   const isOperario = user?.rol === 'operario';
 
@@ -72,8 +82,25 @@ export default function Layout() {
 
   const handleAddUnit = () => {
     if (!newUnitForm.nombre.trim()) return;
+    const newType = { value: newUnitForm.tipo, label: newUnitForm.nombre };
+    const updated = [...customFoodTypes.filter(t => t.value !== newUnitForm.tipo), newType];
+    setCustomFoodTypes(updated);
+    localStorage.setItem('sicodiet-custom-food-types', JSON.stringify(updated));
     setNewUnitForm({ nombre: '', tipo: 'silo' });
     setShowAddUnitModal(false);
+    navigate(`/silos/${newUnitForm.tipo}`);
+  };
+
+  const handleDeleteFoodType = (value) => {
+    const updated = [...hiddenFoodTypes, value];
+    setHiddenFoodTypes(updated);
+    localStorage.setItem('sicodiet-hidden-food-types', JSON.stringify(updated));
+  };
+
+  const handleDeleteCustomType = (value) => {
+    const updated = customFoodTypes.filter(t => t.value !== value);
+    setCustomFoodTypes(updated);
+    localStorage.setItem('sicodiet-custom-food-types', JSON.stringify(updated));
   };
 
   return (
@@ -108,25 +135,39 @@ export default function Layout() {
         <div className="sidebar-section">
           <span className="sidebar-section-title">ALIMENTOS</span>
           <nav className="sidebar-nav">
-            {foodTypes.map(type => {
+            {visibleFoodTypes.map(type => {
               const TypeIcon = type.icon;
               const isActive = location.pathname === `/silos/${type.value}`;
               return (
-                <button
-                  key={type.value}
-                  className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
-                  onClick={() => handleFoodTypeClick(type.value)}
-                >
-                  <TypeIcon size={18} />
-                  <span>{type.label}</span>
-                </button>
+                <div key={type.value} className="sidebar-nav-row">
+                  <button
+                    className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
+                    onClick={() => handleFoodTypeClick(type.value)}
+                  >
+                    <TypeIcon size={18} />
+                    <span>{type.label}</span>
+                  </button>
+                  <button className="sidebar-delete-btn" onClick={() => handleDeleteFoodType(type.value)} title="Eliminar">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              );
+            })}
+            {customFoodTypes.map(type => {
+              const isActive = location.pathname === `/silos/${type.value}`;
+              return (
+                <div key={type.value} className="sidebar-nav-row">
+                  <button className={`sidebar-nav-item ${isActive ? 'active' : ''}`} onClick={() => handleFoodTypeClick(type.value)}>
+                    <Wheat size={18} />
+                    <span>{type.label}</span>
+                  </button>
+                  <button className="sidebar-delete-btn" onClick={() => handleDeleteCustomType(type.value)} title="Eliminar">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               );
             })}
           </nav>
-        </div>
-
-        <div className="sidebar-section">
-          <span className="sidebar-section-title">UNIDADES</span>
           <button className="sidebar-add-btn" onClick={() => setShowAddUnitModal(true)}>
             <Plus size={16} />
             <span>Agregar unidad</span>
@@ -171,23 +212,38 @@ export default function Layout() {
         <nav className="drawer-nav">
           <div className="drawer-section">
             <span className="drawer-section-title">ALIMENTOS</span>
-            {foodTypes.map(type => {
+            {visibleFoodTypes.map(type => {
               const TypeIcon = type.icon;
               const isActive = location.pathname === `/silos/${type.value}`;
               return (
-                <button
-                  key={type.value}
-                  className={`drawer-nav-item ${isActive ? 'active' : ''}`}
-                  onClick={() => handleFoodTypeClick(type.value)}
-                >
-                  <TypeIcon size={18} />
-                  <span>{type.label}</span>
-                </button>
+                <div key={type.value} className="drawer-nav-row">
+                  <button
+                    className={`drawer-nav-item ${isActive ? 'active' : ''}`}
+                    onClick={() => handleFoodTypeClick(type.value)}
+                  >
+                    <TypeIcon size={18} />
+                    <span>{type.label}</span>
+                  </button>
+                  <button className="sidebar-delete-btn" onClick={() => handleDeleteFoodType(type.value)} title="Eliminar">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               );
             })}
-          </div>
-          <div className="drawer-section">
-            <span className="drawer-section-title">UNIDADES</span>
+            {customFoodTypes.map(type => {
+              const isActive = location.pathname === `/silos/${type.value}`;
+              return (
+                <div key={type.value} className="drawer-nav-row">
+                  <button className={`drawer-nav-item ${isActive ? 'active' : ''}`} onClick={() => handleFoodTypeClick(type.value)}>
+                    <Wheat size={18} />
+                    <span>{type.label}</span>
+                  </button>
+                  <button className="sidebar-delete-btn" onClick={() => handleDeleteCustomType(type.value)} title="Eliminar">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              );
+            })}
             <button className="drawer-add-btn" onClick={() => { setShowAddUnitModal(true); setDrawerOpen(false); }}>
               <Plus size={16} />
               <span>Agregar unidad</span>

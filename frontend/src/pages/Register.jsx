@@ -36,7 +36,8 @@ export default function Register() {
       });
       navigate('/login');
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al registrar');
+      const data = err.response?.data;
+      setError(data?.error || data?.errors?.[0]?.msg || 'Error al registrar');
     } finally {
       setLoading(false);
     }
