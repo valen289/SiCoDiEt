@@ -2,12 +2,18 @@ import { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 import { useAlert } from '../context/AlertContext';
 import { useSEO } from '../hooks/useSEO';
-import { Users, Plus, Edit2, Trash2, UserCheck, UserX, Lock, Save, X, Mail, Phone, Hash } from 'lucide-react';
+import { Users, Plus, Edit2, UserCheck, UserX, Lock, Save, X, Mail, Phone, Hash } from 'lucide-react';
 import '../styles/usuarios.css';
+
+const ROL_CONFIG = {
+  dueno:      { label: 'Dueño',      class: 'badge-danger' },
+  encargado:  { label: 'Encargado',  class: 'badge-primary' },
+  trabajador: { label: 'Trabajador', class: 'badge-success' },
+};
 
 export default function Usuarios() {
   const { success, error, confirm } = useAlert();
-  useSEO({ title: 'Gestión de Usuarios', description: 'Administración de usuarios del sistema con roles de administrador, operario y usuario.' });
+  useSEO({ title: 'Gestión de Usuarios', description: 'Administración de usuarios del tambo.' });
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState(null);
@@ -15,7 +21,7 @@ export default function Usuarios() {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [form, setForm] = useState({
-    cedula: '', nombre: '', email: '', telefono: '', password: '', rol: 'usuario'
+    cedula: '', nombre: '', email: '', telefono: '', password: '', rol: 'trabajador'
   });
   const [passwordForm, setPasswordForm] = useState({ password: '', confirmPassword: '' });
   const [filter, setFilter] = useState('todos');
@@ -25,7 +31,7 @@ export default function Usuarios() {
       setLoading(true);
       setApiError(null);
       const res = await api.get('/usuarios');
-      setUsuarios(res.data.usuarios || res.data || []);
+      setUsuarios(res.data.usuarios || []);
     } catch (err) {
       console.error('Error cargando usuarios:', err);
       setApiError(err.response?.data?.error || 'Error al cargar usuarios');
@@ -35,16 +41,13 @@ export default function Usuarios() {
     }
   }, [error]);
 
-  useEffect(() => {
-    loadUsuarios();
-  }, [loadUsuarios]);
+  useEffect(() => { loadUsuarios(); }, [loadUsuarios]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       if (editingUser) {
-        const payload = { ...form };
-        if (!payload.password) delete payload.password;
+        const payload = { nombre: form.nombre, email: form.email, telefono: form.telefono, rol: form.rol };
         await api.put(`/usuarios/${editingUser.id}`, payload);
         success('Usuario actualizado');
       } else {
@@ -53,10 +56,10 @@ export default function Usuarios() {
       }
       setShowModal(false);
       setEditingUser(null);
-      setForm({ cedula: '', nombre: '', email: '', telefono: '', password: '', rol: 'usuario' });
+      setForm({ cedula: '', nombre: '', email: '', telefono: '', password: '', rol: 'trabajador' });
       loadUsuarios();
     } catch (err) {
-      error(err.response?.data?.error || 'Error');
+      error(err.response?.data?.error || err.response?.data?.errors?.[0]?.msg || 'Error');
     }
   };
 
@@ -76,39 +79,19 @@ export default function Usuarios() {
   const handleToggleActivo = async (usuario) => {
     const action = usuario.activo ? 'desactivar' : 'activar';
     const confirmed = await confirm({
-      title: `${action.charAt(0).toUpperCase() + action.slice(1)} Usuario`,
-      message: `¿Estás seguro que deseas ${action} al usuario "${usuario.nombre}"?`,
+      title: `${action.charAt(0).toUpperCase() + action.slice(1)} usuario`,
+      message: `¿Estás seguro que deseas ${action} a "${usuario.nombre}"?`,
       type: 'warning',
       confirmText: `Sí, ${action}`,
       cancelText: 'Cancelar',
     });
     if (!confirmed) return;
-
     try {
       await api.put(`/usuarios/${usuario.id}`, { activo: !usuario.activo });
-      success(`Usuario ${action}do`);
+      success(`Usuario ${usuario.activo ? 'desactivado' : 'activado'}`);
       loadUsuarios();
     } catch (err) {
       error(err.response?.data?.error || `Error al ${action} usuario`);
-    }
-  };
-
-  const handleDelete = async (usuario) => {
-    const confirmed = await confirm({
-      title: 'Eliminar Usuario',
-      message: `¿Estás seguro que deseas eliminar permanentemente al usuario "${usuario.nombre}"?`,
-      type: 'danger',
-      confirmText: 'Sí, eliminar',
-      cancelText: 'Cancelar',
-    });
-    if (!confirmed) return;
-
-    try {
-      await api.delete(`/usuarios/${usuario.id}`);
-      success('Usuario eliminado');
-      loadUsuarios();
-    } catch (err) {
-      error(err.response?.data?.error || 'Error al eliminar');
     }
   };
 
@@ -124,11 +107,6 @@ export default function Usuarios() {
       error('Las contraseñas no coinciden');
       return;
     }
-    if (passwordForm.password.length < 6) {
-      error('La contraseña debe tener al menos 6 caracteres');
-      return;
-    }
-
     try {
       await api.put(`/usuarios/${editingUser.id}/password`, { password: passwordForm.password });
       success('Contraseña actualizada');
@@ -140,17 +118,12 @@ export default function Usuarios() {
   };
 
   const getRolBadge = (rol) => {
-    const badges = {
-      admin: { label: 'Administrador', class: 'badge-danger' },
-      usuario: { label: 'Usuario', class: 'badge-primary' },
-      operario: { label: 'Operario', class: 'badge-success' },
-    };
-    const badge = badges[rol] || badges.usuario;
-    return <span className={`badge ${badge.class}`}>{badge.label}</span>;
+    const cfg = ROL_CONFIG[rol] || ROL_CONFIG.trabajador;
+    return <span className={`badge ${cfg.class}`}>{cfg.label}</span>;
   };
 
   const filteredUsuarios = usuarios.filter(u => {
-    if (filter === 'activos') return u.activo;
+    if (filter === 'activos')   return u.activo;
     if (filter === 'inactivos') return !u.activo;
     return true;
   });
@@ -171,9 +144,7 @@ export default function Usuarios() {
           <h4 className="alert-heading">Error</h4>
           <p>{apiError}</p>
           <hr />
-          <button className="btn btn-outline-danger" onClick={loadUsuarios}>
-            Reintentar
-          </button>
+          <button className="btn btn-outline-danger" onClick={loadUsuarios}>Reintentar</button>
         </div>
       </div>
     );
@@ -186,13 +157,13 @@ export default function Usuarios() {
           <h1 className="h3 mb-1 d-flex align-items-center gap-2">
             <Users size={24} /> Gestión de Usuarios
           </h1>
-          <p className="text-muted small mb-0">Administra los usuarios del sistema</p>
+          <p className="text-muted small mb-0">Administra los usuarios del tambo</p>
         </div>
         <button
           className="btn btn-success d-flex align-items-center gap-2"
           onClick={() => {
             setEditingUser(null);
-            setForm({ cedula: '', nombre: '', email: '', telefono: '', password: '', rol: 'usuario' });
+            setForm({ cedula: '', nombre: '', email: '', telefono: '', password: '', rol: 'trabajador' });
             setShowModal(true);
           }}
         >
@@ -217,7 +188,7 @@ export default function Usuarios() {
 
       <div className="usuarios-grid row g-3">
         {filteredUsuarios.map(usuario => (
-          <div key={usuario.id} className="col-12 col-md-6 col-xl-4">
+          <div key={usuario.id} className="col-12 col-sm-6 col-xl-4">
             <div className={`usuario-card ${!usuario.activo ? 'inactive' : ''}`}>
               <div className="usuario-header d-flex justify-content-between align-items-start">
                 <div className="usuario-avatar">
@@ -233,41 +204,28 @@ export default function Usuarios() {
                   <button
                     className={`btn btn-sm ${usuario.activo ? 'btn-warning' : 'btn-success'}`}
                     onClick={() => handleToggleActivo(usuario)}
-                    title={usuario.activo ? 'Desactivar' : 'Activar'}
+                    title={usuario.activo ? 'Dar de baja' : 'Reactivar'}
                   >
                     {usuario.activo ? <UserX size={14} /> : <UserCheck size={14} />}
-                  </button>
-                  <button className="btn btn-sm btn-danger" onClick={() => handleDelete(usuario)} title="Eliminar">
-                    <Trash2 size={14} />
                   </button>
                 </div>
               </div>
 
               <div className="usuario-body mt-3">
-                <h3 className="h6 mb-1">{usuario.nombre}</h3>
+                <h3 className="usuario-name">{usuario.nombre}</h3>
                 <div className="usuario-meta d-flex flex-wrap gap-2 mb-2">
                   {getRolBadge(usuario.rol)}
                   <span className={`badge ${usuario.activo ? 'badge-success' : 'badge-secondary'}`}>
                     {usuario.activo ? 'Activo' : 'Inactivo'}
                   </span>
                 </div>
-
                 <div className="usuario-details">
-                  <div className="detail-row">
-                    <Hash size={14} />
-                    <span>{usuario.cedula}</span>
-                  </div>
+                  <div className="detail-row"><Hash size={14} /><span>{usuario.cedula}</span></div>
                   {usuario.email && (
-                    <div className="detail-row">
-                      <Mail size={14} />
-                      <span>{usuario.email}</span>
-                    </div>
+                    <div className="detail-row"><Mail size={14} /><span>{usuario.email}</span></div>
                   )}
                   {usuario.telefono && (
-                    <div className="detail-row">
-                      <Phone size={14} />
-                      <span>{usuario.telefono}</span>
-                    </div>
+                    <div className="detail-row"><Phone size={14} /><span>{usuario.telefono}</span></div>
                   )}
                   {usuario.ultimo_acceso && (
                     <div className="detail-row text-muted small">
@@ -294,7 +252,7 @@ export default function Usuarios() {
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2 className="h4 mb-0">{editingUser ? 'Editar Usuario' : 'Nuevo Usuario'}</h2>
-              <button type="button" className="btn-close" onClick={() => setShowModal(false)}></button>
+              <button type="button" className="btn-close" onClick={() => setShowModal(false)} />
             </div>
             <div className="modal-body">
               <form onSubmit={handleSubmit}>
@@ -304,7 +262,7 @@ export default function Usuarios() {
                     type="text"
                     className="form-control"
                     value={form.cedula}
-                    onChange={e => setForm({...form, cedula: e.target.value})}
+                    onChange={e => setForm(prev => ({ ...prev, cedula: e.target.value }))}
                     required
                     disabled={!!editingUser}
                   />
@@ -315,26 +273,26 @@ export default function Usuarios() {
                     type="text"
                     className="form-control"
                     value={form.nombre}
-                    onChange={e => setForm({...form, nombre: e.target.value})}
+                    onChange={e => setForm(prev => ({ ...prev, nombre: e.target.value }))}
                     required
                   />
                 </div>
                 <div className="mb-3">
-                  <label className="form-label">Email</label>
+                  <label className="form-label">Email <span className="text-muted">(opcional)</span></label>
                   <input
                     type="email"
                     className="form-control"
                     value={form.email}
-                    onChange={e => setForm({...form, email: e.target.value})}
+                    onChange={e => setForm(prev => ({ ...prev, email: e.target.value }))}
                   />
                 </div>
                 <div className="mb-3">
-                  <label className="form-label">Teléfono</label>
+                  <label className="form-label">Teléfono <span className="text-muted">(opcional)</span></label>
                   <input
                     type="text"
                     className="form-control"
                     value={form.telefono}
-                    onChange={e => setForm({...form, telefono: e.target.value})}
+                    onChange={e => setForm(prev => ({ ...prev, telefono: e.target.value }))}
                   />
                 </div>
                 {!editingUser && (
@@ -344,8 +302,8 @@ export default function Usuarios() {
                       type="password"
                       className="form-control"
                       value={form.password}
-                      onChange={e => setForm({...form, password: e.target.value})}
-                      required={!editingUser}
+                      onChange={e => setForm(prev => ({ ...prev, password: e.target.value }))}
+                      required
                       minLength={6}
                     />
                     <small className="text-muted">Mínimo 6 caracteres</small>
@@ -356,11 +314,11 @@ export default function Usuarios() {
                   <select
                     className="form-select"
                     value={form.rol}
-                    onChange={e => setForm({...form, rol: e.target.value})}
+                    onChange={e => setForm(prev => ({ ...prev, rol: e.target.value }))}
                   >
-                    <option value="usuario">Usuario</option>
-                    <option value="operario">Operario</option>
-                    <option value="admin">Administrador</option>
+                    <option value="trabajador">Trabajador</option>
+                    <option value="encargado">Encargado</option>
+                    <option value="dueno">Dueño</option>
                   </select>
                 </div>
                 <div className="modal-actions d-flex gap-2 justify-content-end mt-4">
@@ -383,7 +341,7 @@ export default function Usuarios() {
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
             <div className="modal-header">
               <h2 className="h5 mb-0"><Lock size={18} className="me-2" />Cambiar Contraseña</h2>
-              <button type="button" className="btn-close" onClick={() => setShowPasswordModal(false)}></button>
+              <button type="button" className="btn-close" onClick={() => setShowPasswordModal(false)} />
             </div>
             <div className="modal-body">
               <p className="text-muted small mb-3">Usuario: <strong>{editingUser?.nombre}</strong></p>
@@ -394,7 +352,7 @@ export default function Usuarios() {
                     type="password"
                     className="form-control"
                     value={passwordForm.password}
-                    onChange={e => setPasswordForm({...passwordForm, password: e.target.value})}
+                    onChange={e => setPasswordForm(prev => ({ ...prev, password: e.target.value }))}
                     required
                     minLength={6}
                     autoFocus
@@ -406,7 +364,7 @@ export default function Usuarios() {
                     type="password"
                     className="form-control"
                     value={passwordForm.confirmPassword}
-                    onChange={e => setPasswordForm({...passwordForm, confirmPassword: e.target.value})}
+                    onChange={e => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
                     required
                   />
                 </div>

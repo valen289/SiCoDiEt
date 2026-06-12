@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../context/AlertContext';
 import {
   Wheat, Package, LineChart, LogOut, Calculator, Menu, X, User,
-  Database, Droplets, UserCog, Users, Bell, Plus, History, Trash2
+  Database, Droplets, UserCog, Users, Bell, Plus, History, Trash2, Shield, Activity
 } from 'lucide-react';
 import '../styles/layout.css';
 
@@ -15,13 +15,16 @@ const foodTypes = [
   { value: 'sales', label: 'Sales', icon: Droplets },
 ];
 
+const ROL_LABELS = { dueno: 'Dueño', encargado: 'Encargado', trabajador: 'Trabajador' };
+
 const moduleItems = [
-  { path: '/lotes', icon: Package, label: 'Lotes' },
-  { path: '/consumos', icon: LineChart, label: 'Consumos' },
-  { path: '/dietas', icon: Calculator, label: 'Dietas' },
-  { path: '/alertas', icon: Bell, label: 'Alertas' },
-  { path: '/historial', icon: History, label: 'Historial' },
-  { path: '/perfil', icon: UserCog, label: 'Perfil' },
+  { path: '/lotes',       icon: Package,   label: 'Lotes' },
+  { path: '/consumos',    icon: LineChart,  label: 'Consumos' },
+  { path: '/dietas',      icon: Calculator, label: 'Dietas' },
+  { path: '/alertas',     icon: Bell,       label: 'Alertas' },
+  { path: '/historial',   icon: History,    label: 'Historial' },
+  { path: '/actividades', icon: Activity,   label: 'Actividades' },
+  { path: '/perfil',      icon: UserCog,    label: 'Perfil' },
 ];
 
 export default function Layout() {
@@ -43,7 +46,7 @@ export default function Layout() {
 
   const visibleFoodTypes = foodTypes.filter(t => !hiddenFoodTypes.includes(t.value));
 
-  const isOperario = user?.rol === 'operario';
+  const isDueno = user?.rol === 'dueno';
 
   const handleLogout = async () => {
     const confirmed = await confirm({
@@ -119,7 +122,7 @@ export default function Layout() {
               <User size={16} />
               <div className="user-details">
                 <span className="user-name">{user?.nombre}</span>
-                <span className="user-role">{user?.rol}</span>
+                <span className="user-role">{ROL_LABELS[user?.rol] || user?.rol}</span>
               </div>
             </div>
             <button className="logout-btn" onClick={handleLogout} title="Cerrar Sesión">
@@ -187,6 +190,15 @@ export default function Layout() {
                 <span>{item.label}</span>
               </button>
             ))}
+            {isDueno && (
+              <button
+                className={`sidebar-nav-item ${isActivePath('/usuarios') ? 'active' : ''}`}
+                onClick={() => handleNavClick('/usuarios')}
+              >
+                <Shield size={18} />
+                <span>Usuarios</span>
+              </button>
+            )}
           </nav>
         </div>
       </aside>
@@ -206,7 +218,7 @@ export default function Layout() {
           <User size={20} />
           <div>
             <span className="drawer-user-name">{user?.nombre}</span>
-            <span className="drawer-user-role">{user?.rol}</span>
+            <span className="drawer-user-role">{ROL_LABELS[user?.rol] || user?.rol}</span>
           </div>
         </div>
         <nav className="drawer-nav">
@@ -261,6 +273,15 @@ export default function Layout() {
                 <span>{item.label}</span>
               </button>
             ))}
+            {isDueno && (
+              <button
+                className={`drawer-nav-item ${isActivePath('/usuarios') ? 'active' : ''}`}
+                onClick={() => handleNavClick('/usuarios')}
+              >
+                <Shield size={18} />
+                <span>Usuarios</span>
+              </button>
+            )}
           </div>
         </nav>
         <div className="drawer-footer">

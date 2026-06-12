@@ -45,7 +45,7 @@ router.put('/leer-todas', async (req, res) => {
   }
 });
 
-router.delete('/:id', authorizeRoles('admin'), async (req, res) => {
+router.delete('/:id', authorizeRoles('dueno', 'encargado'), async (req, res) => {
   try {
     await pool.query('DELETE FROM alertas WHERE id = ?', [req.params.id]);
     res.json({ message: 'Alerta eliminada exitosamente' });

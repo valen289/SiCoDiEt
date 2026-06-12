@@ -3,6 +3,7 @@ const router = express.Router();
 const pool = require('../config/database');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 const { body, validationResult } = require('express-validator');
+const { logActividad } = require('../utils/actividad');
 
 router.use(authenticateToken);
 
@@ -26,7 +27,7 @@ router.get('/historial', async (req, res) => {
   }
 });
 
-router.post('/', authorizeRoles('admin', 'operario'), [
+router.post('/', authorizeRoles('dueno', 'encargado'), [
   body('total_vacas').isInt({ min: 0 }).withMessage('Total de vacas debe ser mayor o igual a 0'),
   body('vacas_lechera').optional().isInt({ min: 0 }),
   body('vacas_seco').optional().isInt({ min: 0 }),
@@ -45,9 +46,15 @@ router.post('/', authorizeRoles('admin', 'operario'), [
       [total_vacas, vacas_lechera, vacas_seco, terneros, req.user.id]
     );
 
-    res.status(201).json({ 
+    await logActividad(pool, {
+      usuario_id: req.user.id,
+      accion: 'ganado_actualizado',
+      descripcion: `Actualizó el rodeo: ${total_vacas} vacas totales (${vacas_lechera} lecheras, ${vacas_seco} secas, ${terneros} terneros)`,
+    });
+
+    res.status(201).json({
       message: 'Registro de ganado creado exitosamente',
-      registroId: result.insertId 
+      registroId: result.insertId
     });
   } catch (error) {
     console.error('Error registrando ganado:', error);

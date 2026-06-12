@@ -1,21 +1,43 @@
 /* ===== SICODIET - Base Styles ===== */
 
 :root {
-  --primary: #588157;
-  --primary-dark: #3A5A40;
+  /* Brand */
+  --primary:       #588157;
+  --primary-dark:  #3A5A40;
   --primary-light: #F8F6F0;
-  --primary-rgb: 88, 129, 87;
-  --danger: #C1553B;
+  --primary-rgb:   88, 129, 87;
+
+  /* Semantic */
+  --danger:  #C1553B;
   --warning: #e6a817;
-  --info: #0dcaf0;
-  --text: #344E41;
+  --info:    #0dcaf0;
+
+  /* Alert levels — usados en CSS, NO en JS inline styles */
+  --alerta-critico:   #c0392b;
+  --alerta-precaucion:#d97706;
+  --alerta-normal:    #27ae60;
+  --alerta-holgado:   #0d9488;
+  --alerta-sin-datos: #6c757d;
+
+  /* Stock progress bar colors */
+  --stock-low:  #c0392b;
+  --stock-mid:  #d97706;
+  --stock-high: #27ae60;
+
+  /* Text */
+  --text:       #344E41;
   --text-light: #4A5548;
-  --bg: #F8F6F0;
-  --white: #ffffff;
-  --border: #A3B18A;
+
+  /* Surfaces */
+  --bg:      #F8F6F0;
+  --white:   #ffffff;
+  --border:  #A3B18A;
   --divider: #DAD7CD;
-  --shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+
+  /* Shadows */
+  --shadow:    0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
   --shadow-lg: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  --shadow-md: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.10);
 }
 
 * {

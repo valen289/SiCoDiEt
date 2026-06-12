@@ -9,7 +9,7 @@ router.post('/register', [
   body('cedula').notEmpty().withMessage('Cedula requerida'),
   body('nombre').notEmpty().withMessage('Nombre requerido'),
   body('password').isLength({ min: 6 }).withMessage('Password minimo 6 caracteres'),
-  body('rol').optional().isIn(['admin', 'usuario', 'operario'])
+  body('rol').optional().isIn(['dueno', 'encargado', 'trabajador'])
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -17,7 +17,7 @@ router.post('/register', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { cedula, nombre, password, email, telefono, rol = 'usuario' } = req.body;
+    const { cedula, nombre, password, email, telefono, rol = 'trabajador' } = req.body;
 
     const [existing] = await pool.query('SELECT id FROM usuarios WHERE cedula = ?', [cedula]);
     if (existing.length > 0) {
@@ -53,7 +53,10 @@ router.post('/login', [
 
     const { cedula, password } = req.body;
 
-    const [users] = await pool.query('SELECT * FROM usuarios WHERE cedula = ? AND activo = TRUE', [cedula]);
+    const [users] = await pool.query(
+      'SELECT id, cedula, nombre, email, telefono, rol, password FROM usuarios WHERE cedula = ? AND activo = TRUE',
+      [cedula]
+    );
     
     if (users.length === 0) {
       return res.status(401).json({ error: 'Credenciales invalidas' });

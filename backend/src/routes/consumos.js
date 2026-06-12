@@ -4,6 +4,7 @@ const pool = require('../config/database');
 const { authenticateToken } = require('../middleware/auth');
 const { body, validationResult } = require('express-validator');
 const { verificarYGenerarAlertas } = require('../utils/alertas');
+const { logActividad } = require('../utils/actividad');
 
 router.use(authenticateToken);
 
@@ -100,7 +101,14 @@ router.post('/', [
 
       await connection.commit();
 
-      res.status(201).json({ 
+      const [[lote]] = await pool.query('SELECT nombre FROM lotes WHERE id = ?', [lote_id]);
+      await logActividad(pool, {
+        usuario_id: req.user.id,
+        accion: 'consumo_registrado',
+        descripcion: `Registró consumo: ${parseFloat(cantidad).toLocaleString('es-AR')} ${insumo.unidad} de "${insumo.nombre}" en "${lote?.nombre}"`,
+      });
+
+      res.status(201).json({
         message: 'Consumo registrado exitosamente',
         nuevoStock,
         unidad: insumo.unidad

@@ -17,6 +17,7 @@ const ganadoRoutes = require('./routes/ganado');
 const alertasRoutes = require('./routes/alertas');
 const dietasRoutes = require('./routes/dietas');
 const movimientosRoutes = require('./routes/movimientos');
+const actividadesRoutes = require('./routes/actividades');
 
 const app = express();
 
@@ -123,6 +124,7 @@ app.use('/api/ganado', ganadoRoutes);
 app.use('/api/alertas', alertasRoutes);
 app.use('/api/dietas', dietasRoutes);
 app.use('/api/movimientos', movimientosRoutes);
+app.use('/api/actividades', actividadesRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ 

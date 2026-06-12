@@ -165,25 +165,25 @@ export default function Lotes() {
               <form onSubmit={handleSubmit}>
                 <div className="mb-3">
                   <label className="form-label">Nombre</label>
-                  <input className="form-control" value={form.nombre} onChange={e => setForm({...form, nombre: e.target.value})} required />
+                  <input className="form-control" value={form.nombre} onChange={e => setForm(prev => ({...prev, nombre: e.target.value}))} required />
                 </div>
                 <div className="mb-3">
                   <label className="form-label">Tipo de Animal</label>
-                  <input className="form-control" value={form.tipo_animal} onChange={e => setForm({...form, tipo_animal: e.target.value})} required />
+                  <input className="form-control" value={form.tipo_animal} onChange={e => setForm(prev => ({...prev, tipo_animal: e.target.value}))} required />
                 </div>
                 <div className="row g-3 mb-3">
                   <div className="col-6">
                     <label className="form-label">Cantidad de Animales</label>
-                    <input type="number" className="form-control" value={form.cantidad_animales} onChange={e => setForm({...form, cantidad_animales: e.target.value})} required />
+                    <input type="number" className="form-control" value={form.cantidad_animales} onChange={e => setForm(prev => ({...prev, cantidad_animales: e.target.value}))} required />
                   </div>
                   <div className="col-6">
                     <label className="form-label">Consumo Estimado Diario (kg)</label>
-                    <input type="number" step="0.01" className="form-control" value={form.consumo_estimado_diario} onChange={e => setForm({...form, consumo_estimado_diario: e.target.value})} />
+                    <input type="number" step="0.01" className="form-control" value={form.consumo_estimado_diario} onChange={e => setForm(prev => ({...prev, consumo_estimado_diario: e.target.value}))} />
                   </div>
                 </div>
                 <div className="mb-3">
                   <label className="form-label">Observaciones</label>
-                  <textarea className="form-control" value={form.observaciones} onChange={e => setForm({...form, observaciones: e.target.value})} rows="3" />
+                  <textarea className="form-control" value={form.observaciones} onChange={e => setForm(prev => ({...prev, observaciones: e.target.value}))} rows="3" />
                 </div>
                 <div className="modal-actions">
                   <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>

@@ -4,6 +4,7 @@ const pool = require('../config/database');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 const { body, validationResult } = require('express-validator');
 const { verificarYGenerarAlertas, getNivelAlerta } = require('../utils/alertas');
+const { logActividad } = require('../utils/actividad');
 
 router.use(authenticateToken);
 
@@ -62,9 +63,15 @@ router.post('/', [
       [nombre, tipo_insumo, unidad, capacidad_maxima, stock_actual, stock_minimo]
     );
 
-    res.status(201).json({ 
+    await logActividad(pool, {
+      usuario_id: req.user.id,
+      accion: 'insumo_creado',
+      descripcion: `Creó el insumo "${nombre}"`,
+    });
+
+    res.status(201).json({
       message: 'Insumo creado exitosamente',
-      insumoId: result.insertId 
+      insumoId: result.insertId
     });
   } catch (error) {
     console.error('Error creando insumo:', error);
@@ -101,6 +108,13 @@ router.put('/:id', [
 
     values.push(req.params.id);
     await pool.query(`UPDATE insumos SET ${updates.join(', ')} WHERE id = ?`, values);
+
+    const [[insumo]] = await pool.query('SELECT nombre FROM insumos WHERE id = ?', [req.params.id]);
+    await logActividad(pool, {
+      usuario_id: req.user.id,
+      accion: 'insumo_actualizado',
+      descripcion: `Actualizó el insumo "${insumo?.nombre}"`,
+    });
 
     res.json({ message: 'Insumo actualizado exitosamente' });
   } catch (error) {
@@ -165,7 +179,14 @@ router.post('/:id/cargar', [
       await verificarYGenerarAlertas(insumoId, connection);
 
       await connection.commit();
-      res.json({ 
+
+      await logActividad(pool, {
+        usuario_id: req.user.id,
+        accion: 'carga_registrada',
+        descripcion: `Cargó ${parseFloat(cantidad).toLocaleString('es-AR')} ${insumo.unidad} en "${insumo.nombre}"`,
+      });
+
+      res.json({
         message: 'Carga registrada exitosamente',
         nuevoStock,
         capacidadMaxima: insumo.capacidad_maxima,
@@ -185,7 +206,15 @@ router.post('/:id/cargar', [
 
 router.delete('/:id', async (req, res) => {
   try {
+    const [[insumo]] = await pool.query('SELECT nombre FROM insumos WHERE id = ?', [req.params.id]);
     await pool.query('UPDATE insumos SET activo = FALSE WHERE id = ?', [req.params.id]);
+
+    await logActividad(pool, {
+      usuario_id: req.user.id,
+      accion: 'insumo_desactivado',
+      descripcion: `Desactivó el insumo "${insumo?.nombre}"`,
+    });
+
     res.json({ message: 'Insumo desactivado exitosamente' });
   } catch (error) {
     console.error('Error desactivando insumo:', error);

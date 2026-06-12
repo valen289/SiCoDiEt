@@ -14,7 +14,7 @@ export default function Alertas() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('todas');
 
-  const isAdmin = user?.rol === 'admin';
+  const isAdmin = user?.rol === 'dueno' || user?.rol === 'encargado';
 
   const loadAlertas = useCallback(async () => {
     try {

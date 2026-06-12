@@ -241,10 +241,10 @@ export default function Silos() {
     return { nivel: 'holgado', color: '#17a2b8', label: 'HOLGADO', bgClass: 'bg-info' };
   };
 
-  const getProgressColor = (porcentaje) => {
-    if (porcentaje <= 30) return '#dc3545';
-    if (porcentaje <= 60) return '#ffc107';
-    return '#2e7d32';
+  const getStockClass = (porcentaje) => {
+    if (porcentaje <= 30) return 'stock-low';
+    if (porcentaje <= 60) return 'stock-mid';
+    return 'stock-high';
   };
 
   const parseIntegerValue = (value) => {
@@ -304,18 +304,23 @@ export default function Silos() {
             const precio = costosInsumos[insumo.id];
             const isEditing = editingPrecio === insumo.id;
 
+            const stockClass = getStockClass(porcentaje);
+
             return (
               <article key={insumo.id} className="insumo-card-wrapper" role="listitem" aria-label={`Insumo ${insumo.nombre}`}>
-                <div className={`insumo-card ${isCritical ? 'low-stock' : ''}`} style={{ borderLeftColor: nivelAlerta.color }}>
+                <div className={`insumo-card nivel-${nivelAlerta.nivel}`}>
+
+                  {/* Header: nombre + acciones */}
                   <div className="insumo-card-top">
                     <div className="insumo-card-info">
                       <h3 className="insumo-name">{insumo.nombre}</h3>
-                      <p className="insumo-meta">Unidad: {insumo.unidad}</p>
-                      <p className="insumo-meta">Capacidad: {formatNumber(insumo.capacidad_maxima, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} {insumo.unidad}</p>
+                      <p className="insumo-meta">
+                        {insumo.tipo_insumo} · cap. {formatNumber(insumo.capacidad_maxima, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} {insumo.unidad}
+                      </p>
                     </div>
                     <div className="insumo-card-actions">
-                      <button className="btn btn-sm btn-light insumo-edit-btn" onClick={() => handleEdit(insumo)} type="button" aria-label={`Editar ${insumo.nombre}`}>
-                        <Edit2 size={14} /> Editar
+                      <button className="btn btn-sm btn-light" onClick={() => handleEdit(insumo)} type="button" aria-label={`Editar ${insumo.nombre}`}>
+                        <Edit2 size={14} /> <span className="d-none d-sm-inline">Editar</span>
                       </button>
                       <button className="btn btn-sm btn-outline-secondary" onClick={() => handleVerHistorial(insumo)} aria-label={`Historial ${insumo.nombre}`}>
                         <History size={14} />
@@ -323,65 +328,69 @@ export default function Silos() {
                     </div>
                   </div>
 
-                  <hr className="insumo-divider" />
-
+                  {/* Stock hero */}
                   <div className="insumo-stock-display">
-                    <span className="stock-current" style={{ color: nivelAlerta.color }}>
-                      {formatNumber(insumo.stock_actual, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                    <div className="stock-hero">
+                      <span className="stock-current">
+                        {formatNumber(insumo.stock_actual, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                      </span>
+                      <span className="stock-unit">{insumo.unidad}</span>
+                    </div>
+                    <span className="stock-de">
+                      de {formatNumber(insumo.capacidad_maxima, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} {insumo.unidad}
                     </span>
-                    <span className="stock-max">/{formatNumber(insumo.capacidad_maxima, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} {insumo.unidad}</span>
                   </div>
 
-                  <div className="insumo-precio-section">
-                    <div className="precio-info">
-                      <span className="precio-label">Precio/kg (USD)</span>
-                      {isEditing ? (
-                        <div className="input-group input-group-sm precio-input-group">
-                          <span className="input-group-text">US$</span>
-                          <input type="number" step="0.0001" className="form-control" value={precioInput} onChange={(e) => setPrecioInput(e.target.value)} autoFocus />
-                        </div>
-                      ) : (
-                        <strong className="precio-value">US${precio ? parseFloat(precio).toFixed(2) : 'N/A'}</strong>
-                      )}
+                  {/* Barra de progreso */}
+                  <div className="progress-bar" role="progressbar" aria-valuenow={porcentaje} aria-valuemin="0" aria-valuemax="100" aria-label={`Stock al ${porcentaje}%`}>
+                    <div className={`progress-fill ${stockClass}`} style={{ width: `${porcentaje}%` }} />
+                  </div>
+
+                  {/* Footer: días restantes + precio */}
+                  <div className="insumo-footer">
+                    <div className="footer-stat">
+                      <span className="footer-stat__label">Días restantes</span>
+                      <strong className="footer-stat__value dias-value">{dias}</strong>
                     </div>
-                    <div className="precio-actions">
+                    <div className="footer-stat">
+                      <span className="footer-stat__label">Precio/kg (USD)</span>
                       {isEditing ? (
-                        <>
+                        <div className="precio-edit-inline">
+                          <input
+                            type="number" step="0.0001"
+                            value={precioInput}
+                            onChange={(e) => setPrecioInput(e.target.value)}
+                            autoFocus
+                            aria-label="Precio por kg"
+                          />
                           <button className="btn btn-sm btn-success" onClick={() => handleGuardarPrecio(insumo.id)} aria-label="Guardar precio">
-                            <CheckCircle size={14} />
+                            <CheckCircle size={13} />
                           </button>
                           <button className="btn btn-sm btn-secondary" onClick={handleCancelarPrecio} aria-label="Cancelar">
-                            <X size={14} />
+                            <X size={13} />
                           </button>
-                        </>
+                        </div>
                       ) : (
-                        <button className="btn btn-sm btn-outline-primary" onClick={() => handleEditarPrecio(insumo)} aria-label="Editar precio">
-                          <Edit2 size={14} />
-                        </button>
+                        <div className="precio-display">
+                          <strong className="footer-stat__value">
+                            {precio ? `US$ ${parseFloat(precio).toFixed(2)}` : 'N/A'}
+                          </strong>
+                          <button className="precio-edit-btn-sm" onClick={() => handleEditarPrecio(insumo)} aria-label="Editar precio">
+                            <Edit2 size={12} />
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
 
-                  <div className="insumo-details-row">
-                    <div className="detail-col">
-                      <span className="detail-label">Porcentaje</span>
-                      <strong className="detail-value">{porcentaje}%</strong>
-                    </div>
-                    <div className="detail-col text-end">
-                      <span className="detail-label">Dias restantes</span>
-                      <strong className="detail-value" style={{ color: nivelAlerta.color }}>{dias}</strong>
-                    </div>
-                  </div>
-
-                  <div className="progress-bar" role="progressbar" aria-valuenow={porcentaje} aria-valuemin="0" aria-valuemax="100">
-                    <div className="progress-fill" style={{ width: `${porcentaje}%`, backgroundColor: getProgressColor(porcentaje) }}></div>
-                  </div>
-
+                  {/* Alerta crítica */}
                   {isCritical && (
-                    <div className="stock-warning" style={{ color: nivelAlerta.color }} role="alert" aria-live="polite">
-                      <AlertTriangle size={14} aria-hidden="true" /> {nivelAlerta.label} - {dias}
+                    <div className="stock-warning" role="alert" aria-live="polite">
+                      <AlertTriangle size={13} aria-hidden="true" />
+                      {nivelAlerta.label} — {dias}
                     </div>
                   )}
+
                 </div>
               </article>
             );
@@ -401,11 +410,11 @@ export default function Silos() {
               <form onSubmit={handleSubmit}>
                 <div className="mb-3">
                   <label className="form-label">Nombre del Insumo</label>
-                  <input type="text" className="form-control" value={form.nombre} onChange={e => setForm({...form, nombre: e.target.value})} required />
+                  <input type="text" className="form-control" value={form.nombre} onChange={e => setForm(prev => ({...prev, nombre: e.target.value}))} required />
                 </div>
                 <div className="mb-3">
                   <label className="form-label">Tipo</label>
-                  <select className="form-select" value={form.tipo_insumo} onChange={e => setForm({...form, tipo_insumo: e.target.value})} required>
+                  <select className="form-select" value={form.tipo_insumo} onChange={e => setForm(prev => ({...prev, tipo_insumo: e.target.value}))} required>
                     <option value="">Seleccionar tipo...</option>
                     {todosLosTipos.filter(t => t.value !== 'todos').map(tipo => (
                       <option key={tipo.value} value={tipo.value}>{tipo.label}</option>
@@ -414,20 +423,20 @@ export default function Silos() {
                 </div>
                 <div className="mb-3">
                   <label className="form-label">Unidad</label>
-                  <input type="text" className="form-control" value={form.unidad} onChange={e => setForm({...form, unidad: e.target.value})} required />
+                  <input type="text" className="form-control" value={form.unidad} onChange={e => setForm(prev => ({...prev, unidad: e.target.value}))} required />
                 </div>
                 <div className="row g-3">
                   <div className="col-md-4">
                     <label className="form-label">Capacidad Maxima</label>
-                    <input type="number" step="1" min="0" className="form-control" value={form.capacidad_maxima} onChange={e => setForm({...form, capacidad_maxima: e.target.value})} required />
+                    <input type="number" step="1" min="0" className="form-control" value={form.capacidad_maxima} onChange={e => setForm(prev => ({...prev, capacidad_maxima: e.target.value}))} required />
                   </div>
                   <div className="col-md-4">
                     <label className="form-label">Stock Actual</label>
-                    <input type="number" step="1" min="0" className="form-control" value={form.stock_actual} onChange={e => setForm({...form, stock_actual: e.target.value})} />
+                    <input type="number" step="1" min="0" className="form-control" value={form.stock_actual} onChange={e => setForm(prev => ({...prev, stock_actual: e.target.value}))} />
                   </div>
                   <div className="col-md-4">
                     <label className="form-label">Stock Minimo</label>
-                    <input type="number" step="1" min="0" className="form-control" value={form.stock_minimo} onChange={e => setForm({...form, stock_minimo: e.target.value})} required />
+                    <input type="number" step="1" min="0" className="form-control" value={form.stock_minimo} onChange={e => setForm(prev => ({...prev, stock_minimo: e.target.value}))} required />
                   </div>
                 </div>
 
@@ -497,29 +506,30 @@ export default function Silos() {
               {historialResumen && (
                 <div className="row g-2 mb-3">
                   <div className="col-6 col-md-3">
-                    <div className="p-2 rounded text-center" style={{ background: 'var(--primary-light)' }}>
+                    <div className="historial-resumen-card historial-resumen-card--ingreso text-center">
                       <div className="small text-muted">Ingresos</div>
                       <strong className="text-success">+{formatNumber(historialResumen.total_ingresos)} {editingInsumo.unidad}</strong>
                     </div>
                   </div>
                   <div className="col-6 col-md-3">
-                    <div className="p-2 rounded text-center" style={{ background: 'rgba(193,85,59,0.1)' }}>
+                    <div className="historial-resumen-card historial-resumen-card--consumo text-center">
                       <div className="small text-muted">Consumos</div>
                       <strong className="text-danger">-{formatNumber(historialResumen.total_consumos)} {editingInsumo.unidad}</strong>
                     </div>
                   </div>
                   <div className="col-6 col-md-3">
-                    <div className="p-2 rounded text-center" style={{ background: 'var(--bg)' }}>
+                    <div className="historial-resumen-card historial-resumen-card--ajuste text-center">
                       <div className="small text-muted">Ajustes +</div>
                       <strong>+{formatNumber(historialResumen.total_ajustes_pos)}</strong>
                     </div>
                   </div>
                   <div className="col-6 col-md-3">
-                    <div className="p-2 rounded text-center" style={{ background: 'var(--bg)' }}>
+                    <div className="historial-resumen-card historial-resumen-card--ajuste text-center">
                       <div className="small text-muted">Balance</div>
-                      <strong className={(parseFloat(historialResumen.total_ingresos) + parseFloat(historialResumen.total_ajustes_pos) - parseFloat(historialResumen.total_consumos) - parseFloat(historialResumen.total_ajustes_neg)) >= 0 ? 'text-success' : 'text-danger'}>
-                        {formatNumber(parseFloat(historialResumen.total_ingresos) + parseFloat(historialResumen.total_ajustes_pos) - parseFloat(historialResumen.total_consumos) - parseFloat(historialResumen.total_ajustes_neg))} {editingInsumo.unidad}
-                      </strong>
+                      {(() => {
+                        const balance = parseFloat(historialResumen.total_ingresos) + parseFloat(historialResumen.total_ajustes_pos) - parseFloat(historialResumen.total_consumos) - parseFloat(historialResumen.total_ajustes_neg);
+                        return <strong className={balance >= 0 ? 'text-success' : 'text-danger'}>{formatNumber(balance)} {editingInsumo.unidad}</strong>;
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -528,12 +538,12 @@ export default function Silos() {
               <div className="historial-list">
                 {historial.map(h => {
                   const tipoLabels = { ingreso: 'Ingreso', consumo: 'Consumo', ajuste_positivo: 'Ajuste +', ajuste_negativo: 'Ajuste -' };
-                  const tipoColors = { ingreso: 'var(--primary)', consumo: 'var(--danger)', ajuste_positivo: '#28a745', ajuste_negativo: 'var(--danger)' };
+                  const tipoBadge = { ingreso: 'bg-success', consumo: 'bg-danger', ajuste_positivo: 'bg-primary', ajuste_negativo: 'bg-danger' };
                   return (
                     <div key={h.id} className="historial-item d-flex justify-content-between align-items-center py-2 border-bottom">
                       <div>
                         <div className="d-flex align-items-center gap-2">
-                          <span className="badge" style={{ backgroundColor: tipoColors[h.tipo], color: '#fff' }}>
+                          <span className={`badge ${tipoBadge[h.tipo] || 'bg-secondary'}`}>
                             {tipoLabels[h.tipo] || h.tipo}
                           </span>
                           <strong>{h.tipo === 'ingreso' || h.tipo === 'ajuste_positivo' ? '+' : '-'}{formatNumber(h.cantidad)} {h.unidad || editingInsumo.unidad}</strong>

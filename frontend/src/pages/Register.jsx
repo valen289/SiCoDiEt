@@ -6,7 +6,7 @@ import '../styles/login.css';
 
 export default function Register() {
   const [form, setForm] = useState({
-    nombre: '', apellido: '', cedula: '', email: '', telefono: '', password: '', confirmPassword: '', rol: 'usuario'
+    nombre: '', apellido: '', cedula: '', email: '', telefono: '', password: '', confirmPassword: '', rol: 'trabajador'
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -69,8 +69,8 @@ export default function Register() {
             <div className="form-group">
               <label className="form-label">Rol</label>
               <select name="rol" className="form-select" value={form.rol} onChange={handleChange}>
-                <option value="usuario">Usuario</option>
-                <option value="operario">Operario</option>
+                <option value="trabajador">Trabajador</option>
+                <option value="encargado">Encargado</option>
               </select>
             </div>
 

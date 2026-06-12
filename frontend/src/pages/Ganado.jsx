@@ -19,7 +19,7 @@ export default function Ganado() {
     total_vacas: '', vacas_lechera: '', vacas_seco: '', terneros: ''
   });
 
-  const canRegister = user?.rol === 'admin' || user?.rol === 'operario';
+  const canRegister = user?.rol === 'dueno' || user?.rol === 'encargado';
 
   const loadData = useCallback(async () => {
     try {
