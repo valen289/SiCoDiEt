@@ -488,7 +488,8 @@ export default function Silos() {
 
                 {editingInsumo && (
                   <div className="carga-section">
-                    <h4 className="h6 mb-3 text-success">Nuevo Ingreso</h4>
+                    <h4 className="h6 mb-3 text-success">Ajuste manual de stock (sin proveedor)</h4>
+                    <div className="form-text mb-3">¿Es una compra a un proveedor? Usá el módulo Compras en su lugar: ahí queda registrado el precio pagado.</div>
                     <div className="mb-3">
                       <label className="form-label">Cantidad a agregar ({form.unidad})</label>
                       <input type="number" className="form-control" value={cargaForm.cantidad} onChange={e => setCargaForm({...cargaForm, cantidad: e.target.value})} />
@@ -498,7 +499,7 @@ export default function Silos() {
                       <input type="text" className="form-control" value={cargaForm.comprobante} onChange={e => setCargaForm({...cargaForm, comprobante: e.target.value})} placeholder="Nro de remito" />
                     </div>
                     <button type="button" className="btn btn-success w-100" onClick={handleCargar}>
-                      <Plus size={16} className="me-1" /> Registrar Ingreso
+                      <Plus size={16} className="me-1" /> Registrar ajuste de stock
                     </button>
                   </div>
                 )}
