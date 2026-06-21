@@ -118,7 +118,14 @@ export default function Silos() {
         }
         success('Insumo actualizado');
       } else {
-        await api.post('/insumos', payload);
+        const res = await api.post('/insumos', payload);
+        if (form.precio_por_kg !== '') {
+          const precio = parseFloat(form.precio_por_kg);
+          if (!isNaN(precio) && precio >= 0) {
+            await api.put(`/dietas/costos/${res.data.insumoId}`, { precio_por_kg: precio });
+            setCostosInsumos(prev => ({ ...prev, [res.data.insumoId]: precio }));
+          }
+        }
         success('Insumo creado');
       }
       setShowModal(false);
