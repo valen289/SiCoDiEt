@@ -98,8 +98,9 @@ async function initDatabase() {
     }
 
     console.log('Esquema inicializado correctamente');
-    // Mark all migrations as applied since they're included in database.sql
-    await runMigrations(true);
+    // database.sql no incluye todas las migraciones (ej. categoria de insumos,
+    // proveedores/compras) — hay que correrlas de verdad, no solo marcarlas.
+    await runMigrations(false);
   } catch (err) {
     console.error('Error al inicializar la base de datos:', err.message);
     throw err;
