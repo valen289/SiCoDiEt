@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
 import { Mail, ArrowLeft, CheckCircle } from 'lucide-react';
+import Footer from '../components/Footer';
 import '../styles/login.css';
 
 export default function ForgotPassword() {
@@ -81,29 +82,7 @@ export default function ForgotPassword() {
         </div>
       </div>
 
-      <footer className="login-footer">
-        <div className="footer-content">
-          <div className="footer-brand">
-            <h4>SiCoDiEt</h4>
-            <p>Sistema de Control y Distribucion de Alimentos y Tambo</p>
-          </div>
-          <div className="footer-contact">
-            <h4>Contacto</h4>
-            <p><strong>Coria</strong></p>
-            <p>+598 091 840 339</p>
-            <p>valeencoria28@gmail.com</p>
-          </div>
-          <div className="footer-help">
-            <h4>¿Necesitas ayuda?</h4>
-            <a href="mailto:valeencoria28@gmail.com" className="btn-link-mail">
-              Escribinos
-            </a>
-          </div>
-        </div>
-        <div className="footer-bottom">
-          <p>© 2026 SiCoDiEt. Todos los derechos reservados.</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

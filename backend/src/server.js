@@ -18,6 +18,9 @@ const alertasRoutes = require('./routes/alertas');
 const dietasRoutes = require('./routes/dietas');
 const movimientosRoutes = require('./routes/movimientos');
 const actividadesRoutes = require('./routes/actividades');
+const costosRoutes = require('./routes/costos');
+const comprasRoutes = require('./routes/compras');
+const reportesRoutes = require('./routes/reportes');
 
 const app = express();
 
@@ -76,7 +79,7 @@ if (isProduction) {
       return callback(null, true);
     }
 
-    if (origin.endsWith('.ngrok-free.dev') || origin.endsWith('.trycloudflare.com')) {
+    if (origin.endsWith('.ngrok-free.dev') || origin.endsWith('.trycloudflare.com') || origin.endsWith('.vercel.app')) {
       return callback(null, true);
     }
 
@@ -125,6 +128,9 @@ app.use('/api/alertas', alertasRoutes);
 app.use('/api/dietas', dietasRoutes);
 app.use('/api/movimientos', movimientosRoutes);
 app.use('/api/actividades', actividadesRoutes);
+app.use('/api/costos', costosRoutes);
+app.use('/api/compras', comprasRoutes);
+app.use('/api/reportes', reportesRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ 
@@ -166,10 +172,18 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Servidor corriendo en puerto ${PORT}`);
-  console.log(`Acceso local: http://localhost:${PORT}`);
-  console.log(`Acceso red: http://192.168.1.244:${PORT}`);
-});
+const initDatabase = require('./scripts/initDb');
+
+initDatabase()
+  .catch(err => console.error('DB init no bloqueante:', err.message))
+  .finally(() => {
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Servidor corriendo en puerto ${PORT}`);
+      if (!isProduction) {
+        console.log(`Acceso local: http://localhost:${PORT}`);
+        console.log(`Acceso red: http://192.168.1.244:${PORT}`);
+      }
+    });
+  });
 
 module.exports = app;

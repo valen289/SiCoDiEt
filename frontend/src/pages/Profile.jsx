@@ -2,8 +2,43 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../context/AlertContext';
 import api from '../services/api';
-import { User, Mail, Phone, Lock, Save, UserCog } from 'lucide-react';
+import { Mail, Phone, Lock, Save, UserCog, Building2, LockKeyhole } from 'lucide-react';
 import '../styles/profile.css';
+
+const ROL_LABELS = {
+  dueno:      'Dueño',
+  encargado:  'Encargado',
+  trabajador: 'Trabajador',
+};
+
+const TELEFONO_REGEX = /^[0-9+\- ]{8,20}$/;
+
+function passwordStrength(password) {
+  if (!password) return null;
+  let score = 0;
+  if (password.length >= 8) score++;
+  if (/[A-Z]/.test(password)) score++;
+  if (/[0-9]/.test(password)) score++;
+  if (/[^A-Za-z0-9]/.test(password)) score++;
+
+  if (score <= 1) return { label: 'Débil', level: 'weak' };
+  if (score <= 2) return { label: 'Media', level: 'medium' };
+  return { label: 'Fuerte', level: 'strong' };
+}
+
+function ProfileAvatar({ nombre, rol }) {
+  const initials = (nombre || '?')
+    .split(' ')
+    .slice(0, 2)
+    .map(p => p[0])
+    .join('')
+    .toUpperCase();
+  return (
+    <div className={`profile-avatar profile-avatar--${rol || 'trabajador'}`}>
+      {initials}
+    </div>
+  );
+}
 
 export default function Profile() {
   const { user, updateUser } = useAuth();
@@ -13,9 +48,11 @@ export default function Profile() {
     nombre: user?.nombre || '',
     email: user?.email || '',
     telefono: user?.telefono || '',
+    currentPassword: '',
     password: '',
     confirmPassword: '',
   });
+  const [formErrors, setFormErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -28,10 +65,20 @@ export default function Profile() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (form.password && form.password !== form.confirmPassword) {
-      error('Las contraseñas no coinciden');
-      return;
+    const nextErrors = {};
+    if (form.telefono && !TELEFONO_REGEX.test(form.telefono)) {
+      nextErrors.telefono = 'Teléfono inválido (solo números, espacios, + y -, mínimo 8 dígitos)';
     }
+    if (form.password) {
+      if (!form.currentPassword) {
+        nextErrors.currentPassword = 'Ingresá tu contraseña actual';
+      }
+      if (form.password !== form.confirmPassword) {
+        nextErrors.confirmPassword = 'Las contraseñas no coinciden';
+      }
+    }
+    setFormErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
 
     setLoading(true);
     try {
@@ -42,13 +89,14 @@ export default function Profile() {
       };
       if (form.password) {
         payload.password = form.password;
+        payload.currentPassword = form.currentPassword;
       }
 
       const res = await api.put('/auth/profile', payload);
       updateUser(res.data.user);
       success('Perfil actualizado exitosamente');
       setEditing(false);
-      setForm(prev => ({ ...prev, password: '', confirmPassword: '' }));
+      setForm(prev => ({ ...prev, currentPassword: '', password: '', confirmPassword: '' }));
     } catch (err) {
       error(err.response?.data?.error || 'Error al actualizar perfil');
     } finally {
@@ -58,36 +106,35 @@ export default function Profile() {
 
   const handleCancel = () => {
     setEditing(false);
+    setFormErrors({});
     setForm({
       nombre: user?.nombre || '',
       email: user?.email || '',
       telefono: user?.telefono || '',
+      currentPassword: '',
       password: '',
       confirmPassword: '',
     });
   };
 
   const getRolBadge = (rol) => {
-    const badges = {
-      admin: { label: 'Administrador', class: 'bg-danger' },
-      usuario: { label: 'Usuario', class: 'bg-primary' },
-      operario: { label: 'Operario', class: 'bg-success' },
-    };
-    const badge = badges[rol] || badges.usuario;
-    return <span className={`badge ${badge.class}`}>{badge.label}</span>;
+    const label = ROL_LABELS[rol] || rol;
+    return <span className={`profile-badge profile-badge--${rol}`}>{label}</span>;
   };
+
+  const strength = passwordStrength(form.password);
 
   return (
     <div className="profile-page">
       <div className="profile-container">
         <div className="profile-header">
-          <div className="profile-avatar">
-            <User size={48} />
-          </div>
+          <ProfileAvatar nombre={user?.nombre} rol={user?.rol} />
           <div className="profile-info">
             <h1 className="profile-name">{user?.nombre}</h1>
             <div className="profile-meta">
-              <span className="profile-cedula">Cédula: {user?.cedula}</span>
+              <span className="profile-cedula">
+                <LockKeyhole size={12} /> Cédula: {user?.cedula}
+              </span>
               {getRolBadge(user?.rol)}
             </div>
           </div>
@@ -109,6 +156,13 @@ export default function Profile() {
                 <span className="detail-value">{user?.telefono || 'No configurado'}</span>
               </div>
             </div>
+            <div className="detail-item">
+              <Building2 size={18} />
+              <div>
+                <span className="detail-label">Establecimiento</span>
+                <span className="detail-value">{user?.tambo_nombre || 'No asignado'}</span>
+              </div>
+            </div>
             <button className="btn btn-success btn-edit-profile" onClick={() => setEditing(true)}>
               <UserCog size={18} /> Editar Perfil
             </button>
@@ -117,7 +171,7 @@ export default function Profile() {
           <form onSubmit={handleSubmit} className="profile-form">
             <div className="form-group">
               <label className="form-label">
-                <User size={16} /> Nombre
+                <UserCog size={16} /> Nombre
               </label>
               <input
                 type="text"
@@ -144,12 +198,27 @@ export default function Profile() {
               </label>
               <input
                 type="text"
-                className="form-control"
+                className={`form-control ${formErrors.telefono ? 'is-invalid' : ''}`}
                 value={form.telefono}
                 onChange={(e) => setForm({ ...form, telefono: e.target.value })}
+                placeholder="094 231 234"
               />
+              {formErrors.telefono && <span className="form-error">{formErrors.telefono}</span>}
             </div>
             <hr />
+            <div className="form-group">
+              <label className="form-label">
+                <Lock size={16} /> Contraseña actual
+              </label>
+              <input
+                type="password"
+                className={`form-control ${formErrors.currentPassword ? 'is-invalid' : ''}`}
+                value={form.currentPassword}
+                onChange={(e) => setForm({ ...form, currentPassword: e.target.value })}
+                placeholder="Requerida solo para cambiar la contraseña"
+              />
+              {formErrors.currentPassword && <span className="form-error">{formErrors.currentPassword}</span>}
+            </div>
             <div className="form-group">
               <label className="form-label">
                 <Lock size={16} /> Nueva Contraseña (opcional)
@@ -159,8 +228,16 @@ export default function Profile() {
                 className="form-control"
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
-                placeholder="Dejar vacío para no cambiar"
+                placeholder="Mínimo 6 caracteres"
               />
+              {strength && (
+                <div className="password-strength">
+                  <div className={`password-strength__bar password-strength__bar--${strength.level}`} />
+                  <span className={`password-strength__label password-strength__label--${strength.level}`}>
+                    {strength.label}
+                  </span>
+                </div>
+              )}
             </div>
             {form.password && (
               <div className="form-group">
@@ -169,11 +246,12 @@ export default function Profile() {
                 </label>
                 <input
                   type="password"
-                  className="form-control"
+                  className={`form-control ${formErrors.confirmPassword ? 'is-invalid' : ''}`}
                   value={form.confirmPassword}
                   onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
                   placeholder="Repetir contraseña"
                 />
+                {formErrors.confirmPassword && <span className="form-error">{formErrors.confirmPassword}</span>}
               </div>
             )}
             <div className="form-actions">

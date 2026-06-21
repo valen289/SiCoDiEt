@@ -7,11 +7,13 @@ const { logActividad } = require('../utils/actividad');
 
 router.use(authenticateToken);
 
+const duenoEncargado = authorizeRoles('dueno', 'encargado');
+
 router.get('/', async (req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT
-         l.id, l.nombre, l.tipo_animal, l.cantidad_animales, l.consumo_estimado_diario,
+         l.id, l.nombre, l.tipo_animal, l.objetivo_productivo, l.cantidad_animales, l.consumo_estimado_diario,
          l.observaciones, l.activo, l.fecha_creacion,
          i.id AS insumo_id, i.nombre AS insumo_nombre, i.unidad, i.tipo_insumo,
          i.stock_actual, i.capacidad_maxima, i.stock_minimo,
@@ -20,8 +22,9 @@ router.get('/', async (req, res) => {
        FROM lotes l
        LEFT JOIN lote_insumos li ON l.id = li.lote_id
        LEFT JOIN insumos i ON li.insumo_id = i.id AND i.activo = TRUE
-       WHERE l.activo = TRUE
-       ORDER BY l.nombre`
+       WHERE l.tambo_id = ? AND l.activo = TRUE
+       ORDER BY l.nombre`,
+      [req.user.tambo_id]
     );
 
     const lotesMap = new Map();
@@ -31,6 +34,7 @@ router.get('/', async (req, res) => {
           id: row.id,
           nombre: row.nombre,
           tipo_animal: row.tipo_animal,
+          objetivo_productivo: row.objetivo_productivo,
           cantidad_animales: row.cantidad_animales,
           consumo_estimado_diario: row.consumo_estimado_diario,
           observaciones: row.observaciones,
@@ -65,12 +69,13 @@ router.get('/', async (req, res) => {
 router.get('/:id/dieta-activa', async (req, res) => {
   try {
     const loteId = req.params.id;
-    
+
     const [dietas] = await pool.query(
-      `SELECT d.* FROM dietas d 
-       WHERE d.lote_id = ? AND d.activo = TRUE 
+      `SELECT d.* FROM dietas d
+       JOIN lotes l ON d.lote_id = l.id
+       WHERE d.lote_id = ? AND d.activo = TRUE AND l.tambo_id = ?
        ORDER BY d.fecha_creacion DESC LIMIT 1`,
-      [loteId]
+      [loteId, req.user.tambo_id]
     );
     
     if (dietas.length === 0) {
@@ -79,7 +84,8 @@ router.get('/:id/dieta-activa', async (req, res) => {
     
     const dieta = dietas[0];
     const [ingredientes] = await pool.query(
-      `SELECT di.insumo_id, di.cantidad_kg as kg_por_vaca, i.nombre as insumo_nombre, i.unidad
+      `SELECT di.insumo_id, di.cantidad_kg as kg_por_vaca, di.porcentaje_am,
+              i.nombre as insumo_nombre, i.unidad
        FROM dieta_ingredientes di
        JOIN insumos i ON di.insumo_id = i.id
        WHERE di.dieta_id = ?`,
@@ -99,8 +105,8 @@ router.get('/:id/dieta-activa', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
   try {
-    const [lotes] = await pool.query('SELECT * FROM lotes WHERE id = ?', [req.params.id]);
-    
+    const [lotes] = await pool.query('SELECT * FROM lotes WHERE id = ? AND tambo_id = ?', [req.params.id, req.user.tambo_id]);
+
     if (lotes.length === 0) {
       return res.status(404).json({ error: 'Lote no encontrado' });
     }
@@ -119,9 +125,10 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.post('/', [
+router.post('/', duenoEncargado, [
   body('nombre').notEmpty().withMessage('Nombre requerido'),
   body('tipo_animal').notEmpty().withMessage('Tipo de animal requerido'),
+  body('objetivo_productivo').optional().isIn(['leche', 'engorde']).withMessage('Objetivo productivo invalido'),
   body('cantidad_animales').isInt({ min: 0 }).withMessage('Cantidad debe ser mayor o igual a 0')
 ], async (req, res) => {
   try {
@@ -130,15 +137,16 @@ router.post('/', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { nombre, tipo_animal, cantidad_animales, consumo_estimado_diario = 0, observaciones } = req.body;
+    const { nombre, tipo_animal, cantidad_animales, observaciones, objetivo_productivo = 'leche' } = req.body;
 
     const [result] = await pool.query(
-      'INSERT INTO lotes (nombre, tipo_animal, cantidad_animales, consumo_estimado_diario, observaciones) VALUES (?, ?, ?, ?, ?)',
-      [nombre, tipo_animal, cantidad_animales, consumo_estimado_diario, observaciones || null]
+      'INSERT INTO lotes (tambo_id, nombre, tipo_animal, objetivo_productivo, cantidad_animales, observaciones) VALUES (?, ?, ?, ?, ?, ?)',
+      [req.user.tambo_id, nombre, tipo_animal, objetivo_productivo, cantidad_animales, observaciones || null]
     );
 
     await logActividad(pool, {
       usuario_id: req.user.id,
+      tambo_id: req.user.tambo_id,
       accion: 'lote_creado',
       descripcion: `Creó el lote "${nombre}"`,
     });
@@ -153,9 +161,10 @@ router.post('/', [
   }
 });
 
-router.put('/:id', [
+router.put('/:id', duenoEncargado, [
   body('nombre').optional().notEmpty(),
   body('tipo_animal').optional().notEmpty(),
+  body('objetivo_productivo').optional().isIn(['leche', 'engorde']).withMessage('Objetivo productivo invalido'),
   body('cantidad_animales').optional().isInt({ min: 0 }),
   body('consumo_estimado_diario').optional().isFloat({ min: 0 })
 ], async (req, res) => {
@@ -165,14 +174,14 @@ router.put('/:id', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { nombre, tipo_animal, cantidad_animales, consumo_estimado_diario, observaciones, activo } = req.body;
+    const { nombre, tipo_animal, objetivo_productivo, cantidad_animales, observaciones, activo } = req.body;
     const updates = [];
     const values = [];
 
     if (nombre !== undefined) { updates.push('nombre = ?'); values.push(nombre); }
     if (tipo_animal !== undefined) { updates.push('tipo_animal = ?'); values.push(tipo_animal); }
+    if (objetivo_productivo !== undefined) { updates.push('objetivo_productivo = ?'); values.push(objetivo_productivo); }
     if (cantidad_animales !== undefined) { updates.push('cantidad_animales = ?'); values.push(cantidad_animales); }
-    if (consumo_estimado_diario !== undefined) { updates.push('consumo_estimado_diario = ?'); values.push(consumo_estimado_diario); }
     if (observaciones !== undefined) { updates.push('observaciones = ?'); values.push(observaciones); }
     if (activo !== undefined) { updates.push('activo = ?'); values.push(activo); }
 
@@ -180,12 +189,13 @@ router.put('/:id', [
       return res.status(400).json({ error: 'No hay datos para actualizar' });
     }
 
-    values.push(req.params.id);
-    await pool.query(`UPDATE lotes SET ${updates.join(', ')} WHERE id = ?`, values);
+    values.push(req.params.id, req.user.tambo_id);
+    await pool.query(`UPDATE lotes SET ${updates.join(', ')} WHERE id = ? AND tambo_id = ?`, values);
 
     const [[lote]] = await pool.query('SELECT nombre FROM lotes WHERE id = ?', [req.params.id]);
     await logActividad(pool, {
       usuario_id: req.user.id,
+      tambo_id: req.user.tambo_id,
       accion: 'lote_actualizado',
       descripcion: `Actualizó el lote "${lote?.nombre}"`,
     });
@@ -197,7 +207,7 @@ router.put('/:id', [
   }
 });
 
-router.post('/:id/insumos', [
+router.post('/:id/insumos', duenoEncargado, [
   body('insumo_id').isInt().withMessage('ID de insumo requerido'),
   body('cantidad_requerida').isFloat({ min: 0 }).withMessage('Cantidad requerida debe ser mayor a 0')
 ], async (req, res) => {
@@ -208,6 +218,15 @@ router.post('/:id/insumos', [
     }
 
     const { insumo_id, cantidad_requerida } = req.body;
+
+    const [lotes] = await pool.query('SELECT id FROM lotes WHERE id = ? AND tambo_id = ?', [req.params.id, req.user.tambo_id]);
+    if (lotes.length === 0) {
+      return res.status(404).json({ error: 'Lote no encontrado' });
+    }
+    const [insumos] = await pool.query('SELECT id FROM insumos WHERE id = ? AND tambo_id = ?', [insumo_id, req.user.tambo_id]);
+    if (insumos.length === 0) {
+      return res.status(404).json({ error: 'Insumo no encontrado' });
+    }
 
     await pool.query(
       'INSERT INTO lote_insumos (lote_id, insumo_id, cantidad_requerida) VALUES (?, ?, ?)',
@@ -221,8 +240,13 @@ router.post('/:id/insumos', [
   }
 });
 
-router.delete('/:id/insumos/:insumoId', async (req, res) => {
+router.delete('/:id/insumos/:insumoId', duenoEncargado, async (req, res) => {
   try {
+    const [lotes] = await pool.query('SELECT id FROM lotes WHERE id = ? AND tambo_id = ?', [req.params.id, req.user.tambo_id]);
+    if (lotes.length === 0) {
+      return res.status(404).json({ error: 'Lote no encontrado' });
+    }
+
     await pool.query('DELETE FROM lote_insumos WHERE lote_id = ? AND insumo_id = ?', [req.params.id, req.params.insumoId]);
     res.json({ message: 'Insumo desvinculado del lote exitosamente' });
   } catch (error) {
@@ -231,13 +255,14 @@ router.delete('/:id/insumos/:insumoId', async (req, res) => {
   }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', duenoEncargado, async (req, res) => {
   try {
-    const [[lote]] = await pool.query('SELECT nombre FROM lotes WHERE id = ?', [req.params.id]);
-    await pool.query('UPDATE lotes SET activo = FALSE WHERE id = ?', [req.params.id]);
+    const [[lote]] = await pool.query('SELECT nombre FROM lotes WHERE id = ? AND tambo_id = ?', [req.params.id, req.user.tambo_id]);
+    await pool.query('UPDATE lotes SET activo = FALSE WHERE id = ? AND tambo_id = ?', [req.params.id, req.user.tambo_id]);
 
     await logActividad(pool, {
       usuario_id: req.user.id,
+      tambo_id: req.user.tambo_id,
       accion: 'lote_desactivado',
       descripcion: `Desactivó el lote "${lote?.nombre}"`,
     });

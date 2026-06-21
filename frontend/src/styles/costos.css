@@ -1,0 +1,329 @@
+/* ===== SICODIET - Costos (BEM) ===== */
+
+.costos-page {
+  padding: 0;
+}
+
+/* ─── Header ──────────────────────────────────────────────────────────────────── */
+
+.costos__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.costos__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: background 0.18s, transform 0.1s;
+  white-space: nowrap;
+}
+
+.costos__btn--export          { background: var(--primary); color: #fff; }
+.costos__btn--export:hover    { background: var(--primary-dark); }
+.costos__btn--export:active   { transform: translateY(1px); }
+.costos__btn--export:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* ─── Filters ─────────────────────────────────────────────────────────────────── */
+
+.costos__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+  padding: 1rem 1.25rem;
+  background: var(--white);
+  border-radius: 0.75rem;
+  box-shadow: var(--shadow);
+}
+
+.costos__filters-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.costos__filters-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-light);
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.costos__periodo-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.costos__periodo-btn {
+  padding: 0.35rem 0.75rem;
+  border: 1.5px solid var(--border);
+  border-radius: 0.375rem;
+  background: var(--white);
+  color: var(--text-light);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.costos__periodo-btn:hover              { background: var(--primary-light); color: var(--primary); border-color: var(--primary); }
+.costos__periodo-btn--active            { background: var(--primary); color: #fff; border-color: var(--primary); }
+.costos__periodo-btn--active:hover      { background: var(--primary-dark); }
+
+.costos__custom-dates {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.costos__custom-dates .form-control { width: auto; min-width: 130px; }
+
+.costos__filters-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.costos__filters-row .form-select { min-width: 180px; }
+
+/* ─── KPI Cards ───────────────────────────────────────────────────────────────── */
+
+.costos__kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.875rem;
+  margin-bottom: 1.25rem;
+}
+
+.costos__kpi-card {
+  background: var(--white);
+  border-radius: 0.75rem;
+  padding: 1rem 1.125rem;
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.costos__kpi-icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.costos__kpi-card--total   .costos__kpi-icon { background: #EDF7EE; color: #4D8A54; }
+.costos__kpi-card--promedio .costos__kpi-icon { background: #EEF4FA; color: #5E8CB8; }
+.costos__kpi-card--lote    .costos__kpi-icon { background: #FFF4E5; color: #D9A441; }
+.costos__kpi-card--insumo  .costos__kpi-icon { background: #F2F4F7; color: #667085; }
+
+.costos__kpi-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.costos__kpi-label {
+  font-size: 0.68rem;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.2rem;
+}
+
+.costos__kpi-value {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.costos__kpi-value--sm {
+  font-size: 0.875rem;
+}
+
+.costos__kpi-sub {
+  font-size: 0.7rem;
+  color: var(--text-light);
+  margin-top: 0.1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ─── Tabs ────────────────────────────────────────────────────────────────────── */
+
+.costos__tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 0;
+  border-bottom: 2px solid var(--divider);
+}
+
+.costos__tab-btn {
+  padding: 0.625rem 1.25rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-light);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.costos__tab-btn:hover               { color: var(--primary); }
+.costos__tab-btn--active             { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+
+/* ─── Table section ───────────────────────────────────────────────────────────── */
+
+.costos__table-section {
+  background: var(--white);
+  border-radius: 0 0.75rem 0.75rem 0.75rem;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  min-width: 0;
+}
+
+.costos__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+}
+
+.costos__empty {
+  text-align: center;
+  padding: 3rem;
+  color: var(--text-light);
+}
+
+.costos__empty svg { opacity: 0.2; display: block; margin: 0 auto; }
+
+.costos__table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.costos__table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 560px;
+}
+
+.costos__table th,
+.costos__table td {
+  padding: 0.625rem 0.875rem;
+  text-align: left;
+  border-bottom: 1px solid var(--divider);
+  vertical-align: middle;
+  font-size: 0.8375rem;
+}
+
+.costos__table th {
+  background: var(--bg);
+  font-weight: 600;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-light);
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+}
+
+.costos__table tbody tr:last-child td { border-bottom: none; }
+.costos__table tbody tr:hover          { background: var(--primary-light); }
+
+.costos__date {
+  font-weight: 500;
+  color: var(--text);
+  font-size: 0.8375rem;
+}
+
+.costos__cost-badge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 0.3rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: #EDF7EE;
+  color: #4D8A54;
+  white-space: nowrap;
+}
+
+/* ─── Responsive ──────────────────────────────────────────────────────────────── */
+
+@media (max-width: 1100px) {
+  .costos__kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .costos__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .costos__btn--export {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .costos__filters {
+    flex-direction: column;
+    gap: 0.875rem;
+    padding: 0.875rem 1rem;
+  }
+
+  .costos__filters-row { flex-direction: column; }
+  .costos__filters-row .form-select { width: 100%; }
+
+  .costos__custom-dates {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .costos__custom-dates .form-control { width: 100%; }
+
+  .costos__kpis {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 575px) {
+  .costos__kpis {
+    grid-template-columns: 1fr;
+  }
+
+  .costos__table th,
+  .costos__table td {
+    padding: 0.5rem 0.625rem;
+    font-size: 0.775rem;
+  }
+}

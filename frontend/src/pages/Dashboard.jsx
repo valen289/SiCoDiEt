@@ -1,132 +1,246 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Package, TrendingDown, Bell, Tag } from 'lucide-react';
 import api from '../services/api';
-import { AlertCircle, TrendingUp, Package, Users, AlertTriangle } from 'lucide-react';
 import '../styles/dashboard.css';
 
+function fmt(num, dec = 0) {
+  const n = parseFloat(String(num).replace(',', '.'));
+  if (isNaN(n)) return '—';
+  return n.toLocaleString('es-AR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+}
+
+function todayStr() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function todayLabel() {
+  return new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
 export default function Dashboard() {
-  const [stats, setStats] = useState({
-    insumos: 0,
-    alertas: 0,
-    lotes: 0,
-    ganado: 0
-  });
-  const [alertas, setAlertas] = useState([]);
-  const [insumosAlertas, setInsumosAlertas] = useState([]);
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-
-  const getNivelAlertaColor = (tipo) => {
-    if (tipo === 'stock_critico') return '#dc3545';
-    if (tipo === 'stock_bajo') return '#ffc107';
-    return '#28a745';
-  };
-
-  const getNivelAlertaLabel = (tipo) => {
-    if (tipo === 'stock_critico') return 'CRITICO';
-    if (tipo === 'stock_bajo') return 'PRECAUCION';
-    return 'NORMAL';
-  };
-
-  useEffect(() => {
-    loadData();
-  }, []);
+  const [stockTotal, setStockTotal] = useState(0);
+  const [insumoCount, setInsumoCount] = useState(0);
+  const [consumoHoy, setConsumoHoy] = useState(0);
+  const [alertaCount, setAlertaCount] = useState(0);
+  const [alertas, setAlertas] = useState([]);
+  const [loteCount, setLoteCount] = useState(0);
+  const [insumosAlerta, setInsumosAlerta] = useState([]);
+  const [error, setError] = useState(null);
 
   const loadData = async () => {
-    try {
-      const [insumosRes, alertasRes, lotesRes, ganadoRes, estadoAlertasRes] = await Promise.all([
-        api.get('/insumos'),
-        api.get('/alertas?leidas=false'),
-        api.get('/lotes'),
-        api.get('/ganado'),
-        api.get('/insumos/estado-alertas')
-      ]);
+    const today = todayStr();
+    const [insumosRes, alertasRes, lotesRes, estadoRes] = await Promise.allSettled([
+      api.get('/insumos'),
+      api.get('/alertas?leidas=false'),
+      api.get('/lotes'),
+      api.get('/insumos/estado-alertas'),
+    ]);
 
-      setStats({
-        insumos: insumosRes.data.insumos.length,
-        alertas: alertasRes.data.alertas.length,
-        lotes: lotesRes.data.lotes.length,
-        ganado: ganadoRes.data.ganado?.total_vacas || 0
-      });
-      setAlertas(alertasRes.data.alertas.slice(0, 5));
-      setInsumosAlertas((estadoAlertasRes.data.insumos || []).filter(i => i.nivel_alerta === 'critico' || i.nivel_alerta === 'precaucion'));
-    } catch (err) {
-      console.error('Error cargando dashboard:', err);
-    } finally {
-      setLoading(false);
+    let hayError = false;
+
+    if (insumosRes.status === 'fulfilled') {
+      const insumos = insumosRes.value.data.insumos || [];
+      setStockTotal(insumos.reduce((s, i) => s + parseFloat(i.stock_actual || 0), 0));
+      setInsumoCount(insumos.length);
+    } else {
+      console.error('Error cargando insumos:', insumosRes.reason);
+      hayError = true;
     }
+
+    if (alertasRes.status === 'fulfilled') {
+      setAlertaCount(alertasRes.value.data.alertas?.length || 0);
+      setAlertas((alertasRes.value.data.alertas || []).slice(0, 5));
+    } else {
+      console.error('Error cargando alertas:', alertasRes.reason);
+      hayError = true;
+    }
+
+    if (lotesRes.status === 'fulfilled') {
+      setLoteCount(lotesRes.value.data.lotes?.length || 0);
+    } else {
+      console.error('Error cargando lotes:', lotesRes.reason);
+      hayError = true;
+    }
+
+    if (estadoRes.status === 'fulfilled') {
+      const alertados = (estadoRes.value.data.insumos || []).filter(
+        i => i.nivel_alerta === 'critico' || i.nivel_alerta === 'precaucion'
+      );
+      setInsumosAlerta(alertados);
+    } else {
+      console.error('Error cargando estado de alertas:', estadoRes.reason);
+      hayError = true;
+    }
+
+    try {
+      const resumenRes = await api.get(`/insumos/resumen-diario?fecha=${today}`);
+      setConsumoHoy(resumenRes.data.consumo_total_dia || 0);
+    } catch { /* sin datos de consumo aún */ }
+
+    setError(hayError ? 'Algunos datos no se pudieron cargar. Probá recargar la página.' : null);
+    setLoading(false);
   };
 
-  const statCards = [
-    { icon: Package, label: 'Insumos', value: stats.insumos, color: '#4CAF50' },
-    { icon: AlertCircle, label: 'Alertas', value: stats.alertas, color: '#f44336' },
-    { icon: Users, label: 'Lotes', value: stats.lotes, color: '#2196F3' },
-    { icon: TrendingUp, label: 'Vacas', value: stats.ganado, color: '#FF9800' },
-  ];
+  useEffect(() => { loadData(); }, []);
 
-  if (loading) return <div className="loading">Cargando...</div>;
+  const getNivelLabel = (tipo) => {
+    if (tipo === 'stock_critico') return { label: 'CRÍTICO', dotCls: 'alerta-dot--critico', badgeCls: 'alerta-badge--critico' };
+    return { label: 'PRECAUCIÓN', dotCls: 'alerta-dot--precaucion', badgeCls: 'alerta-badge--precaucion' };
+  };
+
+  if (loading) {
+    return (
+      <div className="loading">
+        <div className="spinner-border text-success" role="status" aria-label="Cargando…" />
+      </div>
+    );
+  }
 
   return (
     <div className="dashboard">
-      <h1>Dashboard</h1>
+      <h1 className="dashboard-title">Resumen del día</h1>
+      <p className="dashboard-subtitle" style={{ textTransform: 'capitalize' }}>{todayLabel()}</p>
 
-      <div className="stats-grid">
-        {statCards.map((card, i) => (
-          <div key={i} className="stat-card" style={{ borderLeft: `4px solid ${card.color}` }}>
-            <card.icon size={24} style={{ color: card.color }} />
-            <div>
-              <span className="stat-value">{card.value}</span>
-              <span className="stat-label">{card.label}</span>
+      {error && (
+        <div className="dashboard-error">{error}</div>
+      )}
+
+      {/* ── KPI Cards ── */}
+      <div className="kpi-grid">
+        <div className="kpi-card kpi-card--stock" onClick={() => navigate('/silos/reserva_forrajera')} style={{ cursor: 'pointer' }}>
+          <div className="kpi-header">
+            <span className="kpi-label">Stock Total</span>
+            <div className="kpi-icon kpi-icon--stock">
+              <Package size={20} strokeWidth={1.8} />
             </div>
           </div>
-        ))}
+          <div>
+            <span className="kpi-value kpi-value--stock">{fmt(stockTotal)}</span>
+            <span className="kpi-unit">kg</span>
+          </div>
+          <div className="kpi-sub">{insumoCount} insumo{insumoCount !== 1 ? 's' : ''} registrado{insumoCount !== 1 ? 's' : ''}</div>
+        </div>
+
+        <div className="kpi-card kpi-card--consumo" onClick={() => navigate('/consumos')} style={{ cursor: 'pointer' }}>
+          <div className="kpi-header">
+            <span className="kpi-label">Consumo Hoy</span>
+            <div className="kpi-icon kpi-icon--consumo">
+              <TrendingDown size={20} strokeWidth={1.8} />
+            </div>
+          </div>
+          <div>
+            <span className="kpi-value kpi-value--consumo">{fmt(consumoHoy)}</span>
+            <span className="kpi-unit">kg</span>
+          </div>
+          <div className="kpi-sub">consumo registrado hoy</div>
+        </div>
+
+        <div className="kpi-card kpi-card--alertas" onClick={() => navigate('/alertas')} style={{ cursor: 'pointer' }}>
+          <div className="kpi-header">
+            <span className="kpi-label">Alertas</span>
+            <div className="kpi-icon kpi-icon--alertas">
+              <Bell size={20} strokeWidth={1.8} />
+            </div>
+          </div>
+          <div>
+            <span className="kpi-value kpi-value--alertas">{alertaCount}</span>
+          </div>
+          <div className="kpi-sub">{alertaCount === 0 ? 'sin alertas activas' : `alerta${alertaCount !== 1 ? 's' : ''} sin leer`}</div>
+        </div>
+
+        <div className="kpi-card kpi-card--lotes" onClick={() => navigate('/lotes')} style={{ cursor: 'pointer' }}>
+          <div className="kpi-header">
+            <span className="kpi-label">Lotes</span>
+            <div className="kpi-icon kpi-icon--lotes">
+              <Tag size={20} strokeWidth={1.8} />
+            </div>
+          </div>
+          <div>
+            <span className="kpi-value kpi-value--lotes">{loteCount}</span>
+          </div>
+          <div className="kpi-sub">lote{loteCount !== 1 ? 's' : ''} activo{loteCount !== 1 ? 's' : ''}</div>
+        </div>
       </div>
 
+      {/* ── Alertas recientes ── */}
       {alertas.length > 0 && (
-        <div className="alertas-section">
-          <h2>Alertas Recientes</h2>
-          {alertas.map(alerta => (
-            <div key={alerta.id} className={`alerta-item alerta-${alerta.tipo}`} style={{ borderLeft: `4px solid ${getNivelAlertaColor(alerta.tipo)}` }}>
-              <AlertTriangle size={20} style={{ color: getNivelAlertaColor(alerta.tipo) }} />
-              <div>
-                <strong>{alerta.insumo_nombre}</strong>
-                <span className="badge ms-2" style={{ backgroundColor: getNivelAlertaColor(alerta.tipo) }}>
-                  {getNivelAlertaLabel(alerta.tipo)}
-                </span>
-                <p>{alerta.mensaje}</p>
-              </div>
-            </div>
-          ))}
+        <div className="dashboard-section">
+          <div className="dashboard-section-header">
+            <h2 className="dashboard-section-title">Alertas recientes</h2>
+            <button className="section-link" onClick={() => navigate('/alertas')}>Ver todas</button>
+          </div>
+          <div className="alerta-list">
+            {alertas.map(alerta => {
+              const nivel = getNivelLabel(alerta.tipo);
+              return (
+                <div key={alerta.id} className={`alerta-item alerta-${alerta.tipo}`}>
+                  <span className={`alerta-dot ${nivel.dotCls}`} />
+                  <div className="alerta-content">
+                    <div className="alerta-nombre">{alerta.insumo_nombre}</div>
+                    <div className="alerta-mensaje">{alerta.mensaje}</div>
+                  </div>
+                  <span className={`alerta-badge ${nivel.badgeCls}`}>{nivel.label}</span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
-      {insumosAlertas.length > 0 && (
-        <div className="alertas-section mt-4">
-          <h2>Estado de Insumos</h2>
-          <div className="table-responsive">
-            <table className="table table-sm">
+      {/* ── Estado insumos ── */}
+      {insumosAlerta.length > 0 && (
+        <div className="dashboard-section">
+          <div className="dashboard-section-header">
+            <h2 className="dashboard-section-title">Estado de stock</h2>
+            <button className="section-link" onClick={() => navigate('/silos/reserva_forrajera')}>Ver alimentos</button>
+          </div>
+          <div className="insumos-table-wrap">
+            <table className="insumos-table">
               <thead>
                 <tr>
                   <th>Insumo</th>
-                  <th>Stock</th>
-                  <th>Dias Restantes</th>
+                  <th>Stock actual</th>
+                  <th>Días restantes</th>
                   <th>Estado</th>
                 </tr>
               </thead>
               <tbody>
-                {insumosAlertas.map(insumo => (
-                  <tr key={insumo.id} style={{ borderLeft: `4px solid ${insumo.color_alerta}` }}>
-                    <td><strong>{insumo.nombre}</strong></td>
-                    <td>{parseFloat(insumo.stock_actual).toLocaleString('es-AR', { maximumFractionDigits: 2 })} {insumo.unidad}</td>
-                    <td className="fw-bold">{insumo.dias_restantes} dias</td>
-                    <td>
-                      <span className="badge" style={{ backgroundColor: insumo.color_alerta }}>
-                        {insumo.label_alerta}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {insumosAlerta.map(insumo => {
+                  const isCritico = insumo.nivel_alerta === 'critico';
+                  return (
+                    <tr key={insumo.id}>
+                      <td><strong>{insumo.nombre}</strong></td>
+                      <td>{fmt(insumo.stock_actual)} {insumo.unidad}</td>
+                      <td>
+                        <div className="stock-days-cell">
+                          <span className="stock-days-num">{insumo.dias_restantes}</span>
+                          <span className="stock-days-meta">días</span>
+                          <div
+                            className={`stock-days-bar ${isCritico ? 'stock-days-bar--critico' : 'stock-days-bar--precaucion'}`}
+                            style={{ '--bar-pct': `${Math.min(Math.max((insumo.dias_restantes / 30) * 100, 0), 100)}%` }}
+                          />
+                        </div>
+                      </td>
+                      <td>
+                        <span className={`insumo-badge ${isCritico ? 'insumo-badge--critico' : 'insumo-badge--precaucion'}`}>
+                          {insumo.label_alerta}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {alertas.length === 0 && insumosAlerta.length === 0 && (
+        <div className="dashboard-empty">
+          Todo en orden — no hay alertas activas ni insumos en estado crítico.
         </div>
       )}
     </div>

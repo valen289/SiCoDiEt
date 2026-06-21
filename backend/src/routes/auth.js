@@ -2,14 +2,14 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const pool = require('../config/database');
 const { body, validationResult } = require('express-validator');
 
 router.post('/register', [
   body('cedula').notEmpty().withMessage('Cedula requerida'),
   body('nombre').notEmpty().withMessage('Nombre requerido'),
-  body('password').isLength({ min: 6 }).withMessage('Password minimo 6 caracteres'),
-  body('rol').optional().isIn(['dueno', 'encargado', 'trabajador'])
+  body('password').isLength({ min: 6 }).withMessage('Password minimo 6 caracteres')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -17,27 +17,75 @@ router.post('/register', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { cedula, nombre, password, email, telefono, rol = 'trabajador' } = req.body;
+    const { cedula, nombre, password, email, telefono, invitation_token, nombre_tambo } = req.body;
+    let rol;
+    let tambo_id;
 
     const [existing] = await pool.query('SELECT id FROM usuarios WHERE cedula = ?', [cedula]);
     if (existing.length > 0) {
       return res.status(400).json({ error: 'Ya existe un usuario con esa cedula' });
     }
 
+    if (invitation_token) {
+      const [invRows] = await pool.query(
+        'SELECT * FROM invitaciones WHERE token = ? AND usado = 0 AND fecha_expiracion > NOW()',
+        [invitation_token]
+      );
+      if (invRows.length === 0) {
+        return res.status(400).json({ error: 'Invitación inválida o expirada' });
+      }
+      tambo_id = invRows[0].tambo_id;
+      rol = invRows[0].rol;
+    } else {
+      if (!nombre_tambo || !nombre_tambo.trim()) {
+        return res.status(400).json({ error: 'Nombre del establecimiento requerido' });
+      }
+      const [tamboResult] = await pool.query('INSERT INTO tambos (nombre) VALUES (?)', [nombre_tambo.trim()]);
+      tambo_id = tamboResult.insertId;
+      rol = 'dueno';
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const [result] = await pool.query(
-      'INSERT INTO usuarios (cedula, nombre, password, email, telefono, rol) VALUES (?, ?, ?, ?, ?, ?)',
-      [cedula, nombre, hashedPassword, email || null, telefono || null, rol]
+      'INSERT INTO usuarios (tambo_id, cedula, nombre, password, email, telefono, rol) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [tambo_id, cedula, nombre, hashedPassword, email || null, telefono || null, rol]
     );
 
-    res.status(201).json({ 
+    if (invitation_token) {
+      await pool.query(
+        'UPDATE invitaciones SET usado = 1, usuario_id = ? WHERE token = ?',
+        [result.insertId, invitation_token]
+      );
+    }
+
+    res.status(201).json({
       message: 'Usuario registrado exitosamente',
-      userId: result.insertId 
+      userId: result.insertId
     });
   } catch (error) {
     console.error('Error en registro:', error);
     res.status(500).json({ error: 'Error al registrar usuario' });
+  }
+});
+
+// Validar token de invitación (público)
+router.get('/invitacion/:token', async (req, res) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT i.token, i.rol, i.fecha_expiracion, t.nombre AS tambo_nombre
+       FROM invitaciones i
+       JOIN tambos t ON i.tambo_id = t.id
+       WHERE i.token = ? AND i.usado = 0 AND i.fecha_expiracion > NOW()`,
+      [req.params.token]
+    );
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Invitación inválida o expirada' });
+    }
+    res.json({ invitacion: rows[0] });
+  } catch (error) {
+    console.error('Error validando invitacion:', error);
+    res.status(500).json({ error: 'Error al validar invitación' });
   }
 });
 
@@ -54,7 +102,10 @@ router.post('/login', [
     const { cedula, password } = req.body;
 
     const [users] = await pool.query(
-      'SELECT id, cedula, nombre, email, telefono, rol, password FROM usuarios WHERE cedula = ? AND activo = TRUE',
+      `SELECT u.id, u.cedula, u.nombre, u.email, u.telefono, u.rol, u.password, u.tambo_id, t.nombre AS tambo_nombre
+       FROM usuarios u
+       JOIN tambos t ON u.tambo_id = t.id
+       WHERE u.cedula = ? AND u.activo = TRUE`,
       [cedula]
     );
     
@@ -72,11 +123,12 @@ router.post('/login', [
     await pool.query('UPDATE usuarios SET ultimo_acceso = NOW() WHERE id = ?', [user.id]);
 
     const token = jwt.sign(
-      { 
-        id: user.id, 
-        cedula: user.cedula, 
-        nombre: user.nombre, 
-        rol: user.rol 
+      {
+        id: user.id,
+        cedula: user.cedula,
+        nombre: user.nombre,
+        rol: user.rol,
+        tambo_id: user.tambo_id
       },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN }
@@ -90,7 +142,9 @@ router.post('/login', [
         nombre: user.nombre,
         email: user.email,
         telefono: user.telefono,
-        rol: user.rol
+        rol: user.rol,
+        tambo_id: user.tambo_id,
+        tambo_nombre: user.tambo_nombre
       }
     });
   } catch (error) {
@@ -101,8 +155,14 @@ router.post('/login', [
 
 router.get('/me', require('../middleware/auth').authenticateToken, async (req, res) => {
   try {
-    const [users] = await pool.query('SELECT id, cedula, nombre, email, telefono, rol FROM usuarios WHERE id = ?', [req.user.id]);
-    
+    const [users] = await pool.query(
+      `SELECT u.id, u.cedula, u.nombre, u.email, u.telefono, u.rol, u.tambo_id, t.nombre AS tambo_nombre
+       FROM usuarios u
+       JOIN tambos t ON u.tambo_id = t.id
+       WHERE u.id = ?`,
+      [req.user.id]
+    );
+
     if (users.length === 0) {
       return res.status(404).json({ error: 'Usuario no encontrado' });
     }
@@ -117,8 +177,9 @@ router.get('/me', require('../middleware/auth').authenticateToken, async (req, r
 router.put('/profile', require('../middleware/auth').authenticateToken, [
   body('nombre').optional().notEmpty().withMessage('Nombre no puede estar vacio'),
   body('email').optional().isEmail().withMessage('Email invalido'),
-  body('telefono').optional(),
-  body('password').optional().isLength({ min: 6 }).withMessage('Password minimo 6 caracteres')
+  body('telefono').optional().matches(/^[0-9+\- ]{8,20}$/).withMessage('Telefono invalido'),
+  body('password').optional().isLength({ min: 6 }).withMessage('Password minimo 6 caracteres'),
+  body('currentPassword').optional().notEmpty().withMessage('Contraseña actual requerida')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -126,9 +187,23 @@ router.put('/profile', require('../middleware/auth').authenticateToken, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { nombre, email, telefono, password } = req.body;
+    const { nombre, email, telefono, password, currentPassword } = req.body;
     const updates = [];
     const values = [];
+
+    if (password) {
+      if (!currentPassword) {
+        return res.status(400).json({ error: 'Debes ingresar tu contraseña actual para cambiarla' });
+      }
+      const [[usuario]] = await pool.query('SELECT password FROM usuarios WHERE id = ?', [req.user.id]);
+      const validPassword = await bcrypt.compare(currentPassword, usuario.password);
+      if (!validPassword) {
+        return res.status(400).json({ error: 'La contraseña actual es incorrecta' });
+      }
+      const hashedPassword = await bcrypt.hash(password, 10);
+      updates.push('password = ?');
+      values.push(hashedPassword);
+    }
 
     if (nombre !== undefined) {
       updates.push('nombre = ?');
@@ -142,11 +217,6 @@ router.put('/profile', require('../middleware/auth').authenticateToken, [
       updates.push('telefono = ?');
       values.push(telefono || null);
     }
-    if (password) {
-      const hashedPassword = await bcrypt.hash(password, 10);
-      updates.push('password = ?');
-      values.push(hashedPassword);
-    }
 
     if (updates.length === 0) {
       return res.status(400).json({ error: 'No hay datos para actualizar' });
@@ -155,9 +225,15 @@ router.put('/profile', require('../middleware/auth').authenticateToken, [
     values.push(req.user.id);
     await pool.query(`UPDATE usuarios SET ${updates.join(', ')} WHERE id = ?`, values);
 
-    const [users] = await pool.query('SELECT id, cedula, nombre, email, telefono, rol FROM usuarios WHERE id = ?', [req.user.id]);
-    
-    res.json({ 
+    const [users] = await pool.query(
+      `SELECT u.id, u.cedula, u.nombre, u.email, u.telefono, u.rol, u.tambo_id, t.nombre AS tambo_nombre
+       FROM usuarios u
+       JOIN tambos t ON u.tambo_id = t.id
+       WHERE u.id = ?`,
+      [req.user.id]
+    );
+
+    res.json({
       message: 'Perfil actualizado exitosamente',
       user: users[0]
     });

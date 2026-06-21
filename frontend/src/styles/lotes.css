@@ -120,7 +120,7 @@
 }
 
 .lotes__card-action-btn--danger:hover {
-  background: rgba(193, 85, 59, 0.1);
+  background: rgba(211, 93, 78, 0.10);
   color: var(--danger);
 }
 

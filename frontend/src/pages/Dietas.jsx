@@ -3,30 +3,32 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useSEO } from '../hooks/useSEO';
 import {
-  Calculator, DollarSign, TrendingUp, Plus, Edit2, Trash2,
+  Calculator, DollarSign, Plus, Edit2, Trash2,
   Save, X, BarChart3, AlertTriangle, ChevronUp, Info,
-  Milk, Leaf, Scale, Settings
+  Milk, Leaf, Beef
 } from 'lucide-react';
 import '../styles/dietas.css';
 
-const DEFAULT_PARAM = { materia_seca_porcentaje: 0, energia_mcal_por_kg: 0, proteina_porcentaje: 0, fibra_porcentaje: 0 };
 
 function safeNum(val, fallback = 0) {
   const n = Number(val);
   return Number.isFinite(n) ? n : fallback;
 }
 
+function fmtUSD(num) {
+  const n = safeNum(num);
+  return 'US$ ' + new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+}
+
 export default function Dietas() {
   const navigate = useNavigate();
-  useSEO({ title: 'Formulación de Dietas', description: 'Calculadora de dietas bovinas con análisis nutricional y costos para optimizar la producción lechera.' });
-  const mountedRef = useRef(true);
   useSEO({ title: 'Formulación de Dietas', description: 'Formulación y análisis económico de dietas para ganado con cálculo de costos, márgenes y simulación de escenarios.' });
+  const mountedRef = useRef(true);
 
   const [dietas, setDietas] = useState([]);
   const [lotes, setLotes] = useState([]);
   const [insumos, setInsumos] = useState([]);
   const [costos, setCostos] = useState([]);
-  const [parametros, setParametros] = useState({});
   const [showForm, setShowForm] = useState(false);
   const [showSimulation, setShowSimulation] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -40,42 +42,14 @@ export default function Dietas() {
     ingredientes: [],
     produccion_leche_esperada: 20,
     precio_leche_por_litro: 0.45,
+    ganancia_kg_esperada: 0.8,
+    precio_kg_en_pie: 1.8,
   });
 
   const [simulationData, setSimulationData] = useState({ variacion_precio: 0, variacion_produccion: 0 });
   const [simulationResult, setSimulationResult] = useState(null);
   const [calculoPreview, setCalculoPreview] = useState(null);
 
-  const [showParamModal, setShowParamModal] = useState(false);
-  const [editingParamInsumo, setEditingParamInsumo] = useState(null);
-  const [paramForm, setParamForm] = useState({ materia_seca_porcentaje: 0, energia_mcal_por_kg: 0, proteina_porcentaje: 0, fibra_porcentaje: 0 });
-
-  const handleOpenParamEditor = async (insumoId) => {
-    const insumo = insumos.find(i => i.id === parseInt(insumoId));
-    if (!insumo) return;
-    const existing = parametros[parseInt(insumoId)] || DEFAULT_PARAM;
-    setEditingParamInsumo(insumo);
-    setParamForm({
-      materia_seca_porcentaje: safeNum(existing.materia_seca_porcentaje),
-      energia_mcal_por_kg: safeNum(existing.energia_mcal_por_kg),
-      proteina_porcentaje: safeNum(existing.proteina_porcentaje),
-      fibra_porcentaje: safeNum(existing.fibra_porcentaje),
-    });
-    setShowParamModal(true);
-  };
-
-  const handleSaveParametros = async () => {
-    if (!editingParamInsumo) return;
-    try {
-      await api.put(`/dietas/parametros/${editingParamInsumo.id}`, paramForm);
-      const { data } = await api.get(`/dietas/parametros/${editingParamInsumo.id}`);
-      setParametros(prev => ({ ...prev, [editingParamInsumo.id]: data }));
-      setShowParamModal(false);
-      setEditingParamInsumo(null);
-    } catch (err) {
-      console.error('Error guardando parametros:', err);
-    }
-  };
 
   useEffect(() => {
     mountedRef.current = true;
@@ -92,20 +66,6 @@ export default function Dietas() {
     }
   }, []);
 
-  const loadParametros = useCallback(async (insumosList) => {
-    const paramsMap = {};
-    await Promise.all(
-      insumosList.map(async (insumo) => {
-        try {
-          const { data } = await api.get(`/dietas/parametros/${insumo.id}`);
-          paramsMap[insumo.id] = data || DEFAULT_PARAM;
-        } catch {
-          paramsMap[insumo.id] = DEFAULT_PARAM;
-        }
-      })
-    );
-    return paramsMap;
-  }, []);
 
   const loadData = useCallback(async () => {
     try {
@@ -120,24 +80,18 @@ export default function Dietas() {
       const lotesData = Array.isArray(lotesRaw) ? lotesRaw : (lotesRaw.lotes || []);
       const insumosData = Array.isArray(insumosRaw) ? insumosRaw : (insumosRaw.insumos || []);
 
-      const lotesActivos = lotesData.filter(l => safeNum(l.activo) === 1);
-      const insumosActivos = insumosData.filter(i => safeNum(i.activo) === 1);
-
       if (mountedRef.current) {
         setDietas(Array.isArray(dietasRaw) ? dietasRaw : []);
-        setLotes(lotesActivos);
-        setInsumos(insumosActivos);
+        setLotes(lotesData.filter(l => safeNum(l.activo) === 1));
+        setInsumos(insumosData.filter(i => safeNum(i.activo) === 1));
         setCostos(Array.isArray(costosRaw) ? costosRaw : []);
       }
-
-      const paramsMap = await loadParametros(insumosActivos);
-      if (mountedRef.current) setParametros(paramsMap);
     } catch (error) {
       if (mountedRef.current) {
         setApiError(error.response?.data?.error || error.message);
       }
     }
-  }, [fetchSafe, loadParametros]);
+  }, [fetchSafe]);
 
   useEffect(() => {
     let cancelled = false;
@@ -156,18 +110,12 @@ export default function Dietas() {
         const lotesData = Array.isArray(lotesRaw) ? lotesRaw : (lotesRaw.lotes || []);
         const insumosData = Array.isArray(insumosRaw) ? insumosRaw : (insumosRaw.insumos || []);
 
-        const lotesActivos = lotesData.filter(l => safeNum(l.activo) === 1);
-        const insumosActivos = insumosData.filter(i => safeNum(i.activo) === 1);
-
         if (cancelled) return;
 
         setDietas(Array.isArray(dietasRaw) ? dietasRaw : []);
-        setLotes(lotesActivos);
-        setInsumos(insumosActivos);
+        setLotes(lotesData.filter(l => safeNum(l.activo) === 1));
+        setInsumos(insumosData.filter(i => safeNum(i.activo) === 1));
         setCostos(Array.isArray(costosRaw) ? costosRaw : []);
-
-        const paramsMap = await loadParametros(insumosActivos);
-        if (!cancelled) setParametros(paramsMap);
       } catch (error) {
         if (!cancelled) setApiError(error.response?.data?.error || error.message);
       } finally {
@@ -176,7 +124,7 @@ export default function Dietas() {
     };
     init();
     return () => { cancelled = true; };
-  }, [fetchSafe, loadParametros]);
+  }, [fetchSafe]);
 
   useEffect(() => {
     let channel;
@@ -192,7 +140,7 @@ export default function Dietas() {
   const handleAddIngrediente = useCallback(() => {
     setFormData(prev => ({
       ...prev,
-      ingredientes: [...prev.ingredientes, { insumo_id: '', cantidad_kg: 0 }],
+      ingredientes: [...prev.ingredientes, { insumo_id: '', cantidad_kg: '', porcentaje_am: 50 }],
     }));
   }, []);
 
@@ -217,12 +165,8 @@ export default function Dietas() {
     return costo ? safeNum(costo.precio_por_kg) : 0;
   }, [costos]);
 
-  const getIngredienteInfo = useCallback((insumoId) => {
-    if (!insumoId) return null;
-    const insumo = insumos.find(i => i.id === parseInt(insumoId));
-    const param = parametros[parseInt(insumoId)] || DEFAULT_PARAM;
-    return { ...insumo, ...param };
-  }, [insumos, parametros]);
+  const selectedLote = lotes.find(l => l.id === parseInt(formData.lote_id));
+  const objetivo = selectedLote?.objetivo_productivo || 'leche';
 
   const calcularPreview = useCallback(async () => {
     const ingredientesValidas = formData.ingredientes.filter(i => i.insumo_id && safeNum(i.cantidad_kg) > 0);
@@ -237,15 +181,17 @@ export default function Dietas() {
     try {
       const { data } = await api.post('/dietas/calcular', {
         ingredientes: ingredientesValidas,
+        lote_id: formData.lote_id,
         produccion_leche_esperada: safeNum(formData.produccion_leche_esperada),
         precio_leche_por_litro: safeNum(formData.precio_leche_por_litro),
-        cantidad_animales: safeNum(lote.cantidad_animales),
+        ganancia_kg_esperada: safeNum(formData.ganancia_kg_esperada),
+        precio_kg_en_pie: safeNum(formData.precio_kg_en_pie),
       });
       if (data && data.resumen) setCalculoPreview(data);
     } catch (error) {
       console.error('Error al calcular:', error);
     }
-  }, [formData.ingredientes, formData.lote_id, formData.produccion_leche_esperada, formData.precio_leche_por_litro, lotes]);
+  }, [formData.ingredientes, formData.lote_id, formData.produccion_leche_esperada, formData.precio_leche_por_litro, formData.ganancia_kg_esperada, formData.precio_kg_en_pie, lotes]);
 
   useEffect(() => {
     if (showForm && formData.ingredientes.length > 0 && formData.lote_id) {
@@ -290,6 +236,7 @@ export default function Dietas() {
         ? data.ingredientes.map(i => ({
             insumo_id: String(i.insumo_id || ''),
             cantidad_kg: safeNum(i.cantidad_kg, 0),
+            porcentaje_am: safeNum(i.porcentaje_am, 50),
           }))
         : [];
 
@@ -299,6 +246,8 @@ export default function Dietas() {
         ingredientes,
         produccion_leche_esperada: safeNum(data.produccion_leche_esperada, 20),
         precio_leche_por_litro: safeNum(data.precio_leche_por_litro, 0.45),
+        ganancia_kg_esperada: safeNum(data.ganancia_kg_esperada, 0.8),
+        precio_kg_en_pie: safeNum(data.precio_kg_en_pie, 1.8),
       });
       setEditingId(data.id);
       setShowForm(true);
@@ -320,7 +269,11 @@ export default function Dietas() {
   };
 
   const resetForm = () => {
-    setFormData({ nombre: '', lote_id: '', ingredientes: [], produccion_leche_esperada: 20, precio_leche_por_litro: 0.45 });
+    setFormData({
+      nombre: '', lote_id: '', ingredientes: [],
+      produccion_leche_esperada: 20, precio_leche_por_litro: 0.45,
+      ganancia_kg_esperada: 0.8, precio_kg_en_pie: 1.8,
+    });
     setEditingId(null);
     setShowForm(false);
     setCalculoPreview(null);
@@ -346,24 +299,42 @@ export default function Dietas() {
       return sum + (safeNum(i.cantidad_kg) * precioSimulado);
     }, 0);
 
-    const produccionSimulada = safeNum(formData.produccion_leche_esperada) * (1 + safeNum(simulationData.variacion_produccion) / 100);
+    const loteObjetivo = lote.objetivo_productivo || 'leche';
     const cantidadAnimales = safeNum(lote.cantidad_animales);
     const costoPorVaca = cantidadAnimales > 0 ? costoTotalSimulado / cantidadAnimales : 0;
-    const costoPorLitro = produccionSimulada > 0 ? costoPorVaca / produccionSimulada : 0;
-    const ingresoPorVaca = produccionSimulada * safeNum(formData.precio_leche_por_litro);
+
+    let ingresoPorVaca = 0;
+    let costoPorLitro = 0, margenPorLitro = 0, produccionSimulada = 0;
+    let costoPorKgGanado = 0, margenPorKgGanado = 0, gananciaSimulada = 0;
+
+    if (loteObjetivo === 'leche') {
+      produccionSimulada = safeNum(formData.produccion_leche_esperada) * (1 + safeNum(simulationData.variacion_produccion) / 100);
+      ingresoPorVaca = produccionSimulada * safeNum(formData.precio_leche_por_litro);
+      costoPorLitro = produccionSimulada > 0 ? costoPorVaca / produccionSimulada : 0;
+      margenPorLitro = produccionSimulada > 0 ? (ingresoPorVaca - costoPorVaca) / produccionSimulada : 0;
+    } else {
+      gananciaSimulada = safeNum(formData.ganancia_kg_esperada) * (1 + safeNum(simulationData.variacion_produccion) / 100);
+      ingresoPorVaca = gananciaSimulada * safeNum(formData.precio_kg_en_pie);
+      costoPorKgGanado = gananciaSimulada > 0 ? costoPorVaca / gananciaSimulada : 0;
+      margenPorKgGanado = gananciaSimulada > 0 ? (ingresoPorVaca - costoPorVaca) / gananciaSimulada : 0;
+    }
+
     const margenAlimenticio = ingresoPorVaca - costoPorVaca;
-    const margenPorLitro = produccionSimulada > 0 ? margenAlimenticio / produccionSimulada : 0;
     const porcentajeGasto = ingresoPorVaca > 0 ? (costoPorVaca / ingresoPorVaca) * 100 : 0;
 
     setSimulationResult({
+      objetivo_productivo: loteObjetivo,
       costo_total: costoTotalSimulado,
       costo_por_vaca: costoPorVaca,
       costo_por_litro: costoPorLitro,
       ingreso_por_vaca: ingresoPorVaca,
       margen_alimenticio: margenAlimenticio,
       margen_por_litro: margenPorLitro,
+      costo_por_kg_ganado: costoPorKgGanado,
+      margen_por_kg_ganado: margenPorKgGanado,
       porcentaje_gasto_alimentacion: porcentajeGasto,
       produccion_simulada: produccionSimulada,
+      ganancia_simulada: gananciaSimulada,
       variacion_precio: safeNum(simulationData.variacion_precio),
       variacion_produccion: safeNum(simulationData.variacion_produccion),
     });
@@ -378,7 +349,7 @@ export default function Dietas() {
   return (
     <div className="dietas-container">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="mb-0"><Calculator size={28} className="me-2" />Formulacion de Dietas</h2>
+        <h2 className="mb-0"><Calculator size={28} className="me-2" />Formulación de Dietas</h2>
         <div className="d-flex gap-2">
           <button className="btn btn-success" onClick={() => { resetForm(); setShowForm(true); }}>
             <Plus size={18} className="me-1" />Nueva Dieta
@@ -403,7 +374,7 @@ export default function Dietas() {
               <div className="dietas__section-title mb-3">
                 <h6 className="mb-0"><Info size={18} className="me-2" />Informacion General</h6>
               </div>
-              <div className="row g-3 mb-4">
+              <div className="row g-3 mb-4 dietas__info-row">
                 <div className="col-md-4">
                   <label className="form-label">Nombre de la Dieta</label>
                   <input type="text" className="form-control" value={formData.nombre} onChange={(e) => setFormData({ ...formData, nombre: e.target.value })} required placeholder="Ej: Dieta Lactancia Alta" />
@@ -412,7 +383,11 @@ export default function Dietas() {
                   <label className="form-label">Lote</label>
                   <select className="form-select" value={formData.lote_id} onChange={(e) => setFormData({ ...formData, lote_id: e.target.value })} required>
                     <option value="">Seleccionar lote...</option>
-                    {lotes.map(l => <option key={l.id} value={String(l.id)}>{l.nombre} ({safeNum(l.cantidad_animales)} vacas)</option>)}
+                    {lotes.map(l => (
+                      <option key={l.id} value={String(l.id)}>
+                        {l.nombre} ({safeNum(l.cantidad_animales)} animales · {l.objetivo_productivo === 'engorde' ? 'Engorde' : 'Leche'})
+                      </option>
+                    ))}
                   </select>
                   {lotes.length === 0 && (
                     <div className="alert alert-warning mt-2 py-2 px-3 d-flex align-items-center gap-2">
@@ -422,17 +397,35 @@ export default function Dietas() {
                     </div>
                   )}
                 </div>
-                <div className="col-md-2">
-                  <label className="form-label">Prod. Leche (L/vaca/dia)</label>
-                  <input type="number" step="0.1" min="0" className="form-control" value={formData.produccion_leche_esperada} onChange={(e) => setFormData({ ...formData, produccion_leche_esperada: parseFloat(e.target.value) || 0 })} required />
-                </div>
-                <div className="col-md-2">
-                  <label className="form-label">Precio Leche (US$/L)</label>
-                  <div className="input-group">
-                    <span className="input-group-text">US$</span>
-                    <input type="number" step="0.01" min="0" className="form-control" value={formData.precio_leche_por_litro} onChange={(e) => setFormData({ ...formData, precio_leche_por_litro: parseFloat(e.target.value) || 0 })} required />
-                  </div>
-                </div>
+                {objetivo === 'leche' ? (
+                  <>
+                    <div className="col-md-2">
+                      <label className="form-label">Prod. Leche (L/vaca/dia)</label>
+                      <input type="number" step="0.1" min="0" className="form-control" value={formData.produccion_leche_esperada} onChange={(e) => setFormData({ ...formData, produccion_leche_esperada: parseFloat(e.target.value) || 0 })} required />
+                    </div>
+                    <div className="col-md-2">
+                      <label className="form-label">Precio Leche (US$/L)</label>
+                      <div className="input-group">
+                        <span className="input-group-text">US$</span>
+                        <input type="number" step="0.01" min="0" className="form-control" value={formData.precio_leche_por_litro} onChange={(e) => setFormData({ ...formData, precio_leche_por_litro: parseFloat(e.target.value) || 0 })} required />
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="col-md-2">
+                      <label className="form-label">Ganancia Esperada (kg/animal/dia)</label>
+                      <input type="number" step="0.05" min="0" className="form-control" value={formData.ganancia_kg_esperada} onChange={(e) => setFormData({ ...formData, ganancia_kg_esperada: parseFloat(e.target.value) || 0 })} required />
+                    </div>
+                    <div className="col-md-2">
+                      <label className="form-label">Precio kg en pie (US$/kg)</label>
+                      <div className="input-group">
+                        <span className="input-group-text">US$</span>
+                        <input type="number" step="0.01" min="0" className="form-control" value={formData.precio_kg_en_pie} onChange={(e) => setFormData({ ...formData, precio_kg_en_pie: parseFloat(e.target.value) || 0 })} required />
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="dietas__section-title mb-3">
@@ -453,24 +446,21 @@ export default function Dietas() {
                     <table className="table table-sm table-bordered dietas__ingredientes-table">
                       <thead>
                         <tr>
-                          <th style={{ width: '30%' }}>Ingrediente</th>
-                          <th style={{ width: '15%' }}>Cantidad (kg/vaca/dia)</th>
-                          <th style={{ width: '12%' }}>Precio/kg (USD)</th>
-                          <th style={{ width: '12%' }}>Costo (USD)</th>
-                          <th style={{ width: '10%' }}>MS (kg)</th>
-                          <th style={{ width: '10%' }}>Prot (kg)</th>
-                          <th style={{ width: '11%' }}>Fibra (kg)</th>
-                          <th style={{ width: '5%' }}></th>
+                          <th style={{ width: '28%' }}>Ingrediente</th>
+                          <th style={{ width: '16%' }}>kg/vaca/dia</th>
+                          <th style={{ width: '10%' }} className="text-center">AM %</th>
+                          <th style={{ width: '10%' }} className="text-center">PM %</th>
+                          <th style={{ width: '14%' }}>Precio/kg</th>
+                          <th style={{ width: '14%' }}>Costo</th>
+                          <th style={{ width: '8%' }}></th>
                         </tr>
                       </thead>
                       <tbody>
                         {formData.ingredientes.map((ing, index) => {
-                          const info = getIngredienteInfo(ing.insumo_id);
                           const cantidad = safeNum(ing.cantidad_kg);
                           const costoParcial = cantidad * getCostoPorKg(ing.insumo_id);
-                          const ms = info ? cantidad * (safeNum(info.materia_seca_porcentaje) / 100) : 0;
-                          const prot = info ? cantidad * (safeNum(info.proteina_porcentaje) / 100) : 0;
-                          const fibra = info ? cantidad * (safeNum(info.fibra_porcentaje) / 100) : 0;
+                          const pctAm = Math.min(100, Math.max(0, safeNum(ing.porcentaje_am, 50)));
+                          const pctPm = 100 - pctAm;
                           return (
                             <tr key={index}>
                               <td>
@@ -480,22 +470,26 @@ export default function Dietas() {
                                 </select>
                               </td>
                               <td>
-                                <input type="number" step="0.1" min="0" className="form-control form-control-sm" value={ing.cantidad_kg} onChange={(e) => handleIngredienteChange(index, 'cantidad_kg', parseFloat(e.target.value) || 0)} />
+                                <input type="number" step="0.1" min="0" className="form-control form-control-sm" value={ing.cantidad_kg} onChange={(e) => handleIngredienteChange(index, 'cantidad_kg', e.target.value)} />
                               </td>
-                              <td className="text-center">US${getCostoPorKg(ing.insumo_id).toFixed(2)}</td>
-                              <td className="text-center fw-bold">US${costoParcial.toFixed(2)}</td>
-                              <td className="text-center">{ms.toFixed(2)}</td>
-                              <td className="text-center">{prot.toFixed(2)}</td>
-                              <td className="text-center">{fibra.toFixed(2)}</td>
+                              <td>
+                                <input
+                                  type="number"
+                                  min="0" max="100" step="5"
+                                  className="form-control form-control-sm text-center"
+                                  value={pctAm}
+                                  onChange={(e) => handleIngredienteChange(index, 'porcentaje_am', Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)))}
+                                />
+                              </td>
+                              <td className="text-center align-middle">
+                                <span className="badge bg-secondary">{pctPm}%</span>
+                              </td>
+                              <td className="text-center">{fmtUSD(getCostoPorKg(ing.insumo_id))}</td>
+                              <td className="text-center fw-bold">{fmtUSD(costoParcial)}</td>
                               <td className="text-center">
-                                <div className="dietas__action-group">
-                                  <button type="button" className="dietas__action-btn dietas__action-btn--settings" onClick={() => handleOpenParamEditor(ing.insumo_id)} title="Editar parametros nutricionales">
-                                    <Settings size={14} />
-                                  </button>
-                                  <button type="button" className="dietas__action-btn dietas__action-btn--danger" onClick={() => handleRemoveIngrediente(index)}>
-                                    <Trash2 size={14} />
-                                  </button>
-                                </div>
+                                <button type="button" className="dietas__action-btn dietas__action-btn--danger" onClick={() => handleRemoveIngrediente(index)}>
+                                  <Trash2 size={14} />
+                                </button>
                               </td>
                             </tr>
                           );
@@ -506,33 +500,21 @@ export default function Dietas() {
 
                   <div className="dietas__mobile-ingredientes mb-3">
                     {formData.ingredientes.map((ing, index) => {
-                      const info = getIngredienteInfo(ing.insumo_id);
                       const cantidad = safeNum(ing.cantidad_kg);
                       const costoParcial = cantidad * getCostoPorKg(ing.insumo_id);
-                      const ms = info ? cantidad * (safeNum(info.materia_seca_porcentaje) / 100) : 0;
-                      const prot = info ? cantidad * (safeNum(info.proteina_porcentaje) / 100) : 0;
-                      const fibra = info ? cantidad * (safeNum(info.fibra_porcentaje) / 100) : 0;
+                      const pctAm = Math.min(100, Math.max(0, safeNum(ing.porcentaje_am, 50)));
+                      const pctPm = 100 - pctAm;
                       return (
                         <div key={index} className="dietas__ingrediente-card mb-2">
                           <div className="dietas__ingrediente-header d-flex justify-content-between align-items-center mb-2">
                             <span className="dietas__ingrediente-num badge bg-secondary">#{index + 1}</span>
-                            <div className="dietas__action-group">
-                              <button
-                                type="button"
-                                className="dietas__action-btn dietas__action-btn--settings"
-                                onClick={(e) => { e.stopPropagation(); handleOpenParamEditor(ing.insumo_id); }}
-                                title="Editar parametros"
-                              >
-                                <Settings size={16} />
-                              </button>
-                              <button
-                                type="button"
-                                className="dietas__action-btn dietas__action-btn--danger"
-                                onClick={(e) => { e.stopPropagation(); handleRemoveIngrediente(index); }}
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
+                            <button
+                              type="button"
+                              className="dietas__action-btn dietas__action-btn--danger"
+                              onClick={(e) => { e.stopPropagation(); handleRemoveIngrediente(index); }}
+                            >
+                              <Trash2 size={16} />
+                            </button>
                           </div>
                           <div className="mb-2">
                             <label className="form-label small mb-1">Ingrediente</label>
@@ -550,30 +532,35 @@ export default function Dietas() {
                               inputMode="decimal"
                               className="form-control form-control-sm"
                               value={ing.cantidad_kg}
-                              onChange={(e) => handleIngredienteChange(index, 'cantidad_kg', parseFloat(e.target.value) || 0)}
+                              onChange={(e) => handleIngredienteChange(index, 'cantidad_kg', e.target.value)}
                               placeholder="0.0"
                             />
                           </div>
+                          <div className="row g-2 mb-2">
+                            <div className="col-6">
+                              <label className="form-label small mb-1">AM %</label>
+                              <input
+                                type="number"
+                                min="0" max="100" step="5"
+                                inputMode="numeric"
+                                className="form-control form-control-sm"
+                                value={pctAm}
+                                onChange={(e) => handleIngredienteChange(index, 'porcentaje_am', Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)))}
+                              />
+                            </div>
+                            <div className="col-6 d-flex flex-column justify-content-end">
+                              <label className="form-label small mb-1">PM %</label>
+                              <span className="form-control form-control-sm bg-light text-center fw-bold">{pctPm}%</span>
+                            </div>
+                          </div>
                           <div className="ingrediente-details row g-2 small">
-                            <div className="col-4">
+                            <div className="col-6">
                               <span className="text-muted d-block">Precio/kg</span>
-                              <strong>US${getCostoPorKg(ing.insumo_id).toFixed(2)}</strong>
+                              <strong>{fmtUSD(getCostoPorKg(ing.insumo_id))}</strong>
                             </div>
-                            <div className="col-4">
+                            <div className="col-6">
                               <span className="text-muted d-block">Costo</span>
-                              <strong>US${costoParcial.toFixed(2)}</strong>
-                            </div>
-                            <div className="col-4">
-                              <span className="text-muted d-block">MS</span>
-                              <strong>{ms.toFixed(2)} kg</strong>
-                            </div>
-                            <div className="col-4">
-                              <span className="text-muted d-block">Proteina</span>
-                              <strong>{prot.toFixed(2)} kg</strong>
-                            </div>
-                            <div className="col-4">
-                              <span className="text-muted d-block">Fibra</span>
-                              <strong>{fibra.toFixed(2)} kg</strong>
+                              <strong>{fmtUSD(costoParcial)}</strong>
                             </div>
                           </div>
                         </div>
@@ -590,58 +577,32 @@ export default function Dietas() {
               {resumen && (
                 <>
                   <div className="dietas__section-title mb-3">
-                    <h6 className="mb-0"><Leaf size={18} className="me-2" />Resumen Nutricional</h6>
-                  </div>
-                  <div className="dietas__nutri-grid">
-                    <div className="dietas__nutri-card">
-                      <div className="dietas__nutri-icon"><Leaf size={20} /></div>
-                      <div className="dietas__nutri-label">Materia Seca</div>
-                      <div className="dietas__nutri-value">{safeNum(resumen.materia_seca_total).toFixed(1)} kg</div>
-                    </div>
-                    <div className="dietas__nutri-card">
-                      <div className="dietas__nutri-icon"><TrendingUp size={20} /></div>
-                      <div className="dietas__nutri-label">Energia Total</div>
-                      <div className="dietas__nutri-value">{safeNum(resumen.energia_total).toFixed(1)} Mcal</div>
-                    </div>
-                    <div className="dietas__nutri-card">
-                      <div className="dietas__nutri-icon"><Scale size={20} /></div>
-                      <div className="dietas__nutri-label">Proteina</div>
-                      <div className="dietas__nutri-value">{safeNum(resumen.proteina_total).toFixed(1)} kg</div>
-                    </div>
-                    <div className="dietas__nutri-card">
-                      <div className="dietas__nutri-icon"><Leaf size={20} /></div>
-                      <div className="dietas__nutri-label">Fibra</div>
-                      <div className="dietas__nutri-value">{safeNum(resumen.fibra_total).toFixed(1)} kg</div>
-                    </div>
-                  </div>
-
-                  <div className="dietas__section-title mb-3">
                     <h6 className="mb-0"><DollarSign size={18} className="me-2" />Analisis Economico</h6>
                   </div>
                   <div className="dietas__econ-grid">
                     <div className="dietas__econ-card">
                       <div className="dietas__econ-label">Costo Dieta</div>
-                      <div className="dietas__econ-value">US${safeNum(resumen.costo_por_vaca).toFixed(4)}</div>
+                      <div className="dietas__econ-value">{fmtUSD(resumen.costo_por_vaca)}</div>
                       <div className="dietas__econ-sub">/vaca/dia</div>
                     </div>
                     <div className="dietas__econ-card">
-                      <div className="dietas__econ-label">Costo por Litro</div>
-                      <div className="dietas__econ-value">US${safeNum(resumen.costo_por_litro).toFixed(4)}</div>
-                      <div className="dietas__econ-sub">/litro</div>
+                      <div className="dietas__econ-label">{objetivo === 'leche' ? 'Costo por Litro' : 'Costo por Kg Ganado'}</div>
+                      <div className="dietas__econ-value">{fmtUSD(objetivo === 'leche' ? resumen.costo_por_litro : resumen.costo_por_kg_ganado)}</div>
+                      <div className="dietas__econ-sub">{objetivo === 'leche' ? '/litro' : '/kg ganado'}</div>
                     </div>
                     <div className="dietas__econ-card dietas__econ-card--income">
                       <div className="dietas__econ-label">Ingreso por Vaca</div>
-                      <div className="dietas__econ-value">US${safeNum(resumen.ingreso_por_vaca).toFixed(2)}</div>
-                      <div className="dietas__econ-sub">produccion de leche</div>
+                      <div className="dietas__econ-value">{fmtUSD(resumen.ingreso_por_vaca)}</div>
+                      <div className="dietas__econ-sub">{objetivo === 'leche' ? 'produccion de leche' : 'ganancia de peso'}</div>
                     </div>
                     <div className={`dietas__econ-card ${safeNum(resumen.margen_alimenticio) >= 0 ? 'dietas__econ-card--positive' : 'dietas__econ-card--negative'}`}>
                       <div className="dietas__econ-label">Margen Alimenticio</div>
-                      <div className="dietas__econ-value">US${safeNum(resumen.margen_alimenticio).toFixed(2)}</div>
+                      <div className="dietas__econ-value">{fmtUSD(resumen.margen_alimenticio)}</div>
                       <div className="dietas__econ-sub">por vaca/dia</div>
                     </div>
                     <div className="dietas__econ-card">
-                      <div className="dietas__econ-label">Margen por Litro</div>
-                      <div className="dietas__econ-value">US${safeNum(resumen.margen_por_litro).toFixed(2)}</div>
+                      <div className="dietas__econ-label">{objetivo === 'leche' ? 'Margen por Litro' : 'Margen por Kg Ganado'}</div>
+                      <div className="dietas__econ-value">{fmtUSD(objetivo === 'leche' ? resumen.margen_por_litro : resumen.margen_por_kg_ganado)}</div>
                     </div>
                     <div className="dietas__econ-card">
                       <div className="dietas__econ-label">% Gasto Alimentacion</div>
@@ -649,7 +610,7 @@ export default function Dietas() {
                     </div>
                     <div className="dietas__econ-card">
                       <div className="dietas__econ-label">Costo Total Lote</div>
-                      <div className="dietas__econ-value">US${safeNum(resumen.costo_total).toFixed(2)}</div>
+                      <div className="dietas__econ-value">{fmtUSD(resumen.costo_total)}</div>
                       <div className="dietas__econ-sub">por dia</div>
                     </div>
                   </div>
@@ -691,7 +652,7 @@ export default function Dietas() {
                     </div>
                   </div>
                   <div className="col-md-4">
-                    <label className="form-label">Variacion de Produccion de Leche</label>
+                    <label className="form-label">{objetivo === 'leche' ? 'Variacion de Produccion de Leche' : 'Variacion de Ganancia de Peso'}</label>
                     <input type="range" className="form-range" min="-30" max="30" value={simulationData.variacion_produccion}
                       onChange={(e) => { setSimulationData({ ...simulationData, variacion_produccion: parseInt(e.target.value) }); setSimulationResult(null); }} />
                     <div className={`text-center fw-bold ${simulationData.variacion_produccion > 0 ? 'text-success' : simulationData.variacion_produccion < 0 ? 'text-danger' : ''}`}>
@@ -709,20 +670,24 @@ export default function Dietas() {
                       <h6 className="dietas__scenario-title">Escenario Actual</h6>
                       <div className="dietas__scenario-body">
                         <div className="dietas__scenario-row">
-                          <span>Produccion</span>
-                          <span className="fw-bold">{safeNum(formData.produccion_leche_esperada)} L/vaca</span>
+                          <span>{objetivo === 'leche' ? 'Produccion' : 'Ganancia'}</span>
+                          <span className="fw-bold">
+                            {objetivo === 'leche'
+                              ? `${safeNum(formData.produccion_leche_esperada)} L/vaca`
+                              : `${safeNum(formData.ganancia_kg_esperada)} kg/animal`}
+                          </span>
                         </div>
                         <div className="dietas__scenario-row">
                           <span>Costo dieta</span>
-                          <span className="fw-bold">US${safeNum(resumen.costo_por_vaca).toFixed(4)}/vaca</span>
+                          <span className="fw-bold">{fmtUSD(resumen.costo_por_vaca)}/vaca</span>
                         </div>
                         <div className="dietas__scenario-row">
-                          <span>Costo por litro</span>
-                          <span className="fw-bold">US${safeNum(resumen.costo_por_litro).toFixed(4)}</span>
+                          <span>{objetivo === 'leche' ? 'Costo por litro' : 'Costo por kg ganado'}</span>
+                          <span className="fw-bold">{fmtUSD(objetivo === 'leche' ? resumen.costo_por_litro : resumen.costo_por_kg_ganado)}</span>
                         </div>
                         <div className="dietas__scenario-row dietas__scenario-row--highlight">
                           <span>Margen alimenticio</span>
-                          <span className={`fw-bold ${safeNum(resumen.margen_alimenticio) >= 0 ? 'text-success' : 'text-danger'}`}>US${safeNum(resumen.margen_alimenticio).toFixed(2)}</span>
+                          <span className={`fw-bold ${safeNum(resumen.margen_alimenticio) >= 0 ? 'text-success' : 'text-danger'}`}>{fmtUSD(resumen.margen_alimenticio)}</span>
                         </div>
                       </div>
                     </div>
@@ -735,26 +700,30 @@ export default function Dietas() {
                           </h6>
                           <div className="dietas__scenario-body">
                             <div className="dietas__scenario-row">
-                              <span>Produccion</span>
-                              <span className="fw-bold">{safeNum(simulationResult.produccion_simulada).toFixed(1)} L/vaca</span>
+                              <span>{objetivo === 'leche' ? 'Produccion' : 'Ganancia'}</span>
+                              <span className="fw-bold">
+                                {objetivo === 'leche'
+                                  ? `${safeNum(simulationResult.produccion_simulada).toFixed(1)} L/vaca`
+                                  : `${safeNum(simulationResult.ganancia_simulada).toFixed(2)} kg/animal`}
+                              </span>
                             </div>
                             <div className="dietas__scenario-row">
                               <span>Costo dieta</span>
-                              <span className="fw-bold">US${safeNum(simulationResult.costo_por_vaca).toFixed(4)}/vaca</span>
+                              <span className="fw-bold">{fmtUSD(simulationResult.costo_por_vaca)}/vaca</span>
                             </div>
                             <div className="dietas__scenario-row">
-                              <span>Costo por litro</span>
-                              <span className="fw-bold">US${safeNum(simulationResult.costo_por_litro).toFixed(4)}</span>
+                              <span>{objetivo === 'leche' ? 'Costo por litro' : 'Costo por kg ganado'}</span>
+                              <span className="fw-bold">{fmtUSD(objetivo === 'leche' ? simulationResult.costo_por_litro : simulationResult.costo_por_kg_ganado)}</span>
                             </div>
                             <div className="dietas__scenario-row dietas__scenario-row--highlight">
                               <span>Margen alimenticio</span>
-                              <span className={`fw-bold ${safeNum(simulationResult.margen_alimenticio) >= 0 ? 'text-success' : 'text-danger'}`}>US${safeNum(simulationResult.margen_alimenticio).toFixed(2)}</span>
+                              <span className={`fw-bold ${safeNum(simulationResult.margen_alimenticio) >= 0 ? 'text-success' : 'text-danger'}`}>{fmtUSD(simulationResult.margen_alimenticio)}</span>
                             </div>
                             <hr />
                             <div className="dietas__scenario-row">
                               <span>Diferencia margen</span>
                               <span className={`fw-bold ${safeNum(simulationResult.margen_alimenticio) - safeNum(resumen.margen_alimenticio) >= 0 ? 'text-success' : 'text-danger'}`}>
-                                {safeNum(simulationResult.margen_alimenticio) - safeNum(resumen.margen_alimenticio) >= 0 ? '+' : ''}US${(safeNum(simulationResult.margen_alimenticio) - safeNum(resumen.margen_alimenticio)).toFixed(2)}
+                                {safeNum(simulationResult.margen_alimenticio) - safeNum(resumen.margen_alimenticio) >= 0 ? '+' : ''}{fmtUSD(safeNum(simulationResult.margen_alimenticio) - safeNum(resumen.margen_alimenticio))}
                               </span>
                             </div>
                           </div>
@@ -793,8 +762,9 @@ export default function Dietas() {
             <div className="dietas__lista-grid">
               {dietas.map(dieta => {
                 const isExpanded = expandedDieta === dieta.id;
+                const dietaObjetivo = dieta.objetivo_productivo || 'leche';
                 const costoPorVaca = safeNum(dieta.costo_por_vaca);
-                const costoPorLitro = safeNum(dieta.costo_por_litro);
+                const costoPorLitro = dietaObjetivo === 'leche' ? safeNum(dieta.costo_por_litro) : safeNum(dieta.costo_por_kg_ganado);
                 const ingresoPorVaca = safeNum(dieta.ingreso_por_vaca);
                 const margenAlimenticio = safeNum(dieta.margen_alimenticio);
                 const porcentajeGasto = safeNum(dieta.porcentaje_gasto_alimentacion);
@@ -803,6 +773,8 @@ export default function Dietas() {
                 const proteina = safeNum(dieta.proteina_porcentaje);
                 const produccionLeche = safeNum(dieta.produccion_leche_esperada);
                 const precioLeche = safeNum(dieta.precio_leche_por_litro);
+                const gananciaKg = safeNum(dieta.ganancia_kg_esperada);
+                const precioKg = safeNum(dieta.precio_kg_en_pie);
 
                 const gastoClass = porcentajeGasto > 60
                   ? 'dietas__lista-gasto-fill--high'
@@ -824,19 +796,19 @@ export default function Dietas() {
                       <div className="dietas__lista-metrics">
                         <div className="dietas__lista-metric">
                           <span className="dietas__lista-metric-label">Costo/Vaca</span>
-                          <span className="dietas__lista-metric-value">US${costoPorVaca.toFixed(4)}</span>
+                          <span className="dietas__lista-metric-value">{fmtUSD(costoPorVaca)}</span>
                         </div>
                         <div className="dietas__lista-metric">
-                          <span className="dietas__lista-metric-label">Costo/Litro</span>
-                          <span className="dietas__lista-metric-value">US${costoPorLitro.toFixed(4)}</span>
+                          <span className="dietas__lista-metric-label">{dietaObjetivo === 'leche' ? 'Costo/Litro' : 'Costo/Kg Ganado'}</span>
+                          <span className="dietas__lista-metric-value">{fmtUSD(costoPorLitro)}</span>
                         </div>
                         <div className="dietas__lista-metric">
                           <span className="dietas__lista-metric-label">Ingreso/Vaca</span>
-                          <span className="dietas__lista-metric-value dietas__lista-metric-value--positive">US${ingresoPorVaca.toFixed(2)}</span>
+                          <span className="dietas__lista-metric-value dietas__lista-metric-value--positive">{fmtUSD(ingresoPorVaca)}</span>
                         </div>
                         <div className="dietas__lista-metric">
                           <span className="dietas__lista-metric-label">Margen</span>
-                          <span className={`dietas__lista-metric-value ${margenAlimenticio >= 0 ? 'dietas__lista-metric-value--positive' : 'dietas__lista-metric-value--negative'}`}>US${margenAlimenticio.toFixed(2)}</span>
+                          <span className={`dietas__lista-metric-value ${margenAlimenticio >= 0 ? 'dietas__lista-metric-value--positive' : 'dietas__lista-metric-value--negative'}`}>{fmtUSD(margenAlimenticio)}</span>
                         </div>
                       </div>
 
@@ -854,11 +826,23 @@ export default function Dietas() {
                     {isExpanded && (
                       <div className="dietas__lista-expanded">
                         <div className="dietas__lista-section">
-                          <h4 className="dietas__lista-section-title"><Milk size={14} /> Producción</h4>
-                          <div className="dietas__lista-section-grid">
-                            <span className="dietas__lista-section-item">Leche esperada: <strong>{produccionLeche} L</strong></span>
-                            <span className="dietas__lista-section-item">Precio leche: <strong>US${precioLeche.toFixed(2)}/L</strong></span>
-                          </div>
+                          {dietaObjetivo === 'leche' ? (
+                            <>
+                              <h4 className="dietas__lista-section-title"><Milk size={14} /> Producción</h4>
+                              <div className="dietas__lista-section-grid">
+                                <span className="dietas__lista-section-item">Leche esperada: <strong>{produccionLeche} L</strong></span>
+                                <span className="dietas__lista-section-item">Precio leche: <strong>{fmtUSD(precioLeche)}/L</strong></span>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <h4 className="dietas__lista-section-title"><Beef size={14} /> Engorde</h4>
+                              <div className="dietas__lista-section-grid">
+                                <span className="dietas__lista-section-item">Ganancia esperada: <strong>{gananciaKg} kg/animal</strong></span>
+                                <span className="dietas__lista-section-item">Precio kg en pie: <strong>{fmtUSD(precioKg)}/kg</strong></span>
+                              </div>
+                            </>
+                          )}
                         </div>
                         <div className="dietas__lista-section">
                           <h4 className="dietas__lista-section-title"><Leaf size={14} /> Nutricional</h4>
@@ -887,82 +871,6 @@ export default function Dietas() {
         </div>
       </div>
 
-      {showParamModal && editingParamInsumo && (
-        <div className="modal-overlay" onClick={() => setShowParamModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
-            <div className="modal-header">
-              <h2 className="h5 mb-0"><Settings size={18} className="me-2" />Parametros Nutricionales</h2>
-              <button type="button" className="btn-close" onClick={() => setShowParamModal(false)}></button>
-            </div>
-            <div className="modal-body">
-              <p className="text-muted small mb-3">
-                <strong>{editingParamInsumo.nombre}</strong> — Valores de referencia para calculo nutricional
-              </p>
-              <div className="row g-3">
-                <div className="col-6">
-                  <label className="form-label small fw-bold">Materia Seca (%)</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="100"
-                    className="form-control form-control-sm"
-                    value={paramForm.materia_seca_porcentaje}
-                    onChange={e => setParamForm({...paramForm, materia_seca_porcentaje: parseFloat(e.target.value) || 0})}
-                  />
-                  <small className="text-muted">Ej: Maiz = 88%, Alfalfa = 50%</small>
-                </div>
-                <div className="col-6">
-                  <label className="form-label small fw-bold">Energia (Mcal/kg)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    className="form-control form-control-sm"
-                    value={paramForm.energia_mcal_por_kg}
-                    onChange={e => setParamForm({...paramForm, energia_mcal_por_kg: parseFloat(e.target.value) || 0})}
-                  />
-                  <small className="text-muted">Ej: Maiz = 2.35</small>
-                </div>
-                <div className="col-6">
-                  <label className="form-label small fw-bold">Proteina (%)</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="100"
-                    className="form-control form-control-sm"
-                    value={paramForm.proteina_porcentaje}
-                    onChange={e => setParamForm({...paramForm, proteina_porcentaje: parseFloat(e.target.value) || 0})}
-                  />
-                  <small className="text-muted">Ej: Exp. Soja = 44%</small>
-                </div>
-                <div className="col-6">
-                  <label className="form-label small fw-bold">Fibra (%)</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="100"
-                    className="form-control form-control-sm"
-                    value={paramForm.fibra_porcentaje}
-                    onChange={e => setParamForm({...paramForm, fibra_porcentaje: parseFloat(e.target.value) || 0})}
-                  />
-                  <small className="text-muted">Ej: Alfalfa = 28%</small>
-                </div>
-              </div>
-            </div>
-            <div className="modal-actions d-flex gap-2 justify-content-end mt-3">
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowParamModal(false)}>
-                <X size={14} className="me-1" />Cancelar
-              </button>
-              <button type="button" className="btn btn-success btn-sm" onClick={handleSaveParametros}>
-                <Save size={14} className="me-1" />Guardar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

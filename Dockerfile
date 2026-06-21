@@ -15,6 +15,8 @@ ENV NODE_ENV=production
 COPY backend/package.json backend/package-lock.json* ./
 RUN npm install --omit=dev --ignore-scripts
 COPY backend/src/ ./src/
+COPY backend/database.sql ./database.sql
+COPY backend/database/migrations/ ./database/migrations/
 COPY --from=frontend-builder /app/frontend/dist ./public
 EXPOSE 3001
 CMD ["node", "src/server.js"]

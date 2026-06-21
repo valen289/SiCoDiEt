@@ -1,14 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 
 router.use(authenticateToken);
 
+const duenoEncargado = authorizeRoles('dueno', 'encargado');
+
 // GET /api/movimientos - Listar movimientos con filtros
-router.get('/', async (req, res) => {
+router.get('/', duenoEncargado, async (req, res) => {
   try {
-    const { insumo_id, tipo, fecha_inicio, fecha_fin, lote_id, page = 1, limit = 50 } = req.query;
+    const { insumo_id, tipo, tipo_insumo, fecha_inicio, fecha_fin, lote_id, page = 1, limit = 50 } = req.query;
 
     let query = `
       SELECT m.*,
@@ -21,9 +23,9 @@ router.get('/', async (req, res) => {
       JOIN insumos i ON m.insumo_id = i.id
       LEFT JOIN lotes l ON m.lote_id = l.id
       LEFT JOIN usuarios u ON m.usuario_id = u.id
-      WHERE 1=1
+      WHERE m.tambo_id = ?
     `;
-    const params = [];
+    const params = [req.user.tambo_id];
 
     if (insumo_id) {
       query += ' AND m.insumo_id = ?';
@@ -33,6 +35,11 @@ router.get('/', async (req, res) => {
     if (tipo) {
       query += ' AND m.tipo = ?';
       params.push(tipo);
+    }
+
+    if (tipo_insumo) {
+      query += ' AND i.tipo_insumo = ?';
+      params.push(tipo_insumo);
     }
 
     if (fecha_inicio) {
@@ -76,9 +83,9 @@ router.get('/', async (req, res) => {
 });
 
 // GET /api/movimientos/resumen - Resumen por período
-router.get('/resumen', async (req, res) => {
+router.get('/resumen', duenoEncargado, async (req, res) => {
   try {
-    const { fecha_inicio, fecha_fin, insumo_id, tipo_insumo } = req.query;
+    const { fecha_inicio, fecha_fin, insumo_id, tipo_insumo, tipo } = req.query;
 
     let query = `
       SELECT
@@ -89,8 +96,6 @@ router.get('/resumen', async (req, res) => {
         COUNT(*) as movimientos_count,
         SUM(CASE WHEN m.tipo = 'ingreso' THEN m.cantidad ELSE 0 END) as total_ingresos,
         SUM(CASE WHEN m.tipo = 'consumo' THEN m.cantidad ELSE 0 END) as total_consumos,
-        SUM(CASE WHEN m.tipo = 'ajuste_positivo' THEN m.cantidad ELSE 0 END) as total_ajustes_pos,
-        SUM(CASE WHEN m.tipo = 'ajuste_negativo' THEN m.cantidad ELSE 0 END) as total_ajustes_neg,
         (
           SUM(CASE WHEN m.tipo = 'ingreso' THEN m.cantidad ELSE 0 END)
           + SUM(CASE WHEN m.tipo = 'ajuste_positivo' THEN m.cantidad ELSE 0 END)
@@ -99,9 +104,9 @@ router.get('/resumen', async (req, res) => {
         ) as balance_neto
       FROM movimientos_stock m
       JOIN insumos i ON m.insumo_id = i.id
-      WHERE 1=1
+      WHERE m.tambo_id = ?
     `;
-    const params = [];
+    const params = [req.user.tambo_id];
 
     if (fecha_inicio) {
       query += ' AND m.fecha >= ?';
@@ -123,12 +128,17 @@ router.get('/resumen', async (req, res) => {
       params.push(tipo_insumo);
     }
 
+    if (tipo) {
+      query += ' AND m.tipo = ?';
+      params.push(tipo);
+    }
+
     query += ' GROUP BY m.insumo_id, i.nombre, i.unidad, i.tipo_insumo ORDER BY i.tipo_insumo, i.nombre';
 
     const [resumen] = await pool.query(query, params);
 
-    // Totales generales
-    const totalesQuery = `
+    // Totales generales (mismos filtros que el resumen)
+    let totalesQuery = `
       SELECT
         COUNT(*) as total_movimientos,
         SUM(CASE WHEN m.tipo = 'ingreso' THEN m.cantidad ELSE 0 END) as total_ingresos,
@@ -136,17 +146,30 @@ router.get('/resumen', async (req, res) => {
         SUM(CASE WHEN m.tipo = 'ajuste_positivo' THEN m.cantidad ELSE 0 END) as total_ajustes_pos,
         SUM(CASE WHEN m.tipo = 'ajuste_negativo' THEN m.cantidad ELSE 0 END) as total_ajustes_neg
       FROM movimientos_stock m
-      WHERE 1=1
+      JOIN insumos i ON m.insumo_id = i.id
+      WHERE m.tambo_id = ?
     `;
-    const totalesParams = [];
+    const totalesParams = [req.user.tambo_id];
 
     if (fecha_inicio) {
-      totalesQuery.replace('WHERE 1=1', 'WHERE 1=1 AND m.fecha >= ?');
+      totalesQuery += ' AND m.fecha >= ?';
       totalesParams.push(fecha_inicio);
     }
     if (fecha_fin) {
-      totalesQuery.replace('WHERE 1=1', 'WHERE 1=1 AND m.fecha <= ?');
+      totalesQuery += ' AND m.fecha <= ?';
       totalesParams.push(fecha_fin);
+    }
+    if (insumo_id) {
+      totalesQuery += ' AND m.insumo_id = ?';
+      totalesParams.push(insumo_id);
+    }
+    if (tipo_insumo) {
+      totalesQuery += ' AND i.tipo_insumo = ?';
+      totalesParams.push(tipo_insumo);
+    }
+    if (tipo) {
+      totalesQuery += ' AND m.tipo = ?';
+      totalesParams.push(tipo);
     }
 
     const [totales] = await pool.query(totalesQuery, totalesParams);
@@ -162,7 +185,7 @@ router.get('/resumen', async (req, res) => {
 });
 
 // GET /api/movimientos/export - Exportar a CSV
-router.get('/export', async (req, res) => {
+router.get('/export', duenoEncargado, async (req, res) => {
   try {
     const { insumo_id, tipo, fecha_inicio, fecha_fin, lote_id } = req.query;
 
@@ -185,9 +208,9 @@ router.get('/export', async (req, res) => {
       JOIN insumos i ON m.insumo_id = i.id
       LEFT JOIN lotes l ON m.lote_id = l.id
       LEFT JOIN usuarios u ON m.usuario_id = u.id
-      WHERE 1=1
+      WHERE m.tambo_id = ?
     `;
-    const params = [];
+    const params = [req.user.tambo_id];
 
     if (insumo_id) {
       query += ' AND m.insumo_id = ?';
@@ -285,11 +308,11 @@ router.get('/historial-insumo', async (req, res) => {
       SELECT m.*, u.nombre as usuario_nombre
       FROM movimientos_stock m
       LEFT JOIN usuarios u ON m.usuario_id = u.id
-      WHERE m.insumo_id = ? AND m.fecha >= ?
+      WHERE m.insumo_id = ? AND m.tambo_id = ? AND m.fecha >= ?
       ORDER BY m.fecha DESC, m.hora DESC
     `;
 
-    const [historial] = await pool.query(query, [insumo_id, fechaInicioStr]);
+    const [historial] = await pool.query(query, [insumo_id, req.user.tambo_id, fechaInicioStr]);
 
     // Resumen
     const resumenQuery = `
@@ -300,10 +323,10 @@ router.get('/historial-insumo', async (req, res) => {
         SUM(CASE WHEN tipo = 'ajuste_negativo' THEN cantidad ELSE 0 END) as total_ajustes_neg,
         COUNT(*) as total_movimientos
       FROM movimientos_stock
-      WHERE insumo_id = ? AND fecha >= ?
+      WHERE insumo_id = ? AND tambo_id = ? AND fecha >= ?
     `;
 
-    const [resumen] = await pool.query(resumenQuery, [insumo_id, fechaInicioStr]);
+    const [resumen] = await pool.query(resumenQuery, [insumo_id, req.user.tambo_id, fechaInicioStr]);
 
     res.json({
       historial,

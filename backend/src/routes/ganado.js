@@ -9,7 +9,7 @@ router.use(authenticateToken);
 
 router.get('/', async (req, res) => {
   try {
-    const [ganado] = await pool.query('SELECT * FROM ganado ORDER BY fecha_registro DESC LIMIT 1');
+    const [ganado] = await pool.query('SELECT * FROM ganado WHERE tambo_id = ? ORDER BY fecha_registro DESC LIMIT 1', [req.user.tambo_id]);
     res.json({ ganado: ganado[0] || null });
   } catch (error) {
     console.error('Error obteniendo ganado:', error);
@@ -19,7 +19,7 @@ router.get('/', async (req, res) => {
 
 router.get('/historial', async (req, res) => {
   try {
-    const [historial] = await pool.query('SELECT * FROM ganado ORDER BY fecha_registro DESC LIMIT 30');
+    const [historial] = await pool.query('SELECT * FROM ganado WHERE tambo_id = ? ORDER BY fecha_registro DESC LIMIT 30', [req.user.tambo_id]);
     res.json({ historial });
   } catch (error) {
     console.error('Error obteniendo historial de ganado:', error);
@@ -42,12 +42,13 @@ router.post('/', authorizeRoles('dueno', 'encargado'), [
     const { total_vacas, vacas_lechera = 0, vacas_seco = 0, terneros = 0 } = req.body;
 
     const [result] = await pool.query(
-      'INSERT INTO ganado (total_vacas, vacas_lechera, vacas_seco, terneros, fecha_registro, usuario_id) VALUES (?, ?, ?, ?, CURDATE(), ?)',
-      [total_vacas, vacas_lechera, vacas_seco, terneros, req.user.id]
+      'INSERT INTO ganado (tambo_id, total_vacas, vacas_lechera, vacas_seco, terneros, fecha_registro, usuario_id) VALUES (?, ?, ?, ?, ?, CURDATE(), ?)',
+      [req.user.tambo_id, total_vacas, vacas_lechera, vacas_seco, terneros, req.user.id]
     );
 
     await logActividad(pool, {
       usuario_id: req.user.id,
+      tambo_id: req.user.tambo_id,
       accion: 'ganado_actualizado',
       descripcion: `Actualizó el rodeo: ${total_vacas} vacas totales (${vacas_lechera} lecheras, ${vacas_seco} secas, ${terneros} terneros)`,
     });

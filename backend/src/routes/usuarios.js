@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const pool = require('../config/database');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 const { body, validationResult } = require('express-validator');
@@ -14,7 +15,8 @@ const soloDueno = authorizeRoles('dueno');
 router.get('/', soloDueno, async (req, res) => {
   try {
     const [usuarios] = await pool.query(
-      'SELECT id, cedula, nombre, email, telefono, rol, activo, fecha_creacion, ultimo_acceso FROM usuarios ORDER BY nombre ASC'
+      'SELECT id, cedula, nombre, email, telefono, rol, activo, fecha_creacion, ultimo_acceso FROM usuarios WHERE tambo_id = ? ORDER BY nombre ASC',
+      [req.user.tambo_id]
     );
     res.json({ usuarios });
   } catch (error) {
@@ -26,8 +28,8 @@ router.get('/', soloDueno, async (req, res) => {
 router.get('/:id', soloDueno, async (req, res) => {
   try {
     const [users] = await pool.query(
-      'SELECT id, cedula, nombre, email, telefono, rol, activo, fecha_creacion, ultimo_acceso FROM usuarios WHERE id = ?',
-      [req.params.id]
+      'SELECT id, cedula, nombre, email, telefono, rol, activo, fecha_creacion, ultimo_acceso FROM usuarios WHERE id = ? AND tambo_id = ?',
+      [req.params.id, req.user.tambo_id]
     );
     if (users.length === 0) {
       return res.status(404).json({ error: 'Usuario no encontrado' });
@@ -60,12 +62,13 @@ router.post('/', soloDueno, [
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const [result] = await pool.query(
-      'INSERT INTO usuarios (cedula, nombre, password, email, telefono, rol) VALUES (?, ?, ?, ?, ?, ?)',
-      [cedula, nombre, hashedPassword, email || null, telefono || null, rol]
+      'INSERT INTO usuarios (tambo_id, cedula, nombre, password, email, telefono, rol) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [req.user.tambo_id, cedula, nombre, hashedPassword, email || null, telefono || null, rol]
     );
 
     await logActividad(pool, {
       usuario_id: req.user.id,
+      tambo_id: req.user.tambo_id,
       accion: 'usuario_creado',
       descripcion: `Creó el usuario "${nombre}" con rol ${rol}`,
     });
@@ -114,8 +117,8 @@ router.put('/:id', soloDueno, [
       return res.status(400).json({ error: 'No hay datos para actualizar' });
     }
 
-    values.push(targetId);
-    await pool.query(`UPDATE usuarios SET ${updates.join(', ')} WHERE id = ?`, values);
+    values.push(targetId, req.user.tambo_id);
+    await pool.query(`UPDATE usuarios SET ${updates.join(', ')} WHERE id = ? AND tambo_id = ?`, values);
 
     res.json({ message: 'Usuario actualizado exitosamente' });
   } catch (error) {
@@ -135,7 +138,7 @@ router.put('/:id/password', soloDueno, [
     }
 
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
-    await pool.query('UPDATE usuarios SET password = ? WHERE id = ?', [hashedPassword, req.params.id]);
+    await pool.query('UPDATE usuarios SET password = ? WHERE id = ? AND tambo_id = ?', [hashedPassword, req.params.id, req.user.tambo_id]);
 
     res.json({ message: 'Contraseña actualizada exitosamente' });
   } catch (error) {
@@ -153,11 +156,12 @@ router.delete('/:id', soloDueno, async (req, res) => {
       return res.status(400).json({ error: 'No puedes darte de baja a ti mismo' });
     }
 
-    const [[target]] = await pool.query('SELECT nombre FROM usuarios WHERE id = ?', [targetId]);
-    await pool.query('UPDATE usuarios SET activo = FALSE WHERE id = ?', [targetId]);
+    const [[target]] = await pool.query('SELECT nombre FROM usuarios WHERE id = ? AND tambo_id = ?', [targetId, req.user.tambo_id]);
+    await pool.query('UPDATE usuarios SET activo = FALSE WHERE id = ? AND tambo_id = ?', [targetId, req.user.tambo_id]);
 
     await logActividad(pool, {
       usuario_id: req.user.id,
+      tambo_id: req.user.tambo_id,
       accion: 'usuario_desactivado',
       descripcion: `Dio de baja al usuario "${target?.nombre}"`,
     });
@@ -166,6 +170,28 @@ router.delete('/:id', soloDueno, async (req, res) => {
   } catch (error) {
     console.error('Error dando de baja usuario:', error);
     res.status(500).json({ error: 'Error al dar de baja el usuario' });
+  }
+});
+
+// Crear token de invitación (solo dueño)
+router.post('/invitacion', soloDueno, async (req, res) => {
+  try {
+    const { rol = 'trabajador' } = req.body;
+    if (!['trabajador', 'encargado'].includes(rol)) {
+      return res.status(400).json({ error: 'Rol inválido' });
+    }
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiracion = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    await pool.query(
+      'INSERT INTO invitaciones (tambo_id, token, rol, creado_por, fecha_expiracion) VALUES (?, ?, ?, ?, ?)',
+      [req.user.tambo_id, token, rol, req.user.id, expiracion]
+    );
+
+    res.json({ token, expira: expiracion.toISOString() });
+  } catch (error) {
+    console.error('Error creando invitación:', error);
+    res.status(500).json({ error: 'Error al crear invitación' });
   }
 });
 

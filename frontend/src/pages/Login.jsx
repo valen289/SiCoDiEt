@@ -2,7 +2,20 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Lock, User, Key, Eye, EyeOff } from 'lucide-react';
+import Footer from '../components/Footer';
 import '../styles/login.css';
+
+function validateCedula(cedula) {
+  const cleaned = cedula.replace(/\D/g, '');
+  if (cleaned.length < 6 || cleaned.length > 8) return false;
+  const padded = cleaned.padStart(8, '0');
+  const digits = padded.split('').map(Number);
+  const coefficients = [2, 9, 8, 7, 6, 3, 4];
+  const sum = coefficients.reduce((acc, coef, i) => acc + digits[i] * coef, 0);
+  const remainder = sum % 10;
+  const verifier = remainder === 0 ? 0 : 10 - remainder;
+  return verifier === digits[7];
+}
 
 export default function Login() {
   const [cedula, setCedula] = useState('');
@@ -21,19 +34,22 @@ export default function Login() {
       metaDesc.name = 'description';
       document.head.appendChild(metaDesc);
     }
-    metaDesc.content = 'Inicia sesión en SiCoDiEt, el sistema de control y distribución de alimentos para tambos.';
+    metaDesc.content = 'Inicia sesión en SiCoDiEt, el sistema de control y distribución de alimentos para establecimientos.';
     return () => { document.title = 'SiCoDiEt'; };
   }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    if (!validateCedula(cedula)) {
+      return setError('La cédula ingresada no es válida');
+    }
     setLoading(true);
     try {
       await login(cedula, password);
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.error || 'Error al iniciar sesion');
+      setError(err.response?.data?.error || 'Error al iniciar sesión');
     } finally {
       setLoading(false);
     }
@@ -64,6 +80,7 @@ export default function Login() {
                 inputMode="numeric"
                 required
               />
+              <small className="form-text text-muted">Sin puntos ni guiones, con dígito verificador</small>
             </div>
 
             <div className="form-group">
@@ -107,29 +124,7 @@ export default function Login() {
         </div>
       </div>
 
-      <footer className="login-footer">
-        <div className="footer-content">
-          <div className="footer-brand">
-            <h4>SiCoDiEt</h4>
-            <p>Sistema de Control y Distribucion de Alimentos y Tambo</p>
-          </div>
-          <div className="footer-contact">
-            <h4>Contacto</h4>
-            <p><strong>Coria</strong></p>
-            <p>+598 091 840 339</p>
-            <p>valeencoria28@gmail.com</p>
-          </div>
-          <div className="footer-help">
-            <h4>¿Necesitas ayuda?</h4>
-            <a href="mailto:valeencoria28@gmail.com" className="btn-link-mail">
-              Escribinos
-            </a>
-          </div>
-        </div>
-        <div className="footer-bottom">
-          <p>© 2026 SiCoDiEt. Todos los derechos reservados.</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

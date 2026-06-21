@@ -4,46 +4,45 @@ import api from '../services/api';
 import { useAlert } from '../context/AlertContext';
 import { useSEO } from '../hooks/useSEO';
 import {
-  Plus, Edit2, History, AlertTriangle, Database, Package, Wheat, Droplets,
-  X, CheckCircle, Trash2
+  Plus, Edit2, History, AlertTriangle, Database,
+  X, Trash2, FileText
 } from 'lucide-react';
+import { compartirReportePdf } from '../utils/reportes';
 import '../styles/silos.css';
 
-const tiposOriginales = [
-  { value: 'silo', label: 'Silo', icon: Database },
-  { value: 'bolson', label: 'Bolson', icon: Package },
-  { value: 'fardo', label: 'Fardo', icon: Wheat },
-  { value: 'sales', label: 'Sales', icon: Droplets },
+const categoriasBase = [
+  { value: 'reserva_forrajera', label: 'Reserva Forrajera' },
+  { value: 'concentrado',       label: 'Concentrados'       },
+  { value: 'sales',             label: 'Sales Minerales'    },
 ];
 
-const tiposAdicionalesDefault = [
-  { value: 'grano', label: 'Grano', icon: Wheat },
-  { value: 'concentrado', label: 'Concentrado', icon: Package },
-  { value: 'aditivo', label: 'Aditivo', icon: Droplets },
-  { value: 'forraje', label: 'Forraje', icon: Wheat },
+const tiposContenedor = [
+  { value: 'silo',   label: 'Silo'   },
+  { value: 'fardo',  label: 'Fardo'  },
+  { value: 'bolson', label: 'Bolsón' },
+  { value: 'bolsa',  label: 'Bolsa'  },
 ];
 
 export default function Silos() {
   const { success, error, confirm } = useAlert();
   const { tipo: tipoFromUrl } = useParams();
-  const tiposAdicionales = tiposAdicionalesDefault;
-  const selectedTipo = tipoFromUrl || 'silo';
+  const [generandoPdf, setGenerandoPdf] = useState(false);
+  const selectedTipo = tipoFromUrl || 'reserva_forrajera';
 
-  const todosLosTipos = [...tiposOriginales, ...tiposAdicionales];
-  const tipoActual = todosLosTipos.find(t => t.value === selectedTipo) || tiposOriginales[0];
-  const seoTitle = tipoActual
-    ? `${tipoActual.label}s - Gestión de Stock y Alimentos | SiCoDiET`
-    : 'Alimentos y Stock - Gestión de Insumos | SiCoDiET';
-  const seoDescription = tipoActual
-    ? `Control de stock de ${tipoActual.label.toLowerCase()}s para tambo lechero. Monitorea niveles, registra consumos diarios y optimiza la alimentación bovina con SiCoDiET.`
-    : 'Gestión integral de alimentos para tambo lechero. Control de stock, registro de consumos diarios y optimización de insumos con SiCoDiET.';
+  const customCats = (() => {
+    try { return JSON.parse(localStorage.getItem('sicodiet-custom-food-types') || '[]'); }
+    catch { return []; }
+  })();
+  const todasLasCategorias = [...categoriasBase, ...customCats.map(c => ({ value: c.value, label: c.label }))];
+  const categoriaActual = todasLasCategorias.find(c => c.value === selectedTipo) || categoriasBase[0];
+
+  const seoTitle = `${categoriaActual.label} - Gestión de Stock | SiCoDiET`;
+  const seoDescription = `Control de stock de ${categoriaActual.label.toLowerCase()} para establecimiento lechero. Monitorea niveles, registra consumos diarios y optimiza la alimentación bovina con SiCoDiET.`;
 
   useSEO({
     title: seoTitle,
     description: seoDescription,
-    keywords: tipoActual
-      ? `${tipoActual.label}, stock, alimentos, tambo, ganado, consumo, insumos, gestion`
-      : 'alimentos, stock, silos, bolsón, fardo, sales, tambo, ganado, consumo diario, insumos, gestión'
+    keywords: `${categoriaActual.label}, stock, alimentos, establecimiento, ganado, consumo, insumos, gestion`
   });
 
   useEffect(() => {
@@ -68,8 +67,8 @@ export default function Silos() {
   const [showHistorial, setShowHistorial] = useState(false);
   const [editingInsumo, setEditingInsumo] = useState(null);
   const [form, setForm] = useState({
-    nombre: '', tipo_insumo: '', unidad: 'kg',
-    capacidad_maxima: '', stock_actual: '', stock_minimo: ''
+    nombre: '', categoria: '', tipo_insumo: 'silo', unidad: 'kg',
+    capacidad_maxima: '', stock_actual: '', stock_minimo: '', precio_por_kg: ''
   });
   const [cargaForm, setCargaForm] = useState({ cantidad: '', comprobante: '', observaciones: '' });
   const [historial, setHistorial] = useState([]);
@@ -81,7 +80,7 @@ export default function Silos() {
 
   const loadInsumos = useCallback(async () => {
     try {
-      const params = selectedTipo ? { tipo: selectedTipo } : {};
+      const params = selectedTipo ? { categoria: selectedTipo } : {};
       const insumosRes = await api.get('/insumos', { params });
       const insumosData = insumosRes.data.insumos || [];
       setInsumos(insumosData);
@@ -99,16 +98,24 @@ export default function Silos() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const { precio_por_kg: _precio, ...formData } = form;
     const payload = {
-      ...form,
-      capacidad_maxima: parseInt(form.capacidad_maxima, 10),
-      stock_actual: form.stock_actual === '' ? 0 : parseInt(form.stock_actual, 10),
-      stock_minimo: parseInt(form.stock_minimo, 10),
+      ...formData,
+      capacidad_maxima: parseInt(formData.capacidad_maxima, 10),
+      stock_actual: formData.stock_actual === '' ? 0 : parseInt(formData.stock_actual, 10),
+      stock_minimo: parseInt(formData.stock_minimo, 10),
     };
 
     try {
       if (editingInsumo) {
         await api.put(`/insumos/${editingInsumo.id}`, payload);
+        if (form.precio_por_kg !== '') {
+          const precio = parseFloat(form.precio_por_kg);
+          if (!isNaN(precio) && precio >= 0) {
+            await api.put(`/dietas/costos/${editingInsumo.id}`, { precio_por_kg: precio });
+            setCostosInsumos(prev => ({ ...prev, [editingInsumo.id]: precio }));
+          }
+        }
         success('Insumo actualizado');
       } else {
         await api.post('/insumos', payload);
@@ -160,11 +167,13 @@ export default function Silos() {
     setEditingInsumo(insumo);
     setForm({
       nombre: insumo.nombre,
+      categoria: insumo.categoria || selectedTipo,
       tipo_insumo: insumo.tipo_insumo,
       unidad: insumo.unidad,
       capacidad_maxima: parseIntegerValue(insumo.capacidad_maxima),
       stock_actual: parseIntegerValue(insumo.stock_actual),
       stock_minimo: parseIntegerValue(insumo.stock_minimo),
+      precio_por_kg: costosInsumos[insumo.id] !== undefined ? String(Math.round(parseFloat(costosInsumos[insumo.id]) * 100) / 100) : '',
     });
     setShowModal(true);
   };
@@ -205,7 +214,7 @@ export default function Silos() {
   const handleGuardarPrecio = async (insumoId) => {
     const precio = parseFloat(precioInput);
     if (isNaN(precio) || precio < 0) {
-      error('Ingrese un precio valido mayor o igual a 0');
+      error('Ingrese un precio válido mayor o igual a 0');
       return;
     }
     try {
@@ -258,17 +267,34 @@ export default function Silos() {
     return parsed.toLocaleString('es-AR', options);
   };
 
+  const handleReportePdf = async () => {
+    setGenerandoPdf(true);
+    try {
+      await compartirReportePdf('stock', {
+        filename: `stock-${new Date().toISOString().slice(0, 10)}.pdf`,
+        titulo: 'Reporte de Stock',
+      });
+    } catch (err) {
+      console.error('Error generando reporte PDF:', err);
+    } finally {
+      setGenerandoPdf(false);
+    }
+  };
+
   return (
     <div className="silos-page" role="main" aria-label="Gestión de alimentos y stock">
       <header className="page-header d-flex justify-content-between align-items-center mb-4">
         <h1 className="h3 mb-0 d-flex align-items-center gap-2">
           <Database size={22} aria-hidden="true" />
-          <span>{tipoActual?.label || 'Alimentos'} - Stock</span>
+          <span>{categoriaActual.label} - Stock</span>
         </h1>
         <div className="silos__header-actions" role="group" aria-label="Acciones de stock">
+          <button className="silos__btn silos__btn--secondary" onClick={handleReportePdf} disabled={generandoPdf}>
+            <FileText size={16} aria-hidden="true" /> <span>{generandoPdf ? 'Generando...' : 'Reporte PDF'}</span>
+          </button>
           <button className="silos__btn silos__btn--primary" onClick={() => {
             setEditingInsumo(null);
-            setForm({ nombre: '', tipo_insumo: selectedTipo || 'silo', unidad: 'kg', capacidad_maxima: '', stock_actual: '', stock_minimo: '' });
+            setForm({ nombre: '', categoria: selectedTipo || 'reserva_forrajera', tipo_insumo: 'silo', unidad: 'kg', capacidad_maxima: '', stock_actual: '', stock_minimo: '' });
             setShowModal(true);
           }}>
             <Plus size={16} aria-hidden="true" /> <span>Cargar Insumo</span>
@@ -291,40 +317,28 @@ export default function Silos() {
           {insumos.map(insumo => {
             const porcentaje = getPorcentaje(insumo);
             const diasRaw = parseInt(insumo.dias_restantes) || 0;
+            const esEstimado = insumo.dias_restantes_origen === 'formulado';
             const nivelAlerta = getNivelAlerta(diasRaw);
             let dias;
             if (diasRaw === 999 || diasRaw === 0) {
               dias = 'Sin datos';
             } else if (diasRaw > 365) {
-              dias = `${Math.floor(diasRaw / 30)} meses`;
+              dias = `${Math.floor(diasRaw / 30)} meses${esEstimado ? ' (estimado)' : ''}`;
             } else {
-              dias = `${diasRaw} dias`;
+              dias = `${esEstimado ? '~' : ''}${diasRaw} dias${esEstimado ? ' (estimado)' : ''}`;
             }
             const isCritical = nivelAlerta.nivel === 'critico' || nivelAlerta.nivel === 'precaucion';
-            const precio = costosInsumos[insumo.id];
-            const isEditing = editingPrecio === insumo.id;
-
             const stockClass = getStockClass(porcentaje);
 
             return (
               <article key={insumo.id} className="insumo-card-wrapper" role="listitem" aria-label={`Insumo ${insumo.nombre}`}>
                 <div className={`insumo-card nivel-${nivelAlerta.nivel}`}>
 
-                  {/* Header: nombre + acciones */}
+                  {/* Header: nombre */}
                   <div className="insumo-card-top">
                     <div className="insumo-card-info">
                       <h3 className="insumo-name">{insumo.nombre}</h3>
-                      <p className="insumo-meta">
-                        {insumo.tipo_insumo} · cap. {formatNumber(insumo.capacidad_maxima, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} {insumo.unidad}
-                      </p>
-                    </div>
-                    <div className="insumo-card-actions">
-                      <button className="btn btn-sm btn-light" onClick={() => handleEdit(insumo)} type="button" aria-label={`Editar ${insumo.nombre}`}>
-                        <Edit2 size={14} /> <span className="d-none d-sm-inline">Editar</span>
-                      </button>
-                      <button className="btn btn-sm btn-outline-secondary" onClick={() => handleVerHistorial(insumo)} aria-label={`Historial ${insumo.nombre}`}>
-                        <History size={14} />
-                      </button>
+                      <span className="insumo-tipo-badge">{insumo.tipo_insumo}</span>
                     </div>
                   </div>
 
@@ -336,51 +350,47 @@ export default function Silos() {
                       </span>
                       <span className="stock-unit">{insumo.unidad}</span>
                     </div>
-                    <span className="stock-de">
-                      de {formatNumber(insumo.capacidad_maxima, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} {insumo.unidad}
-                    </span>
+                    <span className="stock-disponible">Disponible</span>
                   </div>
 
-                  {/* Barra de progreso */}
-                  <div className="progress-bar" role="progressbar" aria-valuenow={porcentaje} aria-valuemin="0" aria-valuemax="100" aria-label={`Stock al ${porcentaje}%`}>
-                    <div className={`progress-fill ${stockClass}`} style={{ width: `${porcentaje}%` }} />
+                  {/* Barra de progreso con % */}
+                  <div className="progress-bar-container">
+                    <div className="progress-bar" role="progressbar" aria-valuenow={porcentaje} aria-valuemin="0" aria-valuemax="100" aria-label={`Stock al ${porcentaje}%`}>
+                      <div className={`progress-fill ${stockClass}`} style={{ width: `${porcentaje}%` }} />
+                    </div>
+                    <span className="progress-pct">{porcentaje}%</span>
                   </div>
 
-                  {/* Footer: días restantes + precio */}
+                  {/* Footer: días restantes + capacidad + precio */}
                   <div className="insumo-footer">
                     <div className="footer-stat">
                       <span className="footer-stat__label">Días restantes</span>
                       <strong className="footer-stat__value dias-value">{dias}</strong>
                     </div>
                     <div className="footer-stat">
-                      <span className="footer-stat__label">Precio/kg (USD)</span>
-                      {isEditing ? (
-                        <div className="precio-edit-inline">
-                          <input
-                            type="number" step="0.0001"
-                            value={precioInput}
-                            onChange={(e) => setPrecioInput(e.target.value)}
-                            autoFocus
-                            aria-label="Precio por kg"
-                          />
-                          <button className="btn btn-sm btn-success" onClick={() => handleGuardarPrecio(insumo.id)} aria-label="Guardar precio">
-                            <CheckCircle size={13} />
-                          </button>
-                          <button className="btn btn-sm btn-secondary" onClick={handleCancelarPrecio} aria-label="Cancelar">
-                            <X size={13} />
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="precio-display">
-                          <strong className="footer-stat__value">
-                            {precio ? `US$ ${parseFloat(precio).toFixed(2)}` : 'N/A'}
-                          </strong>
-                          <button className="precio-edit-btn-sm" onClick={() => handleEditarPrecio(insumo)} aria-label="Editar precio">
-                            <Edit2 size={12} />
-                          </button>
-                        </div>
-                      )}
+                      <span className="footer-stat__label">Capacidad máx.</span>
+                      <strong className="footer-stat__value">
+                        {formatNumber(insumo.capacidad_maxima, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} {insumo.unidad}
+                      </strong>
                     </div>
+                    <div className="footer-stat">
+                      <span className="footer-stat__label">Precio/kg</span>
+                      <strong className="footer-stat__value">
+                        {costosInsumos[insumo.id] !== undefined
+                          ? `US$${parseFloat(costosInsumos[insumo.id]).toFixed(2)}`
+                          : <span style={{ color: 'var(--text-light)', fontWeight: 400 }}>—</span>}
+                      </strong>
+                    </div>
+                  </div>
+
+                  {/* Botones acción */}
+                  <div className="card-btn-row">
+                    <button className="card-btn card-btn--edit" onClick={() => handleEdit(insumo)} aria-label={`Editar ${insumo.nombre}`}>
+                      <Edit2 size={13} /> Editar
+                    </button>
+                    <button className="card-btn card-btn--history" onClick={() => handleVerHistorial(insumo)} aria-label={`Movimientos ${insumo.nombre}`}>
+                      <History size={13} /> Movimientos
+                    </button>
                   </div>
 
                   {/* Alerta crítica */}
@@ -413,11 +423,20 @@ export default function Silos() {
                   <input type="text" className="form-control" value={form.nombre} onChange={e => setForm(prev => ({...prev, nombre: e.target.value}))} required />
                 </div>
                 <div className="mb-3">
-                  <label className="form-label">Tipo</label>
+                  <label className="form-label">Categoría</label>
+                  <select className="form-select" value={form.categoria} onChange={e => setForm(prev => ({...prev, categoria: e.target.value}))} required>
+                    <option value="">Seleccionar categoría...</option>
+                    {todasLasCategorias.map(cat => (
+                      <option key={cat.value} value={cat.value}>{cat.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="mb-3">
+                  <label className="form-label">Contenedor físico</label>
                   <select className="form-select" value={form.tipo_insumo} onChange={e => setForm(prev => ({...prev, tipo_insumo: e.target.value}))} required>
-                    <option value="">Seleccionar tipo...</option>
-                    {todosLosTipos.filter(t => t.value !== 'todos').map(tipo => (
-                      <option key={tipo.value} value={tipo.value}>{tipo.label}</option>
+                    <option value="">Seleccionar contenedor...</option>
+                    {tiposContenedor.map(t => (
+                      <option key={t.value} value={t.value}>{t.label}</option>
                     ))}
                   </select>
                 </div>
@@ -427,7 +446,7 @@ export default function Silos() {
                 </div>
                 <div className="row g-3">
                   <div className="col-md-4">
-                    <label className="form-label">Capacidad Maxima</label>
+                    <label className="form-label">Capacidad Máxima</label>
                     <input type="number" step="1" min="0" className="form-control" value={form.capacidad_maxima} onChange={e => setForm(prev => ({...prev, capacidad_maxima: e.target.value}))} required />
                   </div>
                   <div className="col-md-4">
@@ -435,10 +454,30 @@ export default function Silos() {
                     <input type="number" step="1" min="0" className="form-control" value={form.stock_actual} onChange={e => setForm(prev => ({...prev, stock_actual: e.target.value}))} />
                   </div>
                   <div className="col-md-4">
-                    <label className="form-label">Stock Minimo</label>
+                    <label className="form-label">Stock Mínimo</label>
                     <input type="number" step="1" min="0" className="form-control" value={form.stock_minimo} onChange={e => setForm(prev => ({...prev, stock_minimo: e.target.value}))} required />
                   </div>
                 </div>
+
+                {editingInsumo && (
+                  <div className="mb-3">
+                    <label className="form-label">Precio por kg (US$)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className="form-control"
+                      placeholder="0.00"
+                      value={form.precio_por_kg}
+                      onChange={e => setForm(prev => ({ ...prev, precio_por_kg: e.target.value }))}
+                      onBlur={e => {
+                        const val = parseFloat(e.target.value);
+                        if (!isNaN(val) && val >= 0) setForm(prev => ({ ...prev, precio_por_kg: String(Math.round(val * 100) / 100) }));
+                      }}
+                    />
+                    <div className="form-text">Este precio se usa en Costos y en Dietas.</div>
+                  </div>
+                )}
 
                 {editingInsumo && (
                   <div className="carga-section">
@@ -548,7 +587,7 @@ export default function Silos() {
                           </span>
                           <strong>{h.tipo === 'ingreso' || h.tipo === 'ajuste_positivo' ? '+' : '-'}{formatNumber(h.cantidad)} {h.unidad || editingInsumo.unidad}</strong>
                         </div>
-                        <span className="d-block text-muted small">{h.fecha} {h.hora?.substring(0, 5)}</span>
+                        <span className="d-block text-muted small">{h.fecha?.split('T')[0]} {h.hora?.substring(0, 5)}</span>
                         {h.observaciones && <span className="d-block text-muted small fst-italic">{h.observaciones}</span>}
                       </div>
                       <div className="text-end">

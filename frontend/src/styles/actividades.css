@@ -1,0 +1,309 @@
+/* ===== SICODIET - Actividades (BEM) ===== */
+
+.actividades {
+  max-width: 700px;
+}
+
+/* ─── Header ──────────────────────────────────────────────────────────────── */
+
+.actividades__header {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin-bottom: 1.5rem;
+}
+
+.actividades__header-icon {
+  color: var(--text-light);
+  flex-shrink: 0;
+}
+
+.actividades__title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.actividades__count {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--text-light);
+  background: var(--bg);
+  border: 1px solid var(--divider);
+  border-radius: 999px;
+  padding: 0.15rem 0.625rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* ─── Error ───────────────────────────────────────────────────────────────── */
+
+.actividades__error {
+  background: rgba(211, 93, 78, 0.06);
+  border: 1px solid rgba(211, 93, 78, 0.22);
+  color: var(--danger);
+  border-radius: 0.625rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+/* ─── Skeleton ────────────────────────────────────────────────────────────── */
+
+@keyframes actividades-shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.actividades__skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.actividades__skeleton-item {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.875rem 0;
+  border-bottom: 1px solid var(--divider);
+}
+
+.actividades__skeleton-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: linear-gradient(90deg, var(--divider) 25%, var(--bg) 50%, var(--divider) 75%);
+  background-size: 400px 100%;
+  animation: actividades-shimmer 1.4s infinite linear;
+}
+
+.actividades__skeleton-lines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.25rem;
+}
+
+.actividades__skeleton-line {
+  height: 11px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--divider) 25%, var(--bg) 50%, var(--divider) 75%);
+  background-size: 400px 100%;
+  animation: actividades-shimmer 1.4s infinite linear;
+}
+
+.actividades__skeleton-line--short { width: 45%; }
+.actividades__skeleton-line--long  { width: 72%; }
+
+/* ─── Lista ───────────────────────────────────────────────────────────────── */
+
+.actividades__list {
+  background: var(--white);
+  border-radius: var(--card-radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.actividades__item {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.875rem 1.125rem;
+  border-bottom: 1px solid var(--divider);
+  transition: background 0.12s;
+}
+
+.actividades__item:last-child {
+  border-bottom: none;
+}
+
+.actividades__item:hover {
+  background: var(--bg);
+}
+
+/* ─── Avatar ──────────────────────────────────────────────────────────────── */
+
+.actividades__avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  letter-spacing: 0;
+}
+
+.actividades__avatar--dueno      { background: #7c3aed; }
+.actividades__avatar--encargado  { background: #2563eb; }
+.actividades__avatar--trabajador { background: var(--primary); }
+.actividades__avatar--sistema    { background: var(--text-light); }
+
+/* ─── Contenido ───────────────────────────────────────────────────────────── */
+
+.actividades__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.actividades__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.2rem;
+}
+
+.actividades__name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.actividades__badge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0.1rem 0.45rem;
+  border-radius: 0.25rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.actividades__badge--dueno      { background: #ede9fe; color: #6d28d9; }
+.actividades__badge--encargado  { background: #dbeafe; color: #1d4ed8; }
+.actividades__badge--trabajador { background: var(--primary-light); color: var(--primary); }
+
+.actividades__time {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  color: var(--text-light);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.actividades__desc {
+  font-size: 0.78rem;
+  color: var(--text-light);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.actividades__action {
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* ─── Acciones (marcar leída / borrar) ───────────────────────────────────── */
+
+.actividades__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+  margin-left: 0.5rem;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.actividades__item:hover .actividades__actions,
+.actividades__item:focus-within .actividades__actions {
+  opacity: 1;
+}
+
+.actividades__action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: none;
+  border-radius: 0.375rem;
+  background: transparent;
+  color: var(--text-light);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.actividades__action-btn--leida:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.actividades__action-btn--borrar:hover {
+  background: rgba(211, 93, 78, 0.1);
+  color: var(--danger);
+}
+
+/* ─── Empty ───────────────────────────────────────────────────────────────── */
+
+.actividades__empty {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: var(--text-light);
+  background: var(--white);
+  border-radius: var(--card-radius);
+  box-shadow: var(--shadow);
+}
+
+.actividades__empty svg {
+  opacity: 0.2;
+  margin-bottom: 0.75rem;
+}
+
+.actividades__empty p {
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+/* ─── Paginación ──────────────────────────────────────────────────────────── */
+
+.actividades__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.actividades__page-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1.5px solid var(--border);
+  border-radius: 0.375rem;
+  background: var(--white);
+  color: var(--text-light);
+  cursor: pointer;
+  transition: all 0.15s;
+  box-shadow: var(--shadow);
+}
+
+.actividades__page-btn:hover:not(:disabled) {
+  background: var(--primary-light);
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+.actividades__page-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.actividades__page-info {
+  font-size: 0.85rem;
+  color: var(--text-light);
+}

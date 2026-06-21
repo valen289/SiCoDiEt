@@ -9,7 +9,7 @@ import '../styles/alertas.css';
 export default function Alertas() {
   const { user } = useAuth();
   const { success, error, confirm } = useAlert();
-  useSEO({ title: 'Centro de Alertas', description: 'Alertas de stock bajo, stock crítico y vencimientos de insumos del tambo.' });
+  useSEO({ title: 'Centro de Alertas', description: 'Alertas de stock bajo, stock crítico y vencimientos de insumos del establecimiento.' });
   const [alertas, setAlertas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('todas');

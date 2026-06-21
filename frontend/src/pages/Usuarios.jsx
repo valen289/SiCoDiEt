@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 import { useAlert } from '../context/AlertContext';
 import { useSEO } from '../hooks/useSEO';
-import { Users, Plus, Edit2, UserCheck, UserX, Lock, Save, X, Mail, Phone, Hash } from 'lucide-react';
+import { Users, Plus, Edit2, UserCheck, UserX, Lock, Save, X, Mail, Phone, Hash, Link2, Copy, QrCode } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import '../styles/usuarios.css';
 
 const ROL_CONFIG = {
@@ -13,7 +14,7 @@ const ROL_CONFIG = {
 
 export default function Usuarios() {
   const { success, error, confirm } = useAlert();
-  useSEO({ title: 'Gestión de Usuarios', description: 'Administración de usuarios del tambo.' });
+  useSEO({ title: 'Gestión de Usuarios', description: 'Administración de usuarios del establecimiento.' });
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState(null);
@@ -25,6 +26,12 @@ export default function Usuarios() {
   });
   const [passwordForm, setPasswordForm] = useState({ password: '', confirmPassword: '' });
   const [filter, setFilter] = useState('todos');
+
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteRol, setInviteRol] = useState('trabajador');
+  const [inviteResult, setInviteResult] = useState(null);
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const loadUsuarios = useCallback(async () => {
     try {
@@ -117,6 +124,34 @@ export default function Usuarios() {
     }
   };
 
+  const handleCreateInvite = async () => {
+    setInviteLoading(true);
+    try {
+      const res = await api.post('/usuarios/invitacion', { rol: inviteRol });
+      const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
+      const link = `${baseUrl}/register?token=${res.data.token}`;
+      setInviteResult({ link, expira: res.data.expira });
+    } catch (err) {
+      error(err.response?.data?.error || 'Error al crear invitación');
+    } finally {
+      setInviteLoading(false);
+    }
+  };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(inviteResult.link).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  const handleCloseInvite = () => {
+    setShowInviteModal(false);
+    setInviteResult(null);
+    setInviteRol('trabajador');
+    setCopied(false);
+  };
+
   const getRolBadge = (rol) => {
     const cfg = ROL_CONFIG[rol] || ROL_CONFIG.trabajador;
     return <span className={`badge ${cfg.class}`}>{cfg.label}</span>;
@@ -157,18 +192,26 @@ export default function Usuarios() {
           <h1 className="h3 mb-1 d-flex align-items-center gap-2">
             <Users size={24} /> Gestión de Usuarios
           </h1>
-          <p className="text-muted small mb-0">Administra los usuarios del tambo</p>
+          <p className="text-muted small mb-0">Administra los usuarios del establecimiento</p>
         </div>
-        <button
-          className="btn btn-success d-flex align-items-center gap-2"
-          onClick={() => {
-            setEditingUser(null);
-            setForm({ cedula: '', nombre: '', email: '', telefono: '', password: '', rol: 'trabajador' });
-            setShowModal(true);
-          }}
-        >
-          <Plus size={18} /> Nuevo Usuario
-        </button>
+        <div className="d-flex gap-2">
+          <button
+            className="btn btn-outline-success d-flex align-items-center gap-2"
+            onClick={() => setShowInviteModal(true)}
+          >
+            <QrCode size={18} /> Invitar
+          </button>
+          <button
+            className="btn btn-success d-flex align-items-center gap-2"
+            onClick={() => {
+              setEditingUser(null);
+              setForm({ cedula: '', nombre: '', email: '', telefono: '', password: '', rol: 'trabajador' });
+              setShowModal(true);
+            }}
+          >
+            <Plus size={18} /> Nuevo Usuario
+          </button>
+        </div>
       </div>
 
       <div className="usuarios-filters mb-3 d-flex gap-2">
@@ -186,53 +229,51 @@ export default function Usuarios() {
         </span>
       </div>
 
-      <div className="usuarios-grid row g-3">
+      <div className="usuarios-grid">
         {filteredUsuarios.map(usuario => (
-          <div key={usuario.id} className="col-12 col-sm-6 col-xl-4">
-            <div className={`usuario-card ${!usuario.activo ? 'inactive' : ''}`}>
-              <div className="usuario-header d-flex justify-content-between align-items-start">
-                <div className="usuario-avatar">
-                  <span className="avatar-letter">{usuario.nombre.charAt(0).toUpperCase()}</span>
-                </div>
-                <div className="d-flex gap-1">
-                  <button className="btn btn-sm btn-light" onClick={() => handleEdit(usuario)} title="Editar">
-                    <Edit2 size={14} />
-                  </button>
-                  <button className="btn btn-sm btn-light" onClick={() => handleChangePassword(usuario)} title="Cambiar contraseña">
-                    <Lock size={14} />
-                  </button>
-                  <button
-                    className={`btn btn-sm ${usuario.activo ? 'btn-warning' : 'btn-success'}`}
-                    onClick={() => handleToggleActivo(usuario)}
-                    title={usuario.activo ? 'Dar de baja' : 'Reactivar'}
-                  >
-                    {usuario.activo ? <UserX size={14} /> : <UserCheck size={14} />}
-                  </button>
-                </div>
+          <div key={usuario.id} className={`usuario-card ${!usuario.activo ? 'inactive' : ''}`}>
+            <div className="usuario-header">
+              <div className="usuario-avatar">
+                <span className="avatar-letter">{usuario.nombre.charAt(0).toUpperCase()}</span>
               </div>
+              <div className="usuario-actions">
+                <button className="btn btn-sm btn-light" onClick={() => handleEdit(usuario)} title="Editar">
+                  <Edit2 size={14} />
+                </button>
+                <button className="btn btn-sm btn-light" onClick={() => handleChangePassword(usuario)} title="Cambiar contraseña">
+                  <Lock size={14} />
+                </button>
+                <button
+                  className={`btn btn-sm ${usuario.activo ? 'btn-warning' : 'btn-success'}`}
+                  onClick={() => handleToggleActivo(usuario)}
+                  title={usuario.activo ? 'Dar de baja' : 'Reactivar'}
+                >
+                  {usuario.activo ? <UserX size={14} /> : <UserCheck size={14} />}
+                </button>
+              </div>
+            </div>
 
-              <div className="usuario-body mt-3">
-                <h3 className="usuario-name">{usuario.nombre}</h3>
-                <div className="usuario-meta d-flex flex-wrap gap-2 mb-2">
-                  {getRolBadge(usuario.rol)}
-                  <span className={`badge ${usuario.activo ? 'badge-success' : 'badge-secondary'}`}>
-                    {usuario.activo ? 'Activo' : 'Inactivo'}
-                  </span>
-                </div>
-                <div className="usuario-details">
-                  <div className="detail-row"><Hash size={14} /><span>{usuario.cedula}</span></div>
-                  {usuario.email && (
-                    <div className="detail-row"><Mail size={14} /><span>{usuario.email}</span></div>
-                  )}
-                  {usuario.telefono && (
-                    <div className="detail-row"><Phone size={14} /><span>{usuario.telefono}</span></div>
-                  )}
-                  {usuario.ultimo_acceso && (
-                    <div className="detail-row text-muted small">
-                      <span>Último acceso: {new Date(usuario.ultimo_acceso).toLocaleDateString('es-AR')}</span>
-                    </div>
-                  )}
-                </div>
+            <div className="usuario-body">
+              <h3 className="usuario-name">{usuario.nombre}</h3>
+              <div className="usuario-meta">
+                {getRolBadge(usuario.rol)}
+                <span className={`badge ${usuario.activo ? 'badge-success' : 'badge-secondary'}`}>
+                  {usuario.activo ? 'Activo' : 'Inactivo'}
+                </span>
+              </div>
+              <div className="usuario-details">
+                <div className="detail-row"><Hash size={14} /><span>{usuario.cedula}</span></div>
+                {usuario.email && (
+                  <div className="detail-row"><Mail size={14} /><span>{usuario.email}</span></div>
+                )}
+                {usuario.telefono && (
+                  <div className="detail-row"><Phone size={14} /><span>{usuario.telefono}</span></div>
+                )}
+                {usuario.ultimo_acceso && (
+                  <div className="detail-row text-muted small">
+                    <span>Último acceso: {new Date(usuario.ultimo_acceso).toLocaleDateString('es-AR')}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -330,6 +371,73 @@ export default function Usuarios() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Invitación */}
+      {showInviteModal && (
+        <div className="modal-overlay" onClick={handleCloseInvite}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 460 }}>
+            <div className="modal-header">
+              <h2 className="h5 mb-0 d-flex align-items-center gap-2"><QrCode size={18} /> Invitar trabajador</h2>
+              <button type="button" className="btn-close" onClick={handleCloseInvite} />
+            </div>
+            <div className="modal-body">
+              {!inviteResult ? (
+                <>
+                  <p className="text-muted small mb-3">
+                    Generá un link de invitación. El trabajador escanea el QR o abre el link y se registra directamente en tu establecimiento.
+                  </p>
+                  <div className="mb-3">
+                    <label className="form-label">Rol que tendrá</label>
+                    <select
+                      className="form-select"
+                      value={inviteRol}
+                      onChange={e => setInviteRol(e.target.value)}
+                    >
+                      <option value="trabajador">Trabajador</option>
+                      <option value="encargado">Encargado</option>
+                    </select>
+                  </div>
+                  <div className="d-flex gap-2 justify-content-end mt-4">
+                    <button className="btn btn-secondary" onClick={handleCloseInvite}>Cancelar</button>
+                    <button className="btn btn-success" onClick={handleCreateInvite} disabled={inviteLoading}>
+                      {inviteLoading ? 'Generando...' : 'Generar link'}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="text-muted small mb-3">
+                    Este link expira en <strong>24 horas</strong>. Compartilo o mostrá el QR al trabajador.
+                  </p>
+                  <div className="text-center mb-3">
+                    <div
+                      className="d-inline-block p-2"
+                      style={{ borderRadius: 8, border: '1px solid var(--border)' }}
+                    >
+                      <QRCodeSVG value={inviteResult.link} size={200} />
+                    </div>
+                  </div>
+                  <div className="input-group mb-2">
+                    <input
+                      type="text"
+                      className="form-control form-control-sm"
+                      value={inviteResult.link}
+                      readOnly
+                    />
+                    <button className="btn btn-outline-secondary btn-sm" onClick={handleCopy}>
+                      <Copy size={14} className="me-1" />
+                      {copied ? 'Copiado' : 'Copiar'}
+                    </button>
+                  </div>
+                  <div className="d-flex justify-content-end mt-4">
+                    <button className="btn btn-success" onClick={handleCloseInvite}>Listo</button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

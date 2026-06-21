@@ -17,6 +17,11 @@ services:
       - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
       - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-24h}
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3001}
+      - EMAIL_HOST=${EMAIL_HOST:-smtp.gmail.com}
+      - EMAIL_PORT=${EMAIL_PORT:-587}
+      - EMAIL_USER=${EMAIL_USER:-}
+      - EMAIL_PASS=${EMAIL_PASS:-}
+      - EMAIL_FROM=${EMAIL_FROM:-"SiCoDiEt" <noreply@sicodiet.com>}
     depends_on:
       db:
         condition: service_healthy

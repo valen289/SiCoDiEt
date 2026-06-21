@@ -13,6 +13,12 @@
   margin-bottom: 1.5rem;
 }
 
+.dietas__info-row .form-label {
+  display: flex;
+  align-items: flex-end;
+  min-height: 2.4rem;
+}
+
 .dietas__section-title {
   font-size: 1.1rem;
   font-weight: 600;
@@ -127,7 +133,7 @@
 }
 
 .dietas__action-btn--danger:hover {
-  background: rgba(193, 85, 59, 0.1);
+  background: rgba(211, 93, 78, 0.10);
   color: var(--danger);
 }
 
@@ -645,7 +651,7 @@
 }
 
 .dietas__lista-btn--delete:hover {
-  background: rgba(193, 85, 59, 0.1);
+  background: rgba(211, 93, 78, 0.10);
   border-color: var(--danger);
 }
 

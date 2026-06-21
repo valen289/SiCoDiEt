@@ -1,18 +1,52 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Eye, EyeOff, User, Mail, Phone, Lock } from 'lucide-react';
+import { Eye, EyeOff, Mail, Phone, Lock, CheckCircle, AlertCircle } from 'lucide-react';
+import api from '../services/api';
+import Footer from '../components/Footer';
 import '../styles/login.css';
 
+function validateCedula(cedula) {
+  const cleaned = cedula.replace(/\D/g, '');
+  if (cleaned.length < 6 || cleaned.length > 8) return false;
+  const padded = cleaned.padStart(8, '0');
+  const digits = padded.split('').map(Number);
+  const coefficients = [2, 9, 8, 7, 6, 3, 4];
+  const sum = coefficients.reduce((acc, coef, i) => acc + digits[i] * coef, 0);
+  const remainder = sum % 10;
+  const verifier = remainder === 0 ? 0 : 10 - remainder;
+  return verifier === digits[7];
+}
+
+const ROL_LABELS = { trabajador: 'Trabajador', encargado: 'Encargado' };
+
 export default function Register() {
+  const [searchParams] = useSearchParams();
+  const inviteToken = searchParams.get('token');
+
+  const [invitacion, setInvitacion] = useState(inviteToken ? 'loading' : null);
+  const [tokenError, setTokenError] = useState('');
+
   const [form, setForm] = useState({
-    nombre: '', apellido: '', cedula: '', email: '', telefono: '', password: '', confirmPassword: '', rol: 'trabajador'
+    nombre: '', apellido: '', cedula: '', email: '', telefono: '', password: '', confirmPassword: '', nombre_tambo: ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!inviteToken) return;
+    api.get(`/auth/invitacion/${inviteToken}`)
+      .then(res => {
+        setInvitacion(res.data.invitacion);
+      })
+      .catch(() => {
+        setInvitacion(null);
+        setTokenError('Esta invitación no es válida o ya expiró.');
+      });
+  }, [inviteToken]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -21,19 +55,28 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    if (!validateCedula(form.cedula)) {
+      return setError('La cédula ingresada no es válida');
+    }
     if (form.password !== form.confirmPassword) {
       return setError('Las contraseñas no coinciden');
     }
     setLoading(true);
     try {
-      await register({
+      const payload = {
         nombre: `${form.nombre} ${form.apellido}`,
         cedula: form.cedula,
         email: form.email,
         telefono: form.telefono,
         password: form.password,
-        rol: form.rol
-      });
+      };
+      if (inviteToken) {
+        payload.invitation_token = inviteToken;
+      } else {
+        payload.nombre_tambo = form.nombre_tambo;
+      }
+
+      await register(payload);
       navigate('/login');
     } catch (err) {
       const data = err.response?.data;
@@ -43,6 +86,34 @@ export default function Register() {
     }
   };
 
+  if (inviteToken && invitacion === 'loading') {
+    return (
+      <div className="login-container">
+        <div className="login-wrapper">
+          <div className="login-card" style={{ textAlign: 'center', padding: '2rem' }}>
+            <div className="spinner-border text-success mb-3" role="status" />
+            <p className="text-muted">Validando invitación...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (tokenError) {
+    return (
+      <div className="login-container">
+        <div className="login-wrapper">
+          <div className="login-card" style={{ textAlign: 'center', padding: '2rem' }}>
+            <AlertCircle size={48} color="var(--danger)" className="mb-3" />
+            <h2 className="h5 mb-2">Invitación inválida</h2>
+            <p className="text-muted">{tokenError}</p>
+            <Link to="/login" className="btn btn-outline-secondary mt-3">Ir al inicio de sesión</Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="login-container">
       <div className="login-wrapper">
@@ -51,6 +122,16 @@ export default function Register() {
             <h1 className="login-logo">SiCoDiEt</h1>
             <p className="login-subtitle">Crear nueva cuenta</p>
           </div>
+
+          {invitacion && typeof invitacion === 'object' && (
+            <div className="alert alert-success d-flex align-items-center gap-2 mb-3" role="alert">
+              <CheckCircle size={18} />
+              <span>
+                Invitado al establecimiento <strong>{invitacion.tambo_nombre}</strong> como{' '}
+                <strong>{ROL_LABELS[invitacion.rol] || invitacion.rol}</strong>
+              </span>
+            </div>
+          )}
 
           {error && <div className="alert alert-danger" role="alert">{error}</div>}
 
@@ -66,17 +147,23 @@ export default function Register() {
               </div>
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Rol</label>
-              <select name="rol" className="form-select" value={form.rol} onChange={handleChange}>
-                <option value="trabajador">Trabajador</option>
-                <option value="encargado">Encargado</option>
-              </select>
-            </div>
+            {!inviteToken && (
+              <div className="form-group">
+                <label className="form-label">Nombre de tu establecimiento</label>
+                <input
+                  name="nombre_tambo"
+                  type="text"
+                  className="form-control"
+                  value={form.nombre_tambo}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+            )}
 
             <div className="form-group">
               <label className="form-label">Cédula de Identidad</label>
-              <input name="cedula" type="text" className="form-control" value={form.cedula} onChange={(e) => setForm({...form, cedula: e.target.value.replace(/[^0-9]/g, '')})} placeholder="Ej: 12345678" inputMode="numeric" required />
+              <input name="cedula" type="text" className="form-control" value={form.cedula} onChange={(e) => setForm({...form, cedula: e.target.value.replace(/[^0-9]/g, '').slice(0, 8)})} placeholder="Ej: 12345678" inputMode="numeric" required />
             </div>
 
             <div className="form-group">
@@ -85,7 +172,7 @@ export default function Register() {
             </div>
 
             <div className="form-group">
-              <label className="form-label"><Phone size={14} /> Telefono</label>
+              <label className="form-label"><Phone size={14} /> Teléfono</label>
               <input name="telefono" type="text" className="form-control" value={form.telefono} onChange={handleChange} placeholder="094 231 234" />
             </div>
 
@@ -123,27 +210,7 @@ export default function Register() {
         </div>
       </div>
 
-      <footer className="login-footer">
-        <div className="footer-content">
-          <div className="footer-brand">
-            <h4>SiCoDiEt</h4>
-            <p>Sistema de Control y Distribucion de Alimentos y Tambo</p>
-          </div>
-          <div className="footer-contact">
-            <h4>Contacto</h4>
-            <p><strong>Coria</strong></p>
-            <p>+598 091 840 339</p>
-            <p>valeencoria28@gmail.com</p>
-          </div>
-          <div className="footer-help">
-            <h4>¿Necesitas ayuda?</h4>
-            <a href="mailto:valeencoria28@gmail.com" className="btn-link-mail">Escribinos</a>
-          </div>
-        </div>
-        <div className="footer-bottom">
-          <p>© 2026 SiCoDiEt. Todos los derechos reservados.</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

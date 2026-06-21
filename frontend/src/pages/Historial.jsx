@@ -3,8 +3,7 @@ import api from '../services/api';
 import { useSEO } from '../hooks/useSEO';
 import {
   History, Download, Filter, ChevronLeft, ChevronRight,
-  ArrowDownCircle, ArrowUpCircle, TrendingUp, TrendingDown,
-  Package, Database, Wheat, Droplets
+  ArrowDownCircle, ArrowUpCircle, Package
 } from 'lucide-react';
 import '../styles/historial.css';
 
@@ -21,8 +20,6 @@ const TIPOS_MOVIMIENTO = [
   { value: '', label: 'Todos' },
   { value: 'ingreso', label: 'Ingreso' },
   { value: 'consumo', label: 'Consumo' },
-  { value: 'ajuste_positivo', label: 'Ajuste +' },
-  { value: 'ajuste_negativo', label: 'Ajuste -' },
 ];
 
 const TIPOS_INSUMO = [
@@ -39,8 +36,10 @@ const TIPOS_INSUMO = [
 
 function formatDate(date) {
   if (!date) return '';
-  const d = new Date(date);
-  return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  // Parse as local date (not UTC) to avoid off-by-one-day in UTC-3 timezone
+  const str = date.toString().split('T')[0];
+  const [year, month, day] = str.split('-');
+  return `${day}/${month}/${year}`;
 }
 
 function formatNumber(num) {
@@ -50,11 +49,9 @@ function formatNumber(num) {
 
 function getTipoIcon(tipo) {
   switch (tipo) {
-    case 'ingreso': return { icon: ArrowDownCircle, color: 'var(--primary)', bg: 'var(--primary-light)' };
-    case 'consumo': return { icon: ArrowUpCircle, color: 'var(--danger)', bg: 'rgba(193,85,59,0.1)' };
-    case 'ajuste_positivo': return { icon: TrendingUp, color: '#28a745', bg: 'rgba(40,167,69,0.1)' };
-    case 'ajuste_negativo': return { icon: TrendingDown, color: 'var(--danger)', bg: 'rgba(193,85,59,0.1)' };
-    default: return { icon: Package, color: 'var(--text-light)', bg: 'var(--bg)' };
+    case 'ingreso':          return { icon: ArrowDownCircle, cssClass: 'ingreso' };
+    case 'consumo':          return { icon: ArrowUpCircle,   cssClass: 'consumo' };
+    default:                 return { icon: Package,          cssClass: 'default' };
   }
 }
 
@@ -62,8 +59,8 @@ function getTipoLabel(tipo) {
   const labels = {
     ingreso: 'Ingreso',
     consumo: 'Consumo',
-    ajuste_positivo: 'Ajuste +',
-    ajuste_negativo: 'Ajuste -',
+    ajuste_positivo: 'Ajuste',
+    ajuste_negativo: 'Ajuste',
   };
   return labels[tipo] || tipo;
 }
@@ -93,10 +90,12 @@ export default function Historial() {
     if (periodo === 'custom') return { fechaInicio, fechaFin };
     const now = new Date();
     const dias = parseInt(periodo);
-    const inicio = new Date(now.getTime() - dias * 24 * 60 * 60 * 1000);
+    const inicio = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dias);
+    const pad = n => String(n).padStart(2, '0');
+    const toLocalISO = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
     return {
-      fechaInicio: inicio.toISOString().split('T')[0],
-      fechaFin: now.toISOString().split('T')[0],
+      fechaInicio: toLocalISO(inicio),
+      fechaFin: toLocalISO(now),
     };
   }, [periodo, fechaInicio, fechaFin]);
 
@@ -121,7 +120,9 @@ export default function Historial() {
           params: {
             fecha_inicio: fi,
             fecha_fin: ff,
+            // tipo NO se pasa: las tarjetas siempre muestran ingresos + consumos completos
             tipo_insumo: tipoInsumo || undefined,
+            insumo_id: insumoId || undefined,
           },
         }),
         api.get('/insumos'),
@@ -148,11 +149,6 @@ export default function Historial() {
       setFechaInicio('');
       setFechaFin('');
     }
-  };
-
-  const handleFilterChange = () => {
-    setPage(1);
-    loadData();
   };
 
   const handleExport = async () => {
@@ -229,16 +225,14 @@ export default function Historial() {
                 type="date"
                 className="form-control form-control-sm"
                 value={fechaInicio}
-                onChange={e => setFechaInicio(e.target.value)}
-                onBlur={handleFilterChange}
+                onChange={e => { setFechaInicio(e.target.value); setPage(1); }}
               />
               <span className="text-muted small">hasta</span>
               <input
                 type="date"
                 className="form-control form-control-sm"
                 value={fechaFin}
-                onChange={e => setFechaFin(e.target.value)}
-                onBlur={handleFilterChange}
+                onChange={e => { setFechaFin(e.target.value); setPage(1); }}
               />
             </div>
           )}
@@ -250,7 +244,7 @@ export default function Historial() {
             <select
               className="form-select form-select-sm"
               value={tipoMovimiento}
-              onChange={e => { setTipoMovimiento(e.target.value); setTimeout(handleFilterChange, 0); }}
+              onChange={e => { setTipoMovimiento(e.target.value); setPage(1); }}
             >
               {TIPOS_MOVIMIENTO.map(t => (
                 <option key={t.value} value={t.value}>{t.label}</option>
@@ -259,7 +253,7 @@ export default function Historial() {
             <select
               className="form-select form-select-sm"
               value={tipoInsumo}
-              onChange={e => { setTipoInsumo(e.target.value); setTimeout(handleFilterChange, 0); }}
+              onChange={e => { setTipoInsumo(e.target.value); setPage(1); }}
             >
               {TIPOS_INSUMO.map(t => (
                 <option key={t.value} value={t.value}>{t.label}</option>
@@ -268,7 +262,7 @@ export default function Historial() {
             <select
               className="form-select form-select-sm"
               value={insumoId}
-              onChange={e => { setInsumoId(e.target.value); setTimeout(handleFilterChange, 0); }}
+              onChange={e => { setInsumoId(e.target.value); setPage(1); }}
             >
               <option value="">Todos los insumos</option>
               {insumos.map(i => (
@@ -281,7 +275,7 @@ export default function Historial() {
 
       {/* Totales Generales */}
       {totales && (
-        <div className="historial__totals">
+        <div className="historial__totals historial__totals--3col">
           <div className="historial__total-card historial__total-card--ingresos">
             <div className="historial__total-icon"><ArrowDownCircle size={20} /></div>
             <div>
@@ -296,25 +290,15 @@ export default function Historial() {
               <div className="historial__total-value">{formatNumber(totales.total_consumos)} kg</div>
             </div>
           </div>
-          <div className="historial__total-card historial__total-card--ajustes">
-            <div className="historial__total-icon"><TrendingUp size={20} /></div>
-            <div>
-              <div className="historial__total-label">Ajustes +</div>
-              <div className="historial__total-value">{formatNumber(totales.total_ajustes_pos)} kg</div>
-            </div>
-          </div>
-          <div className="historial__total-card historial__total-card--ajustes-neg">
-            <div className="historial__total-icon"><TrendingDown size={20} /></div>
-            <div>
-              <div className="historial__total-label">Ajustes -</div>
-              <div className="historial__total-value">{formatNumber(totales.total_ajustes_neg)} kg</div>
-            </div>
-          </div>
           <div className="historial__total-card historial__total-card--balance">
             <div className="historial__total-icon"><Package size={20} /></div>
             <div>
               <div className="historial__total-label">Balance Neto</div>
-              <div className="historial__total-value">
+              <div className={`historial__total-value ${
+                ((parseFloat(totales.total_ingresos) || 0) + (parseFloat(totales.total_ajustes_pos) || 0) -
+                 (parseFloat(totales.total_consumos) || 0) - (parseFloat(totales.total_ajustes_neg) || 0)) >= 0
+                  ? 'text-success' : 'text-danger'
+              }`}>
                 {formatNumber(
                   (parseFloat(totales.total_ingresos) || 0) +
                   (parseFloat(totales.total_ajustes_pos) || 0) -
@@ -371,7 +355,7 @@ export default function Historial() {
                             <div className="historial__time">{m.hora?.substring(0, 5)}</div>
                           </td>
                           <td>
-                            <span className="historial__tipo-badge" style={{ color: tipoInfo.color, background: tipoInfo.bg }}>
+                            <span className={`historial__tipo-badge historial__tipo-badge--${tipoInfo.cssClass}`}>
                               <TipoIcon size={14} />
                               {getTipoLabel(m.tipo)}
                             </span>
@@ -445,15 +429,6 @@ export default function Historial() {
                       <span>Consumos</span>
                       <strong>-{formatNumber(r.total_consumos)} {r.unidad}</strong>
                     </div>
-                    {(parseFloat(r.total_ajustes_pos) > 0 || parseFloat(r.total_ajustes_neg) > 0) && (
-                      <div className="historial__summary-row historial__summary-row--ajuste">
-                        <span>Ajustes</span>
-                        <strong>
-                          {parseFloat(r.total_ajustes_pos) > 0 && `+${formatNumber(r.total_ajustes_pos)}`}
-                          {parseFloat(r.total_ajustes_neg) > 0 && ` -${formatNumber(r.total_ajustes_neg)}`}
-                        </strong>
-                      </div>
-                    )}
                     <div className="historial__summary-row historial__summary-row--balance">
                       <span>Balance</span>
                       <strong className={parseFloat(r.balance_neto) >= 0 ? 'text-success' : 'text-danger'}>

@@ -24,15 +24,19 @@
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: var(--primary);
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2rem;
-  font-weight: 600;
+  font-size: 1.75rem;
+  font-weight: 700;
   flex-shrink: 0;
+  letter-spacing: 0;
 }
+
+.profile-avatar--dueno      { background: #7c3aed; }
+.profile-avatar--encargado  { background: #2563eb; }
+.profile-avatar--trabajador { background: var(--primary); }
 
 .profile-info {
   flex: 1;
@@ -54,7 +58,63 @@
 .profile-cedula {
   font-size: 0.875rem;
   color: var(--text-light);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
 }
+
+.profile-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.15rem 0.625rem;
+  border-radius: 0.25rem;
+  white-space: nowrap;
+}
+
+.profile-badge--dueno      { background: #ede9fe; color: #6d28d9; }
+.profile-badge--encargado  { background: #dbeafe; color: #1d4ed8; }
+.profile-badge--trabajador { background: var(--primary-light); color: var(--primary); }
+
+/* Form errors */
+.form-error {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--danger);
+  margin-top: 0.3rem;
+}
+
+.form-control.is-invalid {
+  border-color: var(--danger);
+}
+
+/* Password strength */
+.password-strength {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.password-strength__bar {
+  flex: 1;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--divider);
+}
+
+.password-strength__bar--weak   { background: var(--danger); }
+.password-strength__bar--medium { background: var(--warning); }
+.password-strength__bar--strong { background: var(--success); }
+
+.password-strength__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.password-strength__label--weak   { color: var(--danger); }
+.password-strength__label--medium { color: var(--warning); }
+.password-strength__label--strong { color: var(--success); }
 
 .profile-details {
   background: var(--white);

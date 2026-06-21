@@ -18,6 +18,10 @@ const Historial = lazy(() => import('./pages/Historial'));
 const Usuarios = lazy(() => import('./pages/Usuarios'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Actividades = lazy(() => import('./pages/Actividades'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Costos = lazy(() => import('./pages/Costos'));
+const Compras = lazy(() => import('./pages/Compras'));
+const Landing = lazy(() => import('./pages/Landing'));
 
 function PageLoader() {
   return (
@@ -76,6 +80,42 @@ function DuenoRoute({ children }) {
   return children;
 }
 
+// Bloquea al trabajador y lo redirige a /consumos silenciosamente
+function DuenoEncargadoRoute({ children }) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="d-flex align-items-center justify-content-center" style={{ minHeight: '100vh' }}>
+        <div className="text-center">
+          <div className="spinner-border text-success mb-3" role="status"></div>
+          <p className="text-muted">Cargando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) return <Navigate to="/login" />;
+  if (user.rol === 'trabajador') return <Navigate to="/consumos" replace />;
+  return children;
+}
+
+// Landing pública si no hay sesión; si hay sesión, redirige al home según rol
+function RootRoute() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="d-flex align-items-center justify-content-center" style={{ minHeight: '100vh' }}>
+        <div className="spinner-border text-success" role="status"></div>
+      </div>
+    );
+  }
+
+  if (!user) return <Landing />;
+  return <Navigate to={user.rol === 'trabajador' ? '/consumos' : '/dashboard'} replace />;
+}
+
 function AppRoutes() {
   return (
     <Suspense fallback={<PageLoader />}>
@@ -84,39 +124,75 @@ function AppRoutes() {
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/" element={
-          <ProtectedRoute>
-            <Navigate to="/silos" />
-          </ProtectedRoute>
-        } />
-        <Route path="/silos" element={
-          <ProtectedRoute>
+        {/* Landing pública o redirect según rol */}
+        <Route path="/" element={<RootRoute />} />
+
+        {/* Rutas solo para dueño + encargado */}
+        <Route path="/dashboard" element={
+          <DuenoEncargadoRoute>
             <Layout />
-          </ProtectedRoute>
+          </DuenoEncargadoRoute>
+        }>
+          <Route index element={<Dashboard />} />
+        </Route>
+        <Route path="/silos" element={
+          <DuenoEncargadoRoute>
+            <Layout />
+          </DuenoEncargadoRoute>
         }>
           <Route index element={<Silos />} />
           <Route path=":tipo" element={<Silos />} />
         </Route>
         <Route path="/lotes" element={
-          <ProtectedRoute>
+          <DuenoEncargadoRoute>
             <Layout />
-          </ProtectedRoute>
+          </DuenoEncargadoRoute>
         }>
           <Route index element={<Lotes />} />
         </Route>
+        <Route path="/dietas" element={
+          <DuenoEncargadoRoute>
+            <Layout />
+          </DuenoEncargadoRoute>
+        }>
+          <Route index element={<Dietas />} />
+        </Route>
+        <Route path="/historial" element={
+          <DuenoEncargadoRoute>
+            <Layout />
+          </DuenoEncargadoRoute>
+        }>
+          <Route index element={<Historial />} />
+        </Route>
+        <Route path="/actividades" element={
+          <DuenoEncargadoRoute>
+            <Layout />
+          </DuenoEncargadoRoute>
+        }>
+          <Route index element={<Actividades />} />
+        </Route>
+        <Route path="/costos" element={
+          <DuenoEncargadoRoute>
+            <Layout />
+          </DuenoEncargadoRoute>
+        }>
+          <Route index element={<Costos />} />
+        </Route>
+        <Route path="/compras" element={
+          <DuenoEncargadoRoute>
+            <Layout />
+          </DuenoEncargadoRoute>
+        }>
+          <Route index element={<Compras />} />
+        </Route>
+
+        {/* Rutas para todos los roles autenticados */}
         <Route path="/consumos" element={
           <ProtectedRoute>
             <Layout />
           </ProtectedRoute>
         }>
           <Route index element={<Consumos />} />
-        </Route>
-        <Route path="/dietas" element={
-          <ProtectedRoute>
-            <Layout />
-          </ProtectedRoute>
-        }>
-          <Route index element={<Dietas />} />
         </Route>
         <Route path="/alertas" element={
           <ProtectedRoute>
@@ -125,33 +201,21 @@ function AppRoutes() {
         }>
           <Route index element={<Alertas />} />
         </Route>
-        <Route path="/historial" element={
-          <ProtectedRoute>
-            <Layout />
-          </ProtectedRoute>
-        }>
-          <Route index element={<Historial />} />
-        </Route>
-        <Route path="/usuarios" element={
-          <DuenoRoute>
-            <Layout />
-          </DuenoRoute>
-        }>
-          <Route index element={<Usuarios />} />
-        </Route>
-        <Route path="/actividades" element={
-          <ProtectedRoute>
-            <Layout />
-          </ProtectedRoute>
-        }>
-          <Route index element={<Actividades />} />
-        </Route>
         <Route path="/perfil" element={
           <ProtectedRoute>
             <Layout />
           </ProtectedRoute>
         }>
           <Route index element={<Profile />} />
+        </Route>
+
+        {/* Ruta solo para dueño */}
+        <Route path="/usuarios" element={
+          <DuenoRoute>
+            <Layout />
+          </DuenoRoute>
+        }>
+          <Route index element={<Usuarios />} />
         </Route>
       </Routes>
     </Suspense>

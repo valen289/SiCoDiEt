@@ -1,14 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 const { body, validationResult } = require('express-validator');
 const { verificarYGenerarAlertas } = require('../utils/alertas');
 const { logActividad } = require('../utils/actividad');
 
 router.use(authenticateToken);
 
-router.get('/', async (req, res) => {
+const duenoEncargado = authorizeRoles('dueno', 'encargado');
+
+router.get('/', duenoEncargado, async (req, res) => {
   try {
     const { fecha, lote_id } = req.query;
     let query = `
@@ -18,9 +20,9 @@ router.get('/', async (req, res) => {
       JOIN lotes l ON c.lote_id = l.id
       JOIN insumos i ON c.insumo_id = i.id
       LEFT JOIN usuarios u ON c.usuario_id = u.id
-      WHERE 1=1
+      WHERE c.tambo_id = ?
     `;
-    const params = [];
+    const params = [req.user.tambo_id];
 
     if (fecha) {
       query += ' AND c.fecha = ?';
@@ -58,7 +60,7 @@ router.post('/', [
     try {
       await connection.beginTransaction();
 
-      const [insumos] = await connection.query('SELECT * FROM insumos WHERE id = ?', [insumo_id]);
+      const [insumos] = await connection.query('SELECT * FROM insumos WHERE id = ? FOR UPDATE', [insumo_id]);
       
       if (insumos.length === 0) {
         await connection.rollback();
@@ -83,18 +85,18 @@ router.post('/', [
       const stockAnterior = parseFloat(insumo.stock_actual);
 
       await connection.query(
-        'INSERT INTO consumos (lote_id, insumo_id, usuario_id, cantidad, fecha, hora, observaciones) VALUES (?, ?, ?, ?, CURDATE(), CURTIME(), ?)',
-        [lote_id, insumo_id, req.user.id, cantidad, observaciones || null]
+        'INSERT INTO consumos (tambo_id, lote_id, insumo_id, usuario_id, cantidad, fecha, hora, observaciones) VALUES (?, ?, ?, ?, ?, CURDATE(), CURTIME(), ?)',
+        [req.user.tambo_id, lote_id, insumo_id, req.user.id, cantidad, observaciones || null]
       );
 
       await connection.query(
-        'INSERT INTO consumo_diario (insumo_id, usuario_id, cantidad, fecha, hora, tipo_movimiento, observaciones) VALUES (?, ?, ?, CURDATE(), CURTIME(), "consumo", ?)',
-        [insumo_id, req.user.id, cantidad, observaciones || null]
+        'INSERT INTO consumo_diario (tambo_id, insumo_id, usuario_id, cantidad, fecha, hora, tipo_movimiento, observaciones) VALUES (?, ?, ?, ?, CURDATE(), CURTIME(), "consumo", ?)',
+        [req.user.tambo_id, insumo_id, req.user.id, cantidad, observaciones || null]
       );
 
       await connection.query(
-        'INSERT INTO movimientos_stock (insumo_id, lote_id, usuario_id, tipo, cantidad, stock_anterior, stock_posterior, observaciones, fecha, hora) VALUES (?, ?, ?, "consumo", ?, ?, ?, ?, CURDATE(), CURTIME())',
-        [insumo_id, lote_id, req.user.id, cantidad, stockAnterior, nuevoStock, observaciones || null]
+        'INSERT INTO movimientos_stock (tambo_id, insumo_id, lote_id, usuario_id, tipo, cantidad, stock_anterior, stock_posterior, observaciones, fecha, hora) VALUES (?, ?, ?, ?, "consumo", ?, ?, ?, ?, CURDATE(), CURTIME())',
+        [req.user.tambo_id, insumo_id, lote_id, req.user.id, cantidad, stockAnterior, nuevoStock, observaciones || null]
       );
 
       await verificarYGenerarAlertas(insumo_id, connection);
@@ -104,6 +106,7 @@ router.post('/', [
       const [[lote]] = await pool.query('SELECT nombre FROM lotes WHERE id = ?', [lote_id]);
       await logActividad(pool, {
         usuario_id: req.user.id,
+        tambo_id: req.user.tambo_id,
         accion: 'consumo_registrado',
         descripcion: `Registró consumo: ${parseFloat(cantidad).toLocaleString('es-AR')} ${insumo.unidad} de "${insumo.nombre}" en "${lote?.nombre}"`,
       });
@@ -125,7 +128,7 @@ router.post('/', [
   }
 });
 
-router.get('/historial', async (req, res) => {
+router.get('/historial', duenoEncargado, async (req, res) => {
   try {
     const { insumo_id, fecha_inicio, fecha_fin } = req.query;
     let query = `
@@ -133,9 +136,9 @@ router.get('/historial', async (req, res) => {
       FROM movimientos_stock m
       JOIN insumos i ON m.insumo_id = i.id
       LEFT JOIN usuarios u ON m.usuario_id = u.id
-      WHERE 1=1
+      WHERE m.tambo_id = ?
     `;
-    const params = [];
+    const params = [req.user.tambo_id];
 
     if (insumo_id) {
       query += ' AND m.insumo_id = ?';

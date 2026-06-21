@@ -8,8 +8,8 @@ router.use(authenticateToken);
 router.get('/', async (req, res) => {
   try {
     const { leidas } = req.query;
-    let query = 'SELECT a.*, i.nombre as insumo_nombre FROM alertas a LEFT JOIN insumos i ON a.insumo_id = i.id WHERE 1=1';
-    const params = [];
+    let query = 'SELECT a.*, i.nombre as insumo_nombre FROM alertas a LEFT JOIN insumos i ON a.insumo_id = i.id WHERE a.tambo_id = ?';
+    const params = [req.user.tambo_id];
 
     if (leidas !== undefined) {
       query += ' AND a.leida = ?';
@@ -27,7 +27,7 @@ router.get('/', async (req, res) => {
 
 router.put('/:id/leer', async (req, res) => {
   try {
-    await pool.query('UPDATE alertas SET leida = TRUE WHERE id = ?', [req.params.id]);
+    await pool.query('UPDATE alertas SET leida = TRUE WHERE id = ? AND tambo_id = ?', [req.params.id, req.user.tambo_id]);
     res.json({ message: 'Alerta marcada como leida' });
   } catch (error) {
     console.error('Error actualizando alerta:', error);
@@ -37,7 +37,7 @@ router.put('/:id/leer', async (req, res) => {
 
 router.put('/leer-todas', async (req, res) => {
   try {
-    await pool.query('UPDATE alertas SET leida = TRUE WHERE leida = FALSE');
+    await pool.query('UPDATE alertas SET leida = TRUE WHERE leida = FALSE AND tambo_id = ?', [req.user.tambo_id]);
     res.json({ message: 'Todas las alertas marcadas como leidas' });
   } catch (error) {
     console.error('Error actualizando alertas:', error);
@@ -47,7 +47,7 @@ router.put('/leer-todas', async (req, res) => {
 
 router.delete('/:id', authorizeRoles('dueno', 'encargado'), async (req, res) => {
   try {
-    await pool.query('DELETE FROM alertas WHERE id = ?', [req.params.id]);
+    await pool.query('DELETE FROM alertas WHERE id = ? AND tambo_id = ?', [req.params.id, req.user.tambo_id]);
     res.json({ message: 'Alerta eliminada exitosamente' });
   } catch (error) {
     console.error('Error eliminando alerta:', error);

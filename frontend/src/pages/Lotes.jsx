@@ -13,8 +13,7 @@ export default function Lotes() {
   const [showModal, setShowModal] = useState(false);
   const [editingLote, setEditingLote] = useState(null);
   const [form, setForm] = useState({
-    nombre: '', tipo_animal: '', cantidad_animales: '',
-    consumo_estimado_diario: '', observaciones: ''
+    nombre: '', tipo_animal: '', objetivo_productivo: 'leche', cantidad_animales: '', observaciones: ''
   });
 
   useEffect(() => { loadLotes(); loadInsumos(); }, []);
@@ -55,8 +54,8 @@ export default function Lotes() {
     setEditingLote(lote);
     setForm({
       nombre: lote.nombre, tipo_animal: lote.tipo_animal,
+      objetivo_productivo: lote.objetivo_productivo || 'leche',
       cantidad_animales: lote.cantidad_animales,
-      consumo_estimado_diario: lote.consumo_estimado_diario,
       observaciones: lote.observaciones || ''
     });
     setShowModal(true);
@@ -87,7 +86,7 @@ export default function Lotes() {
         <div className="lotes__header-actions">
           <button className="lotes__btn lotes__btn--primary" onClick={() => {
             setEditingLote(null);
-            setForm({ nombre: '', tipo_animal: '', cantidad_animales: '', consumo_estimado_diario: '', observaciones: '' });
+            setForm({ nombre: '', tipo_animal: '', objetivo_productivo: 'leche', cantidad_animales: '', observaciones: '' });
             setShowModal(true);
           }}>
             <Plus size={16} /> Nuevo Lote
@@ -112,7 +111,12 @@ export default function Lotes() {
                 <div className="lotes__card-top">
                   <div>
                     <h3 className="lotes__card-name">{lote.nombre}</h3>
-                    <p className="lotes__card-meta">{lote.tipo_animal}</p>
+                    <p className="lotes__card-meta">
+                      {lote.tipo_animal}{' '}
+                      <span className={`badge ${lote.objetivo_productivo === 'engorde' ? 'bg-warning text-dark' : 'bg-info'}`}>
+                        {lote.objetivo_productivo === 'engorde' ? 'Engorde' : 'Leche'}
+                      </span>
+                    </p>
                   </div>
                   <div className="lotes__card-actions">
                     <button className="lotes__card-action-btn" onClick={() => handleEdit(lote)} aria-label="Editar">
@@ -130,10 +134,6 @@ export default function Lotes() {
                   <div className="lotes__detail-col">
                     <span className="lotes__detail-label">Animales</span>
                     <strong className="lotes__detail-value">{lote.cantidad_animales}</strong>
-                  </div>
-                  <div className="lotes__detail-col" style={{ textAlign: 'right' }}>
-                    <span className="lotes__detail-label">Consumo diario</span>
-                    <strong className="lotes__detail-value">{lote.consumo_estimado_diario} kg</strong>
                   </div>
                 </div>
 
@@ -171,15 +171,16 @@ export default function Lotes() {
                   <label className="form-label">Tipo de Animal</label>
                   <input className="form-control" value={form.tipo_animal} onChange={e => setForm(prev => ({...prev, tipo_animal: e.target.value}))} required />
                 </div>
-                <div className="row g-3 mb-3">
-                  <div className="col-6">
-                    <label className="form-label">Cantidad de Animales</label>
-                    <input type="number" className="form-control" value={form.cantidad_animales} onChange={e => setForm(prev => ({...prev, cantidad_animales: e.target.value}))} required />
-                  </div>
-                  <div className="col-6">
-                    <label className="form-label">Consumo Estimado Diario (kg)</label>
-                    <input type="number" step="0.01" className="form-control" value={form.consumo_estimado_diario} onChange={e => setForm(prev => ({...prev, consumo_estimado_diario: e.target.value}))} />
-                  </div>
+                <div className="mb-3">
+                  <label className="form-label">Objetivo productivo</label>
+                  <select className="form-select" value={form.objetivo_productivo} onChange={e => setForm(prev => ({...prev, objetivo_productivo: e.target.value}))}>
+                    <option value="leche">Leche</option>
+                    <option value="engorde">Engorde</option>
+                  </select>
+                </div>
+                <div className="mb-3">
+                  <label className="form-label">Cantidad de Animales</label>
+                  <input type="number" className="form-control" value={form.cantidad_animales} onChange={e => setForm(prev => ({...prev, cantidad_animales: e.target.value}))} required />
                 </div>
                 <div className="mb-3">
                   <label className="form-label">Observaciones</label>

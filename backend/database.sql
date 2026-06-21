@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS tambos (
 
 CREATE TABLE IF NOT EXISTS usuarios (
     id             INT AUTO_INCREMENT PRIMARY KEY,
+    tambo_id       INT NOT NULL DEFAULT 1,
     cedula         VARCHAR(20) UNIQUE NOT NULL,
     nombre         VARCHAR(100) NOT NULL,
     password       VARCHAR(255) NOT NULL,
@@ -23,7 +24,8 @@ CREATE TABLE IF NOT EXISTS usuarios (
     rol            ENUM('dueno', 'encargado', 'trabajador') NOT NULL DEFAULT 'trabajador',
     activo         BOOLEAN DEFAULT TRUE,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    ultimo_acceso  TIMESTAMP NULL
+    ultimo_acceso  TIMESTAMP NULL,
+    CONSTRAINT fk_usuarios_tambo FOREIGN KEY (tambo_id) REFERENCES tambos(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS insumos (
@@ -37,6 +39,7 @@ CREATE TABLE IF NOT EXISTS insumos (
     stock_minimo            DECIMAL(10,2) NOT NULL,
     consumo_promedio_diario DECIMAL(10,2) DEFAULT 0,
     dias_restantes          INT DEFAULT 0,
+    dias_restantes_origen   ENUM('historico','formulado','manual','sin_datos') NOT NULL DEFAULT 'sin_datos',
     ultimo_alerta_critica   TIMESTAMP NULL,
     activo                  BOOLEAN DEFAULT TRUE,
     fecha_creacion          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -49,6 +52,7 @@ CREATE TABLE IF NOT EXISTS lotes (
     tambo_id                INT NOT NULL DEFAULT 1,
     nombre                  VARCHAR(100) NOT NULL,
     tipo_animal             VARCHAR(100) NOT NULL,
+    objetivo_productivo     ENUM('leche', 'engorde') NOT NULL DEFAULT 'leche',
     cantidad_animales       INT NOT NULL DEFAULT 0,
     consumo_estimado_diario DECIMAL(10,2) DEFAULT 0,
     observaciones           TEXT,
@@ -126,9 +130,11 @@ CREATE TABLE IF NOT EXISTS logs_actividad (
     accion      VARCHAR(100) NOT NULL,
     descripcion TEXT,
     fecha_hora  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    leida       BOOLEAN NOT NULL DEFAULT FALSE,
     FOREIGN KEY (tambo_id)   REFERENCES tambos(id),
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
-    INDEX idx_tambo (tambo_id)
+    INDEX idx_tambo (tambo_id),
+    INDEX idx_logs_actividad_tambo_leida (tambo_id, leida)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS historial_cargas_alimentos (
@@ -161,6 +167,7 @@ CREATE TABLE IF NOT EXISTS movimientos_stock (
     stock_posterior     DECIMAL(10,2) NOT NULL,
     comprobante_entrega VARCHAR(50) NULL,
     observaciones       TEXT,
+    turno               VARCHAR(5) NULL DEFAULT NULL,
     fecha               DATE NOT NULL,
     hora                TIME NOT NULL,
     fecha_creacion      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -264,6 +271,10 @@ CREATE TABLE IF NOT EXISTS dietas (
     margen_alimenticio            DECIMAL(10,4) NOT NULL DEFAULT 0,
     margen_por_litro              DECIMAL(10,4) NOT NULL DEFAULT 0,
     porcentaje_gasto_alimentacion DECIMAL(5,2) NOT NULL DEFAULT 0,
+    ganancia_kg_esperada          DECIMAL(10,2) NOT NULL DEFAULT 0,
+    precio_kg_en_pie              DECIMAL(10,4) NOT NULL DEFAULT 0,
+    costo_por_kg_ganado           DECIMAL(10,4) NOT NULL DEFAULT 0,
+    margen_por_kg_ganado          DECIMAL(10,4) NOT NULL DEFAULT 0,
     activo                        BOOLEAN DEFAULT TRUE,
     fecha_creacion                TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion           TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -283,6 +294,7 @@ CREATE TABLE IF NOT EXISTS dieta_ingredientes (
     energia_aportada      DECIMAL(10,2) NOT NULL DEFAULT 0,
     proteina_aportada     DECIMAL(10,2) NOT NULL DEFAULT 0,
     fibra_aportada        DECIMAL(10,2) NOT NULL DEFAULT 0,
+    porcentaje_am         DECIMAL(5,2) NOT NULL DEFAULT 50,
     FOREIGN KEY (dieta_id)  REFERENCES dietas(id) ON DELETE CASCADE,
     FOREIGN KEY (insumo_id) REFERENCES insumos(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -319,13 +331,16 @@ CREATE TABLE IF NOT EXISTS consumo_diario_lote (
     cantidad_kg       DECIMAL(10,2) NOT NULL,
     cantidad_animales INT NOT NULL DEFAULT 0,
     kg_por_animal     DECIMAL(10,2) NOT NULL DEFAULT 0,
+    turno             ENUM('AM', 'PM') NOT NULL DEFAULT 'AM',
+    observaciones     TEXT NULL DEFAULT NULL,
+    porcentaje_sobra  DECIMAL(5,2) NULL DEFAULT NULL,
     usuario_id        INT NULL,
     fecha_creacion    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (tambo_id)   REFERENCES tambos(id),
     FOREIGN KEY (lote_id)    REFERENCES lotes(id) ON DELETE CASCADE,
     FOREIGN KEY (insumo_id)  REFERENCES insumos(id) ON DELETE CASCADE,
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL,
-    UNIQUE KEY unique_fecha_lote_insumo (fecha, lote_id, insumo_id),
+    UNIQUE KEY unique_fecha_lote_insumo_turno (fecha, lote_id, insumo_id, turno),
     INDEX idx_tambo (tambo_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
