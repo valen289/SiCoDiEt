@@ -38,6 +38,7 @@ async function runMigrations(markAllApplied = false) {
       .split('\n')
       .filter(line => !line.trim().startsWith('--'))
       .join('\n')
+      .replace(/USE\s+\w+\s*;/gi, '')
       .split(';')
       .map(s => s.trim())
       .filter(s => s.length > 0);
