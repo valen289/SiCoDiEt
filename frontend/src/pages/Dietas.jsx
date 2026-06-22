@@ -301,7 +301,9 @@ export default function Dietas() {
 
     const loteObjetivo = lote.objetivo_productivo || 'leche';
     const cantidadAnimales = safeNum(lote.cantidad_animales);
-    const costoPorVaca = cantidadAnimales > 0 ? costoTotalSimulado / cantidadAnimales : 0;
+    // cantidad_kg de cada ingrediente ya esta expresada por vaca/dia, asi que costoTotalSimulado
+    // ya es el costo por vaca/dia. No dividir de nuevo por cantidadAnimales.
+    const costoPorVaca = costoTotalSimulado;
 
     let ingresoPorVaca = 0;
     let costoPorLitro = 0, margenPorLitro = 0, produccionSimulada = 0;
@@ -324,7 +326,7 @@ export default function Dietas() {
 
     setSimulationResult({
       objetivo_productivo: loteObjetivo,
-      costo_total: costoTotalSimulado,
+      costo_total: costoTotalSimulado * cantidadAnimales,
       costo_por_vaca: costoPorVaca,
       costo_por_litro: costoPorLitro,
       ingreso_por_vaca: ingresoPorVaca,

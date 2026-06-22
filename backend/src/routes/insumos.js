@@ -3,7 +3,7 @@ const router = express.Router();
 const pool = require('../config/database');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 const { body, validationResult } = require('express-validator');
-const { verificarYGenerarAlertas, getNivelAlerta } = require('../utils/alertas');
+const { verificarYGenerarAlertas, getNivelAlerta, calcularEstadoActual } = require('../utils/alertas');
 const { logActividad } = require('../utils/actividad');
 
 router.use(authenticateToken);
@@ -26,7 +26,12 @@ router.get('/', async (req, res) => {
 
     query += ' ORDER BY nombre ASC';
     const [insumos] = await pool.query(query, params);
-    res.json({ insumos });
+
+    const insumosActualizados = await Promise.all(
+      insumos.map(async (insumo) => ({ ...insumo, ...(await calcularEstadoActual(insumo)) }))
+    );
+
+    res.json({ insumos: insumosActualizados });
   } catch (error) {
     console.error('Error obteniendo insumos:', error);
     res.status(500).json({ error: 'Error al obtener insumos' });
@@ -512,18 +517,23 @@ router.get('/estado-alertas', async (req, res) => {
       params.push(tipo);
     }
 
-    query += ' ORDER BY dias_restantes ASC';
     const [insumos] = await pool.query(query, params);
 
-    const insumosConAlertas = insumos.map(insumo => {
-      const nivelAlerta = getNivelAlerta(parseInt(insumo.dias_restantes));
-      return {
-        ...insumo,
-        nivel_alerta: nivelAlerta.nivel,
-        color_alerta: nivelAlerta.color,
-        label_alerta: nivelAlerta.label,
-      };
-    });
+    const insumosConAlertas = await Promise.all(
+      insumos.map(async (insumo) => {
+        const estado = await calcularEstadoActual(insumo);
+        const nivelAlerta = getNivelAlerta(estado.dias_restantes);
+        return {
+          ...insumo,
+          ...estado,
+          nivel_alerta: nivelAlerta.nivel,
+          color_alerta: nivelAlerta.color,
+          label_alerta: nivelAlerta.label,
+        };
+      })
+    );
+
+    insumosConAlertas.sort((a, b) => a.dias_restantes - b.dias_restantes);
 
     res.json({ insumos: insumosConAlertas });
   } catch (error) {

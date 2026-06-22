@@ -94,7 +94,10 @@ router.post('/calcular', authenticateToken, authorizeRoles('dueno', 'encargado')
     }
 
     const cantAnimales = parseInt(cantidadAnimalesLote) || 1;
-    const costoPorVaca = costoTotal / cantAnimales;
+    // Los kg de cada ingrediente ya vienen expresados por vaca/dia (ver columna del formulario),
+    // por lo que costoTotal ya es el costo por vaca/dia. No dividir de nuevo por cantAnimales.
+    const costoPorVaca = costoTotal;
+    const costoTotalLote = costoTotal * cantAnimales;
 
     let costoPorLitro = 0, margenPorLitro = 0, costoPorKgGanado = 0, margenPorKgGanado = 0;
     let ingresoPorVaca = 0;
@@ -119,7 +122,7 @@ router.post('/calcular', authenticateToken, authorizeRoles('dueno', 'encargado')
     res.json({
       resumen: {
         objetivo_productivo,
-        costo_total: costoTotal,
+        costo_total: costoTotalLote,
         costo_por_vaca: costoPorVaca,
         costo_por_litro: costoPorLitro,
         ingreso_por_vaca: ingresoPorVaca,
@@ -359,7 +362,10 @@ router.post('/', authenticateToken, authorizeRoles('dueno', 'encargado'), [
         return res.status(400).json({ error: 'No hay ingredientes validos' });
       }
 
-      const costoPorVaca = costoTotal / cantidadAnimales;
+      // Los kg de cada ingrediente ya vienen expresados por vaca/dia (ver columna del formulario),
+      // por lo que costoTotal ya es el costo por vaca/dia. No dividir de nuevo por cantidadAnimales.
+      const costoPorVaca = costoTotal;
+      const costoTotalLote = costoTotal * cantidadAnimales;
       let prodLeche = 0, precioLeche = 0, costoPorLitro = 0, margenPorLitro = 0;
       let gananciaKg = 0, precioKg = 0, costoPorKgGanado = 0, margenPorKgGanado = 0;
       let ingresoPorVaca = 0;
@@ -383,7 +389,7 @@ router.post('/', authenticateToken, authorizeRoles('dueno', 'encargado'), [
 
       const [result] = await connection.query(
         `INSERT INTO dietas (tambo_id, nombre, lote_id, materia_seca_kg, energia_mcal, proteina_porcentaje, fibra_porcentaje, produccion_leche_esperada, precio_leche_por_litro, costo_total, costo_por_vaca, costo_por_litro, ingreso_por_vaca, margen_alimenticio, margen_por_litro, porcentaje_gasto_alimentacion, ganancia_kg_esperada, precio_kg_en_pie, costo_por_kg_ganado, margen_por_kg_ganado) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [req.user.tambo_id, nombre, lote_id, materiaSecaTotal, energiaTotal, proteinaTotal, fibraTotal, prodLeche, precioLeche, costoTotal, costoPorVaca, costoPorLitro, ingresoPorVaca, margenAlimenticio, margenPorLitro, porcentajeGasto, gananciaKg, precioKg, costoPorKgGanado, margenPorKgGanado]
+        [req.user.tambo_id, nombre, lote_id, materiaSecaTotal, energiaTotal, proteinaTotal, fibraTotal, prodLeche, precioLeche, costoTotalLote, costoPorVaca, costoPorLitro, ingresoPorVaca, margenAlimenticio, margenPorLitro, porcentajeGasto, gananciaKg, precioKg, costoPorKgGanado, margenPorKgGanado]
       );
 
       const dietaId = result.insertId;
@@ -518,7 +524,10 @@ router.put('/:id', authenticateToken, authorizeRoles('dueno', 'encargado'), [
         return res.status(400).json({ error: 'No hay ingredientes validos' });
       }
 
-      const costoPorVaca = costoTotal / cantidadAnimales;
+      // Los kg de cada ingrediente ya vienen expresados por vaca/dia (ver columna del formulario),
+      // por lo que costoTotal ya es el costo por vaca/dia. No dividir de nuevo por cantidadAnimales.
+      const costoPorVaca = costoTotal;
+      const costoTotalLote = costoTotal * cantidadAnimales;
       let prodLeche = 0, precioLeche = 0, costoPorLitro = 0, margenPorLitro = 0;
       let gananciaKg = 0, precioKg = 0, costoPorKgGanado = 0, margenPorKgGanado = 0;
       let ingresoPorVaca = 0;
@@ -542,7 +551,7 @@ router.put('/:id', authenticateToken, authorizeRoles('dueno', 'encargado'), [
 
       await connection.query(
         `UPDATE dietas SET nombre = ?, lote_id = ?, materia_seca_kg = ?, energia_mcal = ?, proteina_porcentaje = ?, fibra_porcentaje = ?, produccion_leche_esperada = ?, precio_leche_por_litro = ?, costo_total = ?, costo_por_vaca = ?, costo_por_litro = ?, ingreso_por_vaca = ?, margen_alimenticio = ?, margen_por_litro = ?, porcentaje_gasto_alimentacion = ?, ganancia_kg_esperada = ?, precio_kg_en_pie = ?, costo_por_kg_ganado = ?, margen_por_kg_ganado = ? WHERE id = ?`,
-        [nombre, lote_id, materiaSecaTotal, energiaTotal, proteinaTotal, fibraTotal, prodLeche, precioLeche, costoTotal, costoPorVaca, costoPorLitro, ingresoPorVaca, margenAlimenticio, margenPorLitro, porcentajeGasto, gananciaKg, precioKg, costoPorKgGanado, margenPorKgGanado, dietaId]
+        [nombre, lote_id, materiaSecaTotal, energiaTotal, proteinaTotal, fibraTotal, prodLeche, precioLeche, costoTotalLote, costoPorVaca, costoPorLitro, ingresoPorVaca, margenAlimenticio, margenPorLitro, porcentajeGasto, gananciaKg, precioKg, costoPorKgGanado, margenPorKgGanado, dietaId]
       );
 
       for (const ing of ingredientes) {

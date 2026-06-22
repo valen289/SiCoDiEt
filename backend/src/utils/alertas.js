@@ -9,32 +9,36 @@ async function obtenerDestinatariosAlerta(tamboId, executor) {
   return usuarios.map((u) => u.email);
 }
 
-async function calcularConsumoEstimado(insumoId) {
+async function calcularConsumoEstimado(insumoId, executor = (sql, params) => pool.query(sql, params)) {
   try {
-    const [consumo3d] = await pool.query(
+    const [consumo3d] = await executor(
       `SELECT COALESCE(SUM(cantidad_kg), 0) as total, COUNT(DISTINCT fecha) as dias
        FROM consumo_diario_lote
        WHERE insumo_id = ? AND fecha >= CURDATE() - INTERVAL 3 DAY`,
       [insumoId]
     );
 
-    const [consumo7d] = await pool.query(
+    const [consumo7d] = await executor(
       `SELECT COALESCE(SUM(cantidad_kg), 0) as total, COUNT(DISTINCT fecha) as dias
        FROM consumo_diario_lote
        WHERE insumo_id = ? AND fecha >= CURDATE() - INTERVAL 7 DAY`,
       [insumoId]
     );
 
-    const [consumo30d] = await pool.query(
+    const [consumo30d] = await executor(
       `SELECT COALESCE(SUM(cantidad_kg), 0) as total, COUNT(DISTINCT fecha) as dias
        FROM consumo_diario_lote
        WHERE insumo_id = ? AND fecha >= CURDATE() - INTERVAL 30 DAY`,
       [insumoId]
     );
 
-    const avg3d = consumo3d[0].dias > 0 ? consumo3d[0].total / consumo3d[0].dias : 0;
-    const avg7d = consumo7d[0].dias > 0 ? consumo7d[0].total / consumo7d[0].dias : 0;
-    const avg30d = consumo30d[0].dias > 0 ? consumo30d[0].total / consumo30d[0].dias : 0;
+    // Se divide por la cantidad real de dias con registros dentro de la ventana (con tope
+    // en el tamaño de la ventana), no por el tamaño fijo: con poco historial (tambo nuevo),
+    // dividir por el tamaño fijo aplasta artificialmente la tasa diaria estimada. A medida que
+    // se acumulan dias con datos, esto converge al comportamiento de diluir picos aislados.
+    const avg3d = consumo3d[0].dias > 0 ? consumo3d[0].total / Math.min(consumo3d[0].dias, 3) : 0;
+    const avg7d = consumo7d[0].dias > 0 ? consumo7d[0].total / Math.min(consumo7d[0].dias, 7) : 0;
+    const avg30d = consumo30d[0].dias > 0 ? consumo30d[0].total / Math.min(consumo30d[0].dias, 30) : 0;
 
     let consumoEstimado = 0;
     if (avg3d > 0 && avg7d > 0 && avg30d > 0) {
@@ -60,9 +64,9 @@ async function calcularConsumoEstimado(insumoId) {
 // para lotes que todavia no tienen historial real en consumo_diario_lote.
 // Por cada lote, usa la dieta activa mas reciente que lo formule (evita sumar duplicado
 // si hubiera mas de una dieta activa para el mismo lote).
-async function calcularConsumoFormulado(insumoId) {
+async function calcularConsumoFormulado(insumoId, executor = (sql, params) => pool.query(sql, params)) {
   try {
-    const [filas] = await pool.query(
+    const [filas] = await executor(
       `SELECT di.cantidad_kg, l.cantidad_animales
        FROM dieta_ingredientes di
        JOIN dietas d ON d.id = di.dieta_id
@@ -82,28 +86,39 @@ async function calcularConsumoFormulado(insumoId) {
   }
 }
 
-// Cadena de fallback: historico real (consumo_diario_lote) > formulado en dieta activa.
-// No hay un campo de "consumo manual" real en ningun formulario hoy -- consumo_promedio_diario
-// es solo el cache del ultimo calculo, asi que no se puede reusar como fuente independiente
-// (si se reusara, al desaparecer la dieta quedaria un valor viejo etiquetado como "manual").
+// Usa el mayor entre el consumo historico real (consumo_diario_lote) y el formulado en la
+// dieta activa. Subestimar el consumo es el error caro en un sistema de alertas de stock
+// (te quedas sin alimento sin aviso), asi que nunca se reporta menos de lo que la dieta activa
+// ya garantiza. Si el historico (con suficientes dias de datos) supera al formulado -- por
+// desperdicio/sobras, por ejemplo -- se usa ese, ya que es el mas conservador en ese caso.
 // Devuelve { consumo, origen } para que se pueda mostrar de donde viene la estimacion.
-async function calcularConsumoConOrigen(insumoId) {
-  const consumoHistorico = await calcularConsumoEstimado(insumoId);
-  if (consumoHistorico > 0) {
-    return { consumo: consumoHistorico, origen: 'historico' };
+async function calcularConsumoConOrigen(insumoId, executor) {
+  const consumoHistorico = await calcularConsumoEstimado(insumoId, executor);
+  const consumoFormulado = await calcularConsumoFormulado(insumoId, executor);
+
+  if (consumoHistorico === 0 && consumoFormulado === 0) {
+    return { consumo: 0, origen: 'sin_datos' };
   }
 
-  const consumoFormulado = await calcularConsumoFormulado(insumoId);
-  if (consumoFormulado > 0) {
-    return { consumo: consumoFormulado, origen: 'formulado' };
-  }
-
-  return { consumo: 0, origen: 'sin_datos' };
+  return consumoHistorico >= consumoFormulado
+    ? { consumo: consumoHistorico, origen: 'historico' }
+    : { consumo: consumoFormulado, origen: 'formulado' };
 }
 
 async function calcularDiasRestantes(stockActual, consumoEstimado) {
   if (!consumoEstimado || consumoEstimado <= 0) return 999;
   return Math.floor(stockActual / consumoEstimado);
+}
+
+// Recalcula dias_restantes/consumo_promedio_diario/origen "al vuelo" para mostrar,
+// sin el efecto secundario de insertar alertas ni mandar emails (eso lo sigue haciendo
+// solo verificarYGenerarAlertas). Evita que lo que se muestra dependa de que la columna
+// cacheada en `insumos` haya sido recalculada correctamente en el ultimo evento que la toco.
+async function calcularEstadoActual(insumo, executor = (sql, params) => pool.query(sql, params)) {
+  const stockActual = parseFloat(insumo.stock_actual);
+  const { consumo, origen } = await calcularConsumoConOrigen(insumo.id, executor);
+  const diasRestantes = await calcularDiasRestantes(stockActual, consumo);
+  return { dias_restantes: diasRestantes, consumo_promedio_diario: consumo, dias_restantes_origen: origen };
 }
 
 function getNivelAlerta(diasRestantes) {
@@ -126,7 +141,7 @@ async function verificarYGenerarAlertas(insumoId, connection) {
     const insumo = insumos[0];
     const stockActual = parseFloat(insumo.stock_actual);
 
-    const { consumo: consumoPromedioDiario, origen } = await calcularConsumoConOrigen(insumoId);
+    const { consumo: consumoPromedioDiario, origen } = await calcularConsumoConOrigen(insumoId, executor);
 
     const diasRestantes = await calcularDiasRestantes(stockActual, consumoPromedioDiario);
 
@@ -192,6 +207,7 @@ module.exports = {
   calcularConsumoFormulado,
   calcularConsumoConOrigen,
   calcularDiasRestantes,
+  calcularEstadoActual,
   getNivelAlerta,
   verificarYGenerarAlertas,
 };
