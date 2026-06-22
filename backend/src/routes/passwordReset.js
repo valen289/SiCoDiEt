@@ -63,17 +63,18 @@ router.post('/reset-password', [
     }
 
     const [tokens] = await pool.query(
-      'SELECT * FROM password_reset_tokens WHERE used = FALSE AND expires_at > NOW() ORDER BY created_at DESC LIMIT 1'
+      'SELECT * FROM password_reset_tokens WHERE used = FALSE AND expires_at > NOW()'
     );
 
-    if (tokens.length === 0) {
-      return res.status(400).json({ error: 'Token invalido o expirado' });
+    let tokenRecord = null;
+    for (const candidate of tokens) {
+      if (await bcrypt.compare(token, candidate.token)) {
+        tokenRecord = candidate;
+        break;
+      }
     }
 
-    const tokenRecord = tokens[0];
-    const isValid = await bcrypt.compare(token, tokenRecord.token);
-
-    if (!isValid) {
+    if (!tokenRecord) {
       return res.status(400).json({ error: 'Token invalido o expirado' });
     }
 

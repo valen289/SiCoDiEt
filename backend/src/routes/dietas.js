@@ -188,6 +188,11 @@ router.put('/costos/:insumoId', authenticateToken, authorizeRoles('dueno', 'enca
 
 router.get('/parametros/:insumoId', authenticateToken, authorizeRoles('dueno', 'encargado'), async (req, res) => {
   try {
+    const [insumos] = await pool.query('SELECT id FROM insumos WHERE id = ? AND tambo_id = ?', [req.params.insumoId, req.user.tambo_id]);
+    if (insumos.length === 0) {
+      return res.status(404).json({ error: 'Insumo no encontrado' });
+    }
+
     const [parametros] = await pool.query('SELECT * FROM parametros_nutricionales WHERE insumo_id = ?', [req.params.insumoId]);
     if (parametros.length === 0) {
       return res.json({ materia_seca_porcentaje: 0, energia_mcal_por_kg: 0, proteina_porcentaje: 0, fibra_porcentaje: 0 });
@@ -213,6 +218,11 @@ router.put('/parametros/:insumoId', authenticateToken, authorizeRoles('dueno', '
 
     const { materia_seca_porcentaje, energia_mcal_por_kg, proteina_porcentaje, fibra_porcentaje } = req.body;
     const insumoId = req.params.insumoId;
+
+    const [insumos] = await pool.query('SELECT id FROM insumos WHERE id = ? AND tambo_id = ?', [insumoId, req.user.tambo_id]);
+    if (insumos.length === 0) {
+      return res.status(404).json({ error: 'Insumo no encontrado' });
+    }
 
     await pool.query(
       `INSERT INTO parametros_nutricionales (insumo_id, materia_seca_porcentaje, energia_mcal_por_kg, proteina_porcentaje, fibra_porcentaje) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE materia_seca_porcentaje = ?, energia_mcal_por_kg = ?, proteina_porcentaje = ?, fibra_porcentaje = ?`,
