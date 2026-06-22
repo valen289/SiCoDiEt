@@ -48,13 +48,6 @@ const authLimiter = rateLimit({
   message: { error: 'Demasiados intentos de autenticación' }
 });
 
-app.use(helmet({
-  contentSecurityPolicy: isProduction ? undefined : false,
-  crossOriginEmbedderPolicy: false
-}));
-app.use(compression({ threshold: 1024 }));
-app.use(limiter);
-
 const corsOptions = {
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
@@ -116,7 +109,18 @@ if (isProduction) {
   };
 }
 
+// CORS va antes que cualquier middleware que pueda cortar la respuesta (helmet,
+// compression, rate limit): si un limiter devuelve 429 antes de que corra cors(),
+// esa respuesta sale sin headers de CORS y el navegador la bloquea por completo
+// (el frontend nunca ve el mensaje real, solo un error generico de red).
 app.use(cors(corsOptions));
+
+app.use(helmet({
+  contentSecurityPolicy: isProduction ? undefined : false,
+  crossOriginEmbedderPolicy: false
+}));
+app.use(compression({ threshold: 1024 }));
+app.use(limiter);
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
