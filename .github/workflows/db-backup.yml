@@ -1,0 +1,31 @@
+name: Backup diario de la base de datos
+
+on:
+  schedule:
+    - cron: '0 7 * * *' # 07:00 UTC = 04:00 Uruguay/Argentina
+  workflow_dispatch: {} # permite correrlo a mano desde la pestaña Actions
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Instalar cliente de MySQL
+        run: sudo apt-get update && sudo apt-get install -y mysql-client
+
+      - name: Exportar base de datos
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+        run: |
+          mysqldump -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" -p"$DB_PASSWORD" \
+            --single-transaction --routines "$DB_NAME" > "backup-$(date +%F).sql"
+
+      - name: Subir backup como artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ github.run_id }}
+          path: backup-*.sql
+          retention-days: 30
