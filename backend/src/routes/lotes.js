@@ -13,7 +13,7 @@ router.get('/', async (req, res) => {
   try {
     const [rows] = await pool.query(
       `SELECT
-         l.id, l.nombre, l.tipo_animal, l.objetivo_productivo, l.cantidad_animales, l.consumo_estimado_diario,
+         l.id, l.nombre, l.tipo_animal, l.objetivo_productivo, l.etapa_lactancia, l.cantidad_animales, l.consumo_estimado_diario,
          l.observaciones, l.activo, l.fecha_creacion,
          i.id AS insumo_id, i.nombre AS insumo_nombre, i.unidad, i.tipo_insumo,
          i.stock_actual, i.capacidad_maxima, i.stock_minimo,
@@ -35,6 +35,7 @@ router.get('/', async (req, res) => {
           nombre: row.nombre,
           tipo_animal: row.tipo_animal,
           objetivo_productivo: row.objetivo_productivo,
+          etapa_lactancia: row.etapa_lactancia,
           cantidad_animales: row.cantidad_animales,
           consumo_estimado_diario: row.consumo_estimado_diario,
           observaciones: row.observaciones,
@@ -129,6 +130,7 @@ router.post('/', duenoEncargado, [
   body('nombre').notEmpty().withMessage('Nombre requerido'),
   body('tipo_animal').notEmpty().withMessage('Tipo de animal requerido'),
   body('objetivo_productivo').optional().isIn(['leche', 'engorde']).withMessage('Objetivo productivo invalido'),
+  body('etapa_lactancia').optional({ nullable: true }).isIn(['temprana', 'media', 'tardia', 'seca']).withMessage('Etapa de lactancia invalida'),
   body('cantidad_animales').isInt({ min: 0 }).withMessage('Cantidad debe ser mayor o igual a 0')
 ], async (req, res) => {
   try {
@@ -137,11 +139,11 @@ router.post('/', duenoEncargado, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { nombre, tipo_animal, cantidad_animales, observaciones, objetivo_productivo = 'leche' } = req.body;
+    const { nombre, tipo_animal, cantidad_animales, observaciones, objetivo_productivo = 'leche', etapa_lactancia } = req.body;
 
     const [result] = await pool.query(
-      'INSERT INTO lotes (tambo_id, nombre, tipo_animal, objetivo_productivo, cantidad_animales, observaciones) VALUES (?, ?, ?, ?, ?, ?)',
-      [req.user.tambo_id, nombre, tipo_animal, objetivo_productivo, cantidad_animales, observaciones || null]
+      'INSERT INTO lotes (tambo_id, nombre, tipo_animal, objetivo_productivo, etapa_lactancia, cantidad_animales, observaciones) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [req.user.tambo_id, nombre, tipo_animal, objetivo_productivo, etapa_lactancia || null, cantidad_animales, observaciones || null]
     );
 
     await logActividad(pool, {
@@ -165,6 +167,7 @@ router.put('/:id', duenoEncargado, [
   body('nombre').optional().notEmpty(),
   body('tipo_animal').optional().notEmpty(),
   body('objetivo_productivo').optional().isIn(['leche', 'engorde']).withMessage('Objetivo productivo invalido'),
+  body('etapa_lactancia').optional({ nullable: true }).isIn(['temprana', 'media', 'tardia', 'seca']).withMessage('Etapa de lactancia invalida'),
   body('cantidad_animales').optional().isInt({ min: 0 }),
   body('consumo_estimado_diario').optional().isFloat({ min: 0 })
 ], async (req, res) => {
@@ -174,13 +177,14 @@ router.put('/:id', duenoEncargado, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { nombre, tipo_animal, objetivo_productivo, cantidad_animales, observaciones, activo } = req.body;
+    const { nombre, tipo_animal, objetivo_productivo, etapa_lactancia, cantidad_animales, observaciones, activo } = req.body;
     const updates = [];
     const values = [];
 
     if (nombre !== undefined) { updates.push('nombre = ?'); values.push(nombre); }
     if (tipo_animal !== undefined) { updates.push('tipo_animal = ?'); values.push(tipo_animal); }
     if (objetivo_productivo !== undefined) { updates.push('objetivo_productivo = ?'); values.push(objetivo_productivo); }
+    if (etapa_lactancia !== undefined) { updates.push('etapa_lactancia = ?'); values.push(etapa_lactancia || null); }
     if (cantidad_animales !== undefined) { updates.push('cantidad_animales = ?'); values.push(cantidad_animales); }
     if (observaciones !== undefined) { updates.push('observaciones = ?'); values.push(observaciones); }
     if (activo !== undefined) { updates.push('activo = ?'); values.push(activo); }

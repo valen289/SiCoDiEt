@@ -13,7 +13,7 @@ export default function Lotes() {
   const [showModal, setShowModal] = useState(false);
   const [editingLote, setEditingLote] = useState(null);
   const [form, setForm] = useState({
-    nombre: '', tipo_animal: '', objetivo_productivo: 'leche', cantidad_animales: '', observaciones: ''
+    nombre: '', tipo_animal: '', objetivo_productivo: 'leche', etapa_lactancia: '', cantidad_animales: '', observaciones: ''
   });
 
   useEffect(() => { loadLotes(); loadInsumos(); }, []);
@@ -55,6 +55,7 @@ export default function Lotes() {
     setForm({
       nombre: lote.nombre, tipo_animal: lote.tipo_animal,
       objetivo_productivo: lote.objetivo_productivo || 'leche',
+      etapa_lactancia: lote.etapa_lactancia || '',
       cantidad_animales: lote.cantidad_animales,
       observaciones: lote.observaciones || ''
     });
@@ -86,7 +87,7 @@ export default function Lotes() {
         <div className="lotes__header-actions">
           <button className="lotes__btn lotes__btn--primary" onClick={() => {
             setEditingLote(null);
-            setForm({ nombre: '', tipo_animal: '', objetivo_productivo: 'leche', cantidad_animales: '', observaciones: '' });
+            setForm({ nombre: '', tipo_animal: '', objetivo_productivo: 'leche', etapa_lactancia: '', cantidad_animales: '', observaciones: '' });
             setShowModal(true);
           }}>
             <Plus size={16} /> Nuevo Lote
@@ -178,6 +179,18 @@ export default function Lotes() {
                     <option value="engorde">Engorde</option>
                   </select>
                 </div>
+                {form.objetivo_productivo === 'leche' && (
+                  <div className="mb-3">
+                    <label className="form-label">Etapa de lactancia</label>
+                    <select className="form-select" value={form.etapa_lactancia} onChange={e => setForm(prev => ({...prev, etapa_lactancia: e.target.value}))}>
+                      <option value="">Sin especificar</option>
+                      <option value="temprana">Temprana (recién paridas, subiendo a pico)</option>
+                      <option value="media">Media</option>
+                      <option value="tardia">Tardía</option>
+                      <option value="seca">Vacas secas</option>
+                    </select>
+                  </div>
+                )}
                 <div className="mb-3">
                   <label className="form-label">Cantidad de Animales</label>
                   <input type="number" className="form-control" value={form.cantidad_animales} onChange={e => setForm(prev => ({...prev, cantidad_animales: e.target.value}))} required />

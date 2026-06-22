@@ -8,7 +8,7 @@ import '../styles/usuarios.css';
 
 const ROL_CONFIG = {
   dueno:      { label: 'Dueño',      class: 'badge-danger' },
-  encargado:  { label: 'Encargado',  class: 'badge-primary' },
+  encargado:  { label: 'Técnico',  class: 'badge-primary' },
   trabajador: { label: 'Trabajador', class: 'badge-success' },
 };
 
@@ -358,7 +358,7 @@ export default function Usuarios() {
                     onChange={e => setForm(prev => ({ ...prev, rol: e.target.value }))}
                   >
                     <option value="trabajador">Trabajador</option>
-                    <option value="encargado">Encargado</option>
+                    <option value="encargado">Técnico</option>
                     <option value="dueno">Dueño</option>
                   </select>
                 </div>
@@ -398,7 +398,7 @@ export default function Usuarios() {
                       onChange={e => setInviteRol(e.target.value)}
                     >
                       <option value="trabajador">Trabajador</option>
-                      <option value="encargado">Encargado</option>
+                      <option value="encargado">Técnico</option>
                     </select>
                   </div>
                   <div className="d-flex gap-2 justify-content-end mt-4">

@@ -55,7 +55,7 @@ const sistemaItems = [
   { path: '/perfil',      iconKey: 'perfil',       label: 'Perfil'      },
 ];
 
-const ROL_LABELS = { dueno: 'Dueño', encargado: 'Encargado', trabajador: 'Trabajador' };
+const ROL_LABELS = { dueno: 'Dueño', encargado: 'Técnico', trabajador: 'Trabajador' };
 
 export default function Layout() {
   const { user, logout } = useAuth();

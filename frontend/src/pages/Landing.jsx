@@ -32,7 +32,7 @@ const features = [
   {
     icon: Users,
     title: 'Roles por persona',
-    desc: 'Dueño, Encargado y Trabajador ven y hacen solo lo que les corresponde dentro del sistema.',
+    desc: 'Dueño, Técnico y Trabajador ven y hacen solo lo que les corresponde dentro del sistema.',
   },
   {
     icon: Activity,

@@ -388,6 +388,14 @@ export default function Silos() {
                           : <span style={{ color: 'var(--text-light)', fontWeight: 400 }}>—</span>}
                       </strong>
                     </div>
+                    {insumo.kg_materia_seca_disponible !== null && insumo.kg_materia_seca_disponible !== undefined && (
+                      <div className="footer-stat">
+                        <span className="footer-stat__label">MS disponible</span>
+                        <strong className="footer-stat__value">
+                          {formatNumber(insumo.kg_materia_seca_disponible, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} kg
+                        </strong>
+                      </div>
+                    )}
                   </div>
 
                   {/* Botones acción */}

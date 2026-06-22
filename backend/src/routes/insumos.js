@@ -13,22 +13,34 @@ const duenoEncargado = authorizeRoles('dueno', 'encargado');
 router.get('/', async (req, res) => {
   try {
     const { tipo, categoria } = req.query;
-    let query = 'SELECT * FROM insumos WHERE tambo_id = ? AND activo = TRUE';
+    let query = `
+      SELECT i.*, pn.materia_seca_porcentaje
+      FROM insumos i
+      LEFT JOIN parametros_nutricionales pn ON pn.insumo_id = i.id
+      WHERE i.tambo_id = ? AND i.activo = TRUE`;
     const params = [req.user.tambo_id];
 
     if (categoria) {
-      query += ' AND categoria = ?';
+      query += ' AND i.categoria = ?';
       params.push(categoria);
     } else if (tipo) {
-      query += ' AND tipo_insumo = ?';
+      query += ' AND i.tipo_insumo = ?';
       params.push(tipo);
     }
 
-    query += ' ORDER BY nombre ASC';
+    query += ' ORDER BY i.nombre ASC';
     const [insumos] = await pool.query(query, params);
 
     const insumosActualizados = await Promise.all(
-      insumos.map(async (insumo) => ({ ...insumo, ...(await calcularEstadoActual(insumo)) }))
+      insumos.map(async (insumo) => ({
+        ...insumo,
+        ...(await calcularEstadoActual(insumo)),
+        // kg de materia seca disponible = stock fisico x %MS. Solo se calcula si el
+        // insumo ya tiene %MS cargado en parametros nutricionales; si no, no se fuerza.
+        kg_materia_seca_disponible: insumo.materia_seca_porcentaje
+          ? parseFloat(insumo.stock_actual) * (parseFloat(insumo.materia_seca_porcentaje) / 100)
+          : null,
+      }))
     );
 
     res.json({ insumos: insumosActualizados });

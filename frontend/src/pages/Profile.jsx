@@ -7,7 +7,7 @@ import '../styles/profile.css';
 
 const ROL_LABELS = {
   dueno:      'Dueño',
-  encargado:  'Encargado',
+  encargado:  'Técnico',
   trabajador: 'Trabajador',
 };
 

@@ -13,19 +13,29 @@ function formatFecha(fecha) {
   return `${dia}/${mes}/${anio}`;
 }
 
-function getAlertaSobra(pct) {
+// En lactancia temprana (vaca recien parida, todavia subiendo a pico de produccion) conviene
+// ser mas generoso con el comedero -- se prioriza que no le falte alimento mientras sube la
+// curva, aunque eso signifique algo mas de sobra. En las demas etapas se mantiene el umbral
+// mas ajustado de siempre.
+function getAlertaSobra(pct, etapaLactancia) {
   if (pct === null || pct === undefined) return null;
+  const esTemprana = etapaLactancia === 'temprana';
+  const umbralNormal = esTemprana ? 10 : 5;
+  const umbralModerada = esTemprana ? 15 : 10;
+
   if (pct === 0) return {
     color: 'danger',
     titulo: 'Comedero vacío',
     mensaje: 'Las vacas pueden haber quedado con hambre. Considerá aumentar la ración.',
   };
-  if (pct <= 5) return {
+  if (pct <= umbralNormal) return {
     color: 'success',
     titulo: `Sobra normal (${pct}%)`,
-    mensaje: 'Ración bien calibrada.',
+    mensaje: esTemprana
+      ? 'Ración bien calibrada para lactancia temprana (margen más generoso mientras sube a pico).'
+      : 'Ración bien calibrada.',
   };
-  if (pct <= 10) return {
+  if (pct <= umbralModerada) return {
     color: 'warning',
     titulo: `Sobra moderada (${pct}%)`,
     mensaje: 'Margen aceptable. Podés mantener o reducir levemente la ración.',
@@ -409,7 +419,7 @@ export default function Consumos() {
 
                 {/* ── Lectura del turno anterior ──────────────────────── */}
                 {(() => {
-                  const alerta = getAlertaSobra(lecturaAnterior.lectura);
+                  const alerta = getAlertaSobra(lecturaAnterior.lectura, loteInfo?.etapa_lactancia);
                   if (!alerta) return null;
                   const turnoRef = turno === 'PM' ? 'AM de hoy' : 'PM de ayer';
                   return (
@@ -559,7 +569,7 @@ export default function Consumos() {
                           <span className="input-group-text">%</span>
                         </div>
                         {porcentajeSobra !== '' && (() => {
-                          const a = getAlertaSobra(parseFloat(porcentajeSobra));
+                          const a = getAlertaSobra(parseFloat(porcentajeSobra), loteInfo?.etapa_lactancia);
                           return a
                             ? <span className={`badge bg-${a.color === 'danger' ? 'danger' : a.color === 'warning' ? 'warning text-dark' : 'success'} small`}>{a.titulo}</span>
                             : null;
@@ -655,7 +665,7 @@ export default function Consumos() {
                   <p className="mb-1 small"><strong>Observación:</strong> {observacion}</p>
                 )}
                 {porcentajeSobra !== '' && (() => {
-                  const a = getAlertaSobra(parseFloat(porcentajeSobra));
+                  const a = getAlertaSobra(parseFloat(porcentajeSobra), loteInfo?.etapa_lactancia);
                   return a
                     ? <p className="mb-0 small"><strong>Sobra turno anterior:</strong> {porcentajeSobra}% — <span className={`text-${a.color}`}>{a.titulo}</span></p>
                     : null;
@@ -715,7 +725,8 @@ export default function Consumos() {
                       const sobra = item.porcentaje_sobra !== null && item.porcentaje_sobra !== undefined
                         ? parseFloat(item.porcentaje_sobra)
                         : null;
-                      const alerta = getAlertaSobra(sobra);
+                      const etapaLote = lotes.find(l => l.id === item.lote_id)?.etapa_lactancia;
+                      const alerta = getAlertaSobra(sobra, etapaLote);
                       return (
                         <tr key={index}>
                           <td>{formatFecha(item.fecha)}</td>
