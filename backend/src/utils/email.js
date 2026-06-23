@@ -8,6 +8,9 @@ const transporter = nodemailer.createTransport({
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
+  // Railway no tiene salida IPv6: sin esto, Node puede intentar conectar a la
+  // direccion IPv6 de smtp.gmail.com y quedarse con ENETUNREACH/timeout.
+  family: 4,
 });
 
 const isEmailConfigured = () => Boolean(process.env.EMAIL_USER && process.env.EMAIL_PASS);
