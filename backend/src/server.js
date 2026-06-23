@@ -1,3 +1,4 @@
+const dns = require('dns');
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
@@ -6,6 +7,12 @@ const compression = require('compression');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
+
+// Railway no tiene salida IPv6. smtp.gmail.com (y otros hosts externos) resuelven
+// tambien a una direccion IPv6, y algunas librerias (nodemailer incluido) resuelven
+// el host antes de conectar sin respetar la opcion family:4 del socket. Esto fuerza
+// que cualquier resolucion DNS en el proceso devuelva las direcciones IPv4 primero.
+dns.setDefaultResultOrder('ipv4first');
 
 const authRoutes = require('./routes/auth');
 const passwordResetRoutes = require('./routes/passwordReset');
