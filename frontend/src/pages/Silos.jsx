@@ -17,10 +17,11 @@ const categoriasBase = [
 ];
 
 const tiposContenedor = [
-  { value: 'silo',   label: 'Silo'   },
-  { value: 'fardo',  label: 'Fardo'  },
-  { value: 'bolson', label: 'Bolsón' },
-  { value: 'bolsa',  label: 'Bolsa'  },
+  { value: 'silo',    label: 'Silo'    },
+  { value: 'fardo',   label: 'Fardo'   },
+  { value: 'bolson',  label: 'Bolsón'  },
+  { value: 'bolsa',   label: 'Bolsa'   },
+  { value: 'pastura', label: 'Pastura' },
 ];
 
 export default function Silos() {

@@ -231,7 +231,7 @@ router.post('/', duenoEncargado, [
       );
 
       // Registrar en historial_cargas_alimentos (compatibilidad)
-      const TIPOS_VALIDOS_HISTORIAL = ['silo', 'bolson', 'fardo', 'sales'];
+      const TIPOS_VALIDOS_HISTORIAL = ['silo', 'bolson', 'fardo', 'sales', 'pastura'];
       const tipoHistorial = TIPOS_VALIDOS_HISTORIAL.includes(insumo.tipo_insumo) ? insumo.tipo_insumo : 'silo';
       await connection.query(
         `INSERT INTO historial_cargas_alimentos
