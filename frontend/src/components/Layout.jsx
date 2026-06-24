@@ -57,6 +57,153 @@ const sistemaItems = [
 
 const ROL_LABELS = { dueno: 'Dueño', encargado: 'Técnico', trabajador: 'Trabajador' };
 
+function NavItem({ mobile, iconKey, label, onClick, isActive }) {
+  return (
+    <button
+      className={`${mobile ? 'drawer-nav-item' : 'sidebar-nav-item'} ${isActive ? 'active' : ''}`}
+      onClick={onClick}
+    >
+      <NavIcon iconKey={iconKey} size={mobile ? 18 : 17} />
+      <span>{label}</span>
+    </button>
+  );
+}
+
+/* ─── Sidebar compartido (fuera del render de Layout: si quedara adentro, React
+   recrea el tipo de componente en cada render y remonta todo el sidebar) ──── */
+function SidebarContent({
+  mobile,
+  isTrabajador,
+  isDueno,
+  pathname,
+  customFoodTypes,
+  onNavClick,
+  onFoodTypeClick,
+  onDeleteCustomType,
+  onAddUnitClick,
+  onDrawerClose,
+  isActivePath,
+  isDashboardActive,
+}) {
+  const operacionesVisibles = isTrabajador
+    ? operacionesItems.filter(i => i.path === '/consumos')
+    : operacionesItems;
+
+  const sistemaVisibles = isTrabajador
+    ? sistemaItems.filter(i => i.path === '/alertas' || i.path === '/perfil')
+    : sistemaItems;
+
+  return (
+    <>
+      {/* GENERAL — oculto para trabajador */}
+      {!isTrabajador && (
+        <div className={mobile ? 'drawer-section' : 'sidebar-section'}>
+          {!mobile && <span className="sidebar-section-title">GENERAL</span>}
+          {mobile && <span className="drawer-section-title">GENERAL</span>}
+          <nav className={mobile ? '' : 'sidebar-nav'}>
+            <NavItem mobile={mobile} path="/dashboard" iconKey="dashboard" label="Inicio" onClick={() => onNavClick('/dashboard')} isActive={isDashboardActive()} />
+          </nav>
+        </div>
+      )}
+
+      {/* ALIMENTOS — oculto para trabajador */}
+      {!isTrabajador && (
+        <div className={mobile ? 'drawer-section' : 'sidebar-section'}>
+          {!mobile && <span className="sidebar-section-title">ALIMENTOS</span>}
+          {mobile && <span className="drawer-section-title">ALIMENTOS</span>}
+          <nav className={mobile ? '' : 'sidebar-nav'}>
+            {categorias.map(cat => {
+              const isActive = pathname === `/silos/${cat.value}`;
+              return (
+                <button
+                  key={cat.value}
+                  className={`${mobile ? 'drawer-nav-item' : 'sidebar-nav-item'} ${isActive ? 'active' : ''}`}
+                  onClick={() => onFoodTypeClick(cat.value)}
+                >
+                  <NavIcon iconKey={cat.iconKey} size={mobile ? 18 : 17} />
+                  <span>{cat.label}</span>
+                </button>
+              );
+            })}
+            {customFoodTypes.map(type => {
+              const isActive = pathname === `/silos/${type.value}`;
+              return (
+                <div key={type.value} className={mobile ? 'drawer-nav-row' : 'sidebar-nav-row'}>
+                  <button
+                    className={`${mobile ? 'drawer-nav-item' : 'sidebar-nav-item'} ${isActive ? 'active' : ''}`}
+                    onClick={() => onFoodTypeClick(type.value)}
+                  >
+                    <NavIcon iconKey={type.iconKey || 'silo'} size={mobile ? 18 : 17} />
+                    <span>{type.label}</span>
+                  </button>
+                  <button className="sidebar-delete-btn" onClick={() => onDeleteCustomType(type.value)} title="Eliminar">
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              );
+            })}
+            <button
+              className={mobile ? 'drawer-add-btn' : 'sidebar-add-btn'}
+              onClick={() => { onAddUnitClick(); if (mobile) onDrawerClose(); }}
+            >
+              <Plus size={14} />
+              <span>Agregar unidad</span>
+            </button>
+          </nav>
+        </div>
+      )}
+
+      {/* OPERACIONES */}
+      <div className={mobile ? 'drawer-section' : 'sidebar-section'}>
+        {!mobile && <span className="sidebar-section-title">OPERACIONES</span>}
+        {mobile && <span className="drawer-section-title">OPERACIONES</span>}
+        <nav className={mobile ? '' : 'sidebar-nav'}>
+          {operacionesVisibles.map(item => (
+            <NavItem
+              key={item.path}
+              mobile={mobile}
+              path={item.path}
+              iconKey={item.iconKey}
+              label={item.label}
+              onClick={() => onNavClick(item.path)}
+              isActive={isActivePath(item.path)}
+            />
+          ))}
+        </nav>
+      </div>
+
+      {/* SISTEMA */}
+      <div className={mobile ? 'drawer-section' : 'sidebar-section'}>
+        {!mobile && <span className="sidebar-section-title">SISTEMA</span>}
+        {mobile && <span className="drawer-section-title">SISTEMA</span>}
+        <nav className={mobile ? '' : 'sidebar-nav'}>
+          {sistemaVisibles.map(item => (
+            <NavItem
+              key={item.path}
+              mobile={mobile}
+              path={item.path}
+              iconKey={item.iconKey}
+              label={item.label}
+              onClick={() => onNavClick(item.path)}
+              isActive={isActivePath(item.path)}
+            />
+          ))}
+          {isDueno && (
+            <NavItem
+              mobile={mobile}
+              path="/usuarios"
+              iconKey="usuarios"
+              label="Usuarios"
+              onClick={() => onNavClick('/usuarios')}
+              isActive={isActivePath('/usuarios')}
+            />
+          )}
+        </nav>
+      </div>
+    </>
+  );
+}
+
 export default function Layout() {
   const { user, logout } = useAuth();
   const { confirm } = useAlert();
@@ -116,133 +263,6 @@ export default function Layout() {
     localStorage.setItem('sicodiet-custom-food-types', JSON.stringify(updated));
   };
 
-  /* ─── Sidebar compartido ────────────────────────────────────────────────── */
-  const SidebarContent = ({ mobile = false }) => {
-    const NavItem = ({ path, iconKey, label, onClick, isActive }) => (
-      <button
-        className={`${mobile ? 'drawer-nav-item' : 'sidebar-nav-item'} ${isActive ? 'active' : ''}`}
-        onClick={onClick || (() => handleNavClick(path))}
-      >
-        <NavIcon iconKey={iconKey} size={mobile ? 18 : 17} />
-        <span>{label}</span>
-      </button>
-    );
-
-    // Items de OPERACIONES visibles según rol
-    const operacionesVisibles = isTrabajador
-      ? operacionesItems.filter(i => i.path === '/consumos')
-      : operacionesItems;
-
-    // Items de SISTEMA visibles según rol
-    const sistemaVisibles = isTrabajador
-      ? sistemaItems.filter(i => i.path === '/alertas' || i.path === '/perfil')
-      : sistemaItems;
-
-    return (
-      <>
-        {/* GENERAL — oculto para trabajador */}
-        {!isTrabajador && (
-          <div className={mobile ? 'drawer-section' : 'sidebar-section'}>
-            {!mobile && <span className="sidebar-section-title">GENERAL</span>}
-            {mobile && <span className="drawer-section-title">GENERAL</span>}
-            <nav className={mobile ? '' : 'sidebar-nav'}>
-              <NavItem path="/dashboard" iconKey="dashboard" label="Inicio" isActive={isDashboardActive()} />
-            </nav>
-          </div>
-        )}
-
-        {/* ALIMENTOS — oculto para trabajador */}
-        {!isTrabajador && (
-          <div className={mobile ? 'drawer-section' : 'sidebar-section'}>
-            {!mobile && <span className="sidebar-section-title">ALIMENTOS</span>}
-            {mobile && <span className="drawer-section-title">ALIMENTOS</span>}
-            <nav className={mobile ? '' : 'sidebar-nav'}>
-              {categorias.map(cat => {
-                const isActive = location.pathname === `/silos/${cat.value}`;
-                return (
-                  <button
-                    key={cat.value}
-                    className={`${mobile ? 'drawer-nav-item' : 'sidebar-nav-item'} ${isActive ? 'active' : ''}`}
-                    onClick={() => handleFoodTypeClick(cat.value)}
-                  >
-                    <NavIcon iconKey={cat.iconKey} size={mobile ? 18 : 17} />
-                    <span>{cat.label}</span>
-                  </button>
-                );
-              })}
-              {customFoodTypes.map(type => {
-                const isActive = location.pathname === `/silos/${type.value}`;
-                return (
-                  <div key={type.value} className={mobile ? 'drawer-nav-row' : 'sidebar-nav-row'}>
-                    <button
-                      className={`${mobile ? 'drawer-nav-item' : 'sidebar-nav-item'} ${isActive ? 'active' : ''}`}
-                      onClick={() => handleFoodTypeClick(type.value)}
-                    >
-                      <NavIcon iconKey={type.iconKey || 'silo'} size={mobile ? 18 : 17} />
-                      <span>{type.label}</span>
-                    </button>
-                    <button className="sidebar-delete-btn" onClick={() => handleDeleteCustomType(type.value)} title="Eliminar">
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                );
-              })}
-              <button
-                className={mobile ? 'drawer-add-btn' : 'sidebar-add-btn'}
-                onClick={() => { setShowAddUnitModal(true); if (mobile) setDrawerOpen(false); }}
-              >
-                <Plus size={14} />
-                <span>Agregar unidad</span>
-              </button>
-            </nav>
-          </div>
-        )}
-
-        {/* OPERACIONES */}
-        <div className={mobile ? 'drawer-section' : 'sidebar-section'}>
-          {!mobile && <span className="sidebar-section-title">OPERACIONES</span>}
-          {mobile && <span className="drawer-section-title">OPERACIONES</span>}
-          <nav className={mobile ? '' : 'sidebar-nav'}>
-            {operacionesVisibles.map(item => (
-              <NavItem
-                key={item.path}
-                path={item.path}
-                iconKey={item.iconKey}
-                label={item.label}
-                isActive={isActivePath(item.path)}
-              />
-            ))}
-          </nav>
-        </div>
-
-        {/* SISTEMA */}
-        <div className={mobile ? 'drawer-section' : 'sidebar-section'}>
-          {!mobile && <span className="sidebar-section-title">SISTEMA</span>}
-          {mobile && <span className="drawer-section-title">SISTEMA</span>}
-          <nav className={mobile ? '' : 'sidebar-nav'}>
-            {sistemaVisibles.map(item => (
-              <NavItem
-                key={item.path}
-                path={item.path}
-                iconKey={item.iconKey}
-                label={item.label}
-                isActive={isActivePath(item.path)}
-              />
-            ))}
-            {isDueno && (
-              <NavItem
-                path="/usuarios"
-                iconKey="usuarios"
-                label="Usuarios"
-                isActive={isActivePath('/usuarios')}
-              />
-            )}
-          </nav>
-        </div>
-      </>
-    );
-  };
-
   return (
     <div className="app-layout">
       {/* Header */}
@@ -272,7 +292,20 @@ export default function Layout() {
 
       {/* Desktop Sidebar */}
       <aside className="sidebar-desktop">
-        <SidebarContent mobile={false} />
+        <SidebarContent
+          mobile={false}
+          isTrabajador={isTrabajador}
+          isDueno={isDueno}
+          pathname={location.pathname}
+          customFoodTypes={customFoodTypes}
+          onNavClick={handleNavClick}
+          onFoodTypeClick={handleFoodTypeClick}
+          onDeleteCustomType={handleDeleteCustomType}
+          onAddUnitClick={() => setShowAddUnitModal(true)}
+          onDrawerClose={() => setDrawerOpen(false)}
+          isActivePath={isActivePath}
+          isDashboardActive={isDashboardActive}
+        />
       </aside>
 
       {/* Mobile Drawer Overlay */}
@@ -294,7 +327,20 @@ export default function Layout() {
           </div>
         </div>
         <nav className="drawer-nav">
-          <SidebarContent mobile={true} />
+          <SidebarContent
+            mobile={true}
+            isTrabajador={isTrabajador}
+            isDueno={isDueno}
+            pathname={location.pathname}
+            customFoodTypes={customFoodTypes}
+            onNavClick={handleNavClick}
+            onFoodTypeClick={handleFoodTypeClick}
+            onDeleteCustomType={handleDeleteCustomType}
+            onAddUnitClick={() => setShowAddUnitModal(true)}
+            onDrawerClose={() => setDrawerOpen(false)}
+            isActivePath={isActivePath}
+            isDashboardActive={isDashboardActive}
+          />
         </nav>
         <div className="drawer-footer">
           <button className="drawer-logout-btn" onClick={handleLogout}>

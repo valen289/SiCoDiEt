@@ -76,8 +76,6 @@ export default function Silos() {
   const [historialResumen, setHistorialResumen] = useState(null);
   const [historialPeriodo, setHistorialPeriodo] = useState('30');
   const [costosInsumos, setCostosInsumos] = useState({});
-  const [editingPrecio, setEditingPrecio] = useState(null);
-  const [precioInput, setPrecioInput] = useState('');
 
   const loadInsumos = useCallback(async () => {
     try {
@@ -211,39 +209,6 @@ export default function Silos() {
         setHistorialResumen(res.data.resumen);
       } catch (err) { console.error('Error:', err); }
     }
-  };
-
-  const handleEditarPrecio = (insumo) => {
-    setEditingPrecio(insumo.id);
-    const precioExistente = costosInsumos[insumo.id];
-    setPrecioInput(precioExistente !== undefined ? String(precioExistente) : '0');
-  };
-
-  const handleGuardarPrecio = async (insumoId) => {
-    const precio = parseFloat(precioInput);
-    if (isNaN(precio) || precio < 0) {
-      error('Ingrese un precio válido mayor o igual a 0');
-      return;
-    }
-    try {
-      await api.put(`/dietas/costos/${insumoId}`, { precio_por_kg: precio });
-      setCostosInsumos(prev => ({ ...prev, [insumoId]: precio }));
-      setEditingPrecio(null);
-      setPrecioInput('');
-      success('Precio actualizado');
-      try {
-        const channel = new BroadcastChannel('sico-diet-precio-actualizado');
-        channel.postMessage({ type: 'precio-actualizado', insumoId, precio });
-        channel.close();
-      } catch { /* not supported */ }
-    } catch (err) {
-      error(err.response?.data?.error || 'Error al actualizar precio');
-    }
-  };
-
-  const handleCancelarPrecio = () => {
-    setEditingPrecio(null);
-    setPrecioInput('');
   };
 
   const getPorcentaje = (insumo) => {

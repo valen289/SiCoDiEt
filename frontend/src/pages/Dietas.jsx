@@ -282,7 +282,7 @@ export default function Dietas() {
     setCalculoPreview(null);
   };
 
-  const runSimulation = () => {
+  const runSimulation = async () => {
     const ingredientesValidas = formData.ingredientes.filter(i => i.insumo_id && safeNum(i.cantidad_kg) > 0);
     if (ingredientesValidas.length === 0) {
       showError('Primero agregue ingredientes a la dieta para simular');
@@ -295,54 +295,41 @@ export default function Dietas() {
       return;
     }
 
-    const costoTotalSimulado = ingredientesValidas.reduce((sum, i) => {
-      const costo = costos.find(c => c.insumo_id === parseInt(i.insumo_id));
-      const precioBase = costo ? safeNum(costo.precio_por_kg) : 0;
-      const precioSimulado = precioBase * (1 + safeNum(simulationData.variacion_precio) / 100);
-      return sum + (safeNum(i.cantidad_kg) * precioSimulado);
-    }, 0);
+    // El costo/margen simulado se calcula en el backend (mismo dietasCalculos.js que usa el
+    // preview y el guardado), pasando la variacion de precio/produccion como parametros — así
+    // el simulador nunca puede mostrar un numero distinto al que se terminaria guardando.
+    try {
+      const { data } = await api.post('/dietas/calcular', {
+        ingredientes: ingredientesValidas,
+        lote_id: formData.lote_id,
+        produccion_leche_esperada: safeNum(formData.produccion_leche_esperada),
+        precio_leche_por_litro: safeNum(formData.precio_leche_por_litro),
+        ganancia_kg_esperada: safeNum(formData.ganancia_kg_esperada),
+        precio_kg_en_pie: safeNum(formData.precio_kg_en_pie),
+        variacion_precio: safeNum(simulationData.variacion_precio),
+        variacion_produccion: safeNum(simulationData.variacion_produccion),
+      });
 
-    const loteObjetivo = lote.objetivo_productivo || 'leche';
-    const cantidadAnimales = safeNum(lote.cantidad_animales);
-    // cantidad_kg de cada ingrediente ya esta expresada por vaca/dia, asi que costoTotalSimulado
-    // ya es el costo por vaca/dia. No dividir de nuevo por cantidadAnimales.
-    const costoPorVaca = costoTotalSimulado;
+      const loteObjetivo = lote.objetivo_productivo || 'leche';
+      const variacionProduccion = safeNum(simulationData.variacion_produccion);
+      const produccionSimulada = loteObjetivo === 'leche'
+        ? safeNum(formData.produccion_leche_esperada) * (1 + variacionProduccion / 100)
+        : 0;
+      const gananciaSimulada = loteObjetivo !== 'leche'
+        ? safeNum(formData.ganancia_kg_esperada) * (1 + variacionProduccion / 100)
+        : 0;
 
-    let ingresoPorVaca = 0;
-    let costoPorLitro = 0, margenPorLitro = 0, produccionSimulada = 0;
-    let costoPorKgGanado = 0, margenPorKgGanado = 0, gananciaSimulada = 0;
-
-    if (loteObjetivo === 'leche') {
-      produccionSimulada = safeNum(formData.produccion_leche_esperada) * (1 + safeNum(simulationData.variacion_produccion) / 100);
-      ingresoPorVaca = produccionSimulada * safeNum(formData.precio_leche_por_litro);
-      costoPorLitro = produccionSimulada > 0 ? costoPorVaca / produccionSimulada : 0;
-      margenPorLitro = produccionSimulada > 0 ? (ingresoPorVaca - costoPorVaca) / produccionSimulada : 0;
-    } else {
-      gananciaSimulada = safeNum(formData.ganancia_kg_esperada) * (1 + safeNum(simulationData.variacion_produccion) / 100);
-      ingresoPorVaca = gananciaSimulada * safeNum(formData.precio_kg_en_pie);
-      costoPorKgGanado = gananciaSimulada > 0 ? costoPorVaca / gananciaSimulada : 0;
-      margenPorKgGanado = gananciaSimulada > 0 ? (ingresoPorVaca - costoPorVaca) / gananciaSimulada : 0;
+      setSimulationResult({
+        ...data.resumen,
+        produccion_simulada: produccionSimulada,
+        ganancia_simulada: gananciaSimulada,
+        variacion_precio: safeNum(simulationData.variacion_precio),
+        variacion_produccion: variacionProduccion,
+      });
+    } catch (error) {
+      console.error('Error al simular escenario:', error);
+      showError(error.response?.data?.error || 'Error al simular el escenario');
     }
-
-    const margenAlimenticio = ingresoPorVaca - costoPorVaca;
-    const porcentajeGasto = ingresoPorVaca > 0 ? (costoPorVaca / ingresoPorVaca) * 100 : 0;
-
-    setSimulationResult({
-      objetivo_productivo: loteObjetivo,
-      costo_total: costoTotalSimulado * cantidadAnimales,
-      costo_por_vaca: costoPorVaca,
-      costo_por_litro: costoPorLitro,
-      ingreso_por_vaca: ingresoPorVaca,
-      margen_alimenticio: margenAlimenticio,
-      margen_por_litro: margenPorLitro,
-      costo_por_kg_ganado: costoPorKgGanado,
-      margen_por_kg_ganado: margenPorKgGanado,
-      porcentaje_gasto_alimentacion: porcentajeGasto,
-      produccion_simulada: produccionSimulada,
-      ganancia_simulada: gananciaSimulada,
-      variacion_precio: safeNum(simulationData.variacion_precio),
-      variacion_produccion: safeNum(simulationData.variacion_produccion),
-    });
   };
 
   if (loading) {

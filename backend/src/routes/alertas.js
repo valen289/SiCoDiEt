@@ -25,7 +25,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.put('/:id/leer', async (req, res) => {
+router.put('/:id/leer', authorizeRoles('dueno', 'encargado'), async (req, res) => {
   try {
     await pool.query('UPDATE alertas SET leida = TRUE WHERE id = ? AND tambo_id = ?', [req.params.id, req.user.tambo_id]);
     res.json({ message: 'Alerta marcada como leida' });
@@ -35,7 +35,7 @@ router.put('/:id/leer', async (req, res) => {
   }
 });
 
-router.put('/leer-todas', async (req, res) => {
+router.put('/leer-todas', authorizeRoles('dueno', 'encargado'), async (req, res) => {
   try {
     await pool.query('UPDATE alertas SET leida = TRUE WHERE leida = FALSE AND tambo_id = ?', [req.user.tambo_id]);
     res.json({ message: 'Todas las alertas marcadas como leidas' });

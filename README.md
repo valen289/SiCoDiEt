@@ -1,6 +1,6 @@
 # SiCoDiEt
 
-Sistema de Control y Distribución de Alimentos y Tambo. Gestión de stock de
+Sistema de Consumo diario del establecimiento. Gestión de stock de
 alimentos, dietas, consumos, compras y costos para producción lechera/ganadera.
 
 ## Stack

@@ -29,6 +29,8 @@ router.post('/calcular', authenticateToken, authorizeRoles('dueno', 'encargado')
   body('precio_leche_por_litro').optional().isFloat({ min: 0 }).withMessage('Precio de leche invalido'),
   body('ganancia_kg_esperada').optional().isFloat({ min: 0 }).withMessage('Ganancia de kg invalida'),
   body('precio_kg_en_pie').optional().isFloat({ min: 0 }).withMessage('Precio por kg invalido'),
+  body('variacion_precio').optional().isFloat().withMessage('Variacion de precio invalida'),
+  body('variacion_produccion').optional().isFloat().withMessage('Variacion de produccion invalida'),
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -36,7 +38,10 @@ router.post('/calcular', authenticateToken, authorizeRoles('dueno', 'encargado')
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { ingredientes, lote_id, produccion_leche_esperada, precio_leche_por_litro, ganancia_kg_esperada, precio_kg_en_pie } = req.body;
+    const {
+      ingredientes, lote_id, produccion_leche_esperada, precio_leche_por_litro, ganancia_kg_esperada, precio_kg_en_pie,
+      variacion_precio, variacion_produccion,
+    } = req.body;
 
     const [lotes] = await pool.query('SELECT cantidad_animales, objetivo_productivo FROM lotes WHERE id = ? AND activo = TRUE AND tambo_id = ?', [lote_id, req.user.tambo_id]);
     if (lotes.length === 0) {
@@ -51,13 +56,28 @@ router.post('/calcular', authenticateToken, authorizeRoles('dueno', 'encargado')
       return res.status(400).json({ error: 'No hay ingredientes validos' });
     }
 
+    // variacion_precio/variacion_produccion son opcionales y solo las usa el simulador de
+    // escenarios del frontend (ver Dietas.jsx). Escalar el costo real ya calculado por el
+    // porcentaje es equivalente a recalcularlo con cada precio de ingrediente ajustado (la
+    // variacion es uniforme), asi que el simulador reutiliza esta misma formula en vez de
+    // reimplementarla en el cliente.
+    const variacionPrecio = parseFloat(variacion_precio) || 0;
+    const variacionProduccion = parseFloat(variacion_produccion) || 0;
+    const costoTotalSimulado = costoTotal * (1 + variacionPrecio / 100);
+    const produccionLecheSimulada = objetivo_productivo === 'leche'
+      ? (parseFloat(produccion_leche_esperada) || 0) * (1 + variacionProduccion / 100)
+      : produccion_leche_esperada;
+    const gananciaKgSimulada = objetivo_productivo !== 'leche'
+      ? (parseFloat(ganancia_kg_esperada) || 0) * (1 + variacionProduccion / 100)
+      : ganancia_kg_esperada;
+
     const resumenEco = calcularResumenEconomico({
-      costoTotal,
+      costoTotal: costoTotalSimulado,
       cantAnimales,
       objetivoProductivo: objetivo_productivo,
-      produccionLecheEsperada: produccion_leche_esperada,
+      produccionLecheEsperada: produccionLecheSimulada,
       precioLechePorLitro: precio_leche_por_litro,
-      gananciaKgEsperada: ganancia_kg_esperada,
+      gananciaKgEsperada: gananciaKgSimulada,
       precioKgEnPie: precio_kg_en_pie,
     });
 

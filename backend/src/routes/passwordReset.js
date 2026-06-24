@@ -23,7 +23,10 @@ router.post('/forgot-password', [
 
     if (users.length > 0) {
       const token = crypto.randomBytes(32).toString('hex');
-      const hashedToken = await bcrypt.hash(token, 10);
+      // El token ya tiene 256 bits propios de entropia (no es una password de baja entropia que
+      // necesite el hash lento+salado de bcrypt). Usamos SHA-256 para poder buscarlo directo por
+      // igualdad en el SELECT de abajo, en vez de cargar todos los tokens vigentes en memoria.
+      const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
       const expiresAt = new Date(Date.now() + TOKEN_EXPIRY_HOURS * 60 * 60 * 1000);
 
       await pool.query(
@@ -62,17 +65,12 @@ router.post('/reset-password', [
       return res.status(400).json({ error: 'Las contraseñas no coinciden' });
     }
 
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
     const [tokens] = await pool.query(
-      'SELECT * FROM password_reset_tokens WHERE used = FALSE AND expires_at > NOW()'
+      'SELECT * FROM password_reset_tokens WHERE token = ? AND used = FALSE AND expires_at > NOW()',
+      [hashedToken]
     );
-
-    let tokenRecord = null;
-    for (const candidate of tokens) {
-      if (await bcrypt.compare(token, candidate.token)) {
-        tokenRecord = candidate;
-        break;
-      }
-    }
+    const tokenRecord = tokens[0];
 
     if (!tokenRecord) {
       return res.status(400).json({ error: 'Token invalido o expirado' });

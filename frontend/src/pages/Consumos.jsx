@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../services/api';
 import { useAlert } from '../context/AlertContext';
 import { useSEO } from '../hooks/useSEO';
@@ -295,9 +295,18 @@ export default function Consumos() {
 
   // ── Render ────────────────────────────────────────────────────────────────
 
-  const consumoTotal = consumoEditable.reduce((sum, f) => sum + (f.cantidad_total || 0), 0);
-  const idsEnUso = new Set(consumoEditable.map(f => f.insumo_id));
-  const insumosDisponiblesParaAgregar = todosInsumos.filter(i => !idsEnUso.has(i.id));
+  const consumoTotal = useMemo(
+    () => consumoEditable.reduce((sum, f) => sum + (f.cantidad_total || 0), 0),
+    [consumoEditable]
+  );
+  const idsEnUso = useMemo(
+    () => new Set(consumoEditable.map(f => f.insumo_id)),
+    [consumoEditable]
+  );
+  const insumosDisponiblesParaAgregar = useMemo(
+    () => todosInsumos.filter(i => !idsEnUso.has(i.id)),
+    [todosInsumos, idsEnUso]
+  );
 
   const handleReportePdf = async () => {
     setGenerandoPdf(true);
