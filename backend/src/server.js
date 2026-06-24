@@ -87,6 +87,7 @@ if (isProduction) {
       return callback(null, true);
     }
 
+    console.error('CORS rechazado, origin:', origin, '| permitidos:', allowedOrigins);
     callback(new Error('Not allowed by CORS'));
   };
 } else {
