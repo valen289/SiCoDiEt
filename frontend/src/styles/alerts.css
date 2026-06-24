@@ -85,6 +85,130 @@
   margin-top: 0.5rem;
 }
 
+/* ===== Confirm Modal (centrado, separado de los toasts) ===== */
+
+.confirm-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: confirm-backdrop-in 0.15s ease;
+}
+
+.confirm-modal {
+  position: relative;
+  background: var(--white);
+  border-radius: 0.75rem;
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 420px;
+  padding: 1.5rem;
+  animation: confirm-modal-in 0.2s ease;
+}
+
+.confirm-modal-close {
+  position: absolute;
+  top: 0.9rem;
+  right: 0.9rem;
+  background: none;
+  border: none;
+  color: var(--text-light);
+  padding: 0.25rem;
+  cursor: pointer;
+  border-radius: 0.25rem;
+  transition: color 0.2s, background 0.2s;
+}
+
+.confirm-modal-close:hover {
+  color: var(--text);
+  background: var(--bg);
+}
+
+.confirm-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding-right: 1.5rem;
+}
+
+.confirm-modal-icon {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.confirm-modal-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+.confirm-modal-message {
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--text-light);
+  margin: 1rem 0 0;
+}
+
+.confirm-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.confirm-modal-btn {
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.55rem 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.confirm-modal-btn--cancel {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.confirm-modal-btn--cancel:hover {
+  background: var(--border);
+}
+
+.confirm-modal-btn--confirm {
+  color: #fff;
+}
+
+.confirm-modal-btn--confirm:hover {
+  opacity: 0.9;
+}
+
+@keyframes confirm-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes confirm-modal-in {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@media (max-width: 575px) {
+  .confirm-modal {
+    padding: 1.25rem;
+  }
+}
+
 /* Animations */
 .alert-animate-slide-right {
   animation: alert-slide-in-right 0.3s ease;

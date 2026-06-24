@@ -39,7 +39,6 @@ function AlertItem({ alert, onDismiss }) {
   const Icon = alert.icon ? alert.icon : config.icon;
   const accentColor = alert.accentColor || config.defaultColor;
   const backgroundColor = alert.backgroundColor || config.defaultBg;
-  const borderColor = alert.accentColor || config.defaultBorder;
   const animationClass = `alert-animate-${alert.animationType}-${alert.animationDirection}`;
 
   const style = {
@@ -61,16 +60,46 @@ function AlertItem({ alert, onDismiss }) {
       <button className="alert-custom-close" onClick={() => onDismiss(alert.id)}>
         <X size={16} />
       </button>
-      {alert.isConfirm && (
-        <div className="alert-custom-actions">
-          <button className="btn btn-sm btn-secondary" onClick={alert.onCancel}>
+    </div>
+  );
+}
+
+// Las confirmaciones son una decision que requiere foco, no una notificacion de paso --
+// por eso van en un modal centrado con backdrop propio, no apretadas en el mismo
+// contenedor angosto de los toasts (eso era la causa de los problemas de layout:
+// icono/titulo mal alineados, poco aprovechamiento del ancho, botones inconsistentes).
+function ConfirmModal({ alert }) {
+  const config = typeConfig[alert.type] || typeConfig.warning;
+  const Icon = alert.icon ? alert.icon : config.icon;
+  const accentColor = alert.accentColor || config.defaultColor;
+  const iconBg = alert.backgroundColor || config.defaultBg;
+
+  return (
+    <div className="confirm-modal-backdrop" onClick={alert.onCancel}>
+      <div className="confirm-modal" onClick={(e) => e.stopPropagation()}>
+        <button className="confirm-modal-close" onClick={alert.onCancel} aria-label="Cerrar">
+          <X size={16} />
+        </button>
+        <div className="confirm-modal-header">
+          <div className="confirm-modal-icon" style={{ backgroundColor: iconBg, color: accentColor }}>
+            <Icon size={22} />
+          </div>
+          <h3 className="confirm-modal-title">{alert.title}</h3>
+        </div>
+        <p className="confirm-modal-message">{alert.message}</p>
+        <div className="confirm-modal-actions">
+          <button className="confirm-modal-btn confirm-modal-btn--cancel" onClick={alert.onCancel}>
             {alert.cancelText}
           </button>
-          <button className="btn btn-sm" style={{ backgroundColor: accentColor, color: '#fff' }} onClick={alert.onConfirm}>
+          <button
+            className="confirm-modal-btn confirm-modal-btn--confirm"
+            style={{ backgroundColor: accentColor }}
+            onClick={alert.onConfirm}
+          >
             {alert.confirmText}
           </button>
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -80,11 +109,21 @@ export default function AlertContainer() {
 
   if (alerts.length === 0) return null;
 
+  const toasts = alerts.filter((a) => !a.isConfirm);
+  const confirms = alerts.filter((a) => a.isConfirm);
+
   return (
-    <div className="alert-container">
-      {alerts.map(alert => (
-        <AlertItem key={alert.id} alert={alert} onDismiss={dismissAlert} />
+    <>
+      {toasts.length > 0 && (
+        <div className="alert-container">
+          {toasts.map((alert) => (
+            <AlertItem key={alert.id} alert={alert} onDismiss={dismissAlert} />
+          ))}
+        </div>
+      )}
+      {confirms.map((alert) => (
+        <ConfirmModal key={alert.id} alert={alert} />
       ))}
-    </div>
+    </>
   );
 }
