@@ -1,37 +1,34 @@
 import { useAlert } from '../context/AlertContext';
-import { CheckCircle, AlertCircle, AlertTriangle, Info, X, ShieldAlert } from 'lucide-react';
+import { CheckCircle, AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
 import '../styles/alerts.css';
 
+// Colores alineados al sistema de diseño de la app (index.css --success/--danger/--warning/--info),
+// no a los genericos de Bootstrap, para que los toasts se sientan parte de la misma marca que el
+// resto de la UI (dashboard, sidebar, alertas de stock).
 const typeConfig = {
   success: {
     icon: CheckCircle,
-    defaultColor: '#28a745',
-    defaultBg: '#d4edda',
-    defaultBorder: '#c3e6cb',
+    defaultColor: '#4D8A54',
+    defaultBg: 'rgba(77, 138, 84, 0.1)',
+    defaultBorder: 'rgba(77, 138, 84, 0.25)',
   },
   error: {
     icon: AlertCircle,
-    defaultColor: '#dc3545',
-    defaultBg: '#f8d7da',
-    defaultBorder: '#f5c6cb',
+    defaultColor: '#D35D4E',
+    defaultBg: 'rgba(211, 93, 78, 0.1)',
+    defaultBorder: 'rgba(211, 93, 78, 0.25)',
   },
   warning: {
     icon: AlertTriangle,
-    defaultColor: '#ffc107',
-    defaultBg: '#fff3cd',
-    defaultBorder: '#ffeeba',
+    defaultColor: '#D9A441',
+    defaultBg: 'rgba(217, 164, 65, 0.12)',
+    defaultBorder: 'rgba(217, 164, 65, 0.3)',
   },
   info: {
     icon: Info,
-    defaultColor: '#17a2b8',
-    defaultBg: '#d1ecf1',
-    defaultBorder: '#bee5eb',
-  },
-  confirm: {
-    icon: ShieldAlert,
-    defaultColor: '#fd7e14',
-    defaultBg: '#ffe8cc',
-    defaultBorder: '#ffd699',
+    defaultColor: '#5E8CB8',
+    defaultBg: 'rgba(94, 140, 184, 0.1)',
+    defaultBorder: 'rgba(94, 140, 184, 0.25)',
   },
 };
 
@@ -46,7 +43,7 @@ function AlertItem({ alert, onDismiss }) {
   const style = {
     borderLeft: `${alert.borderSize || '4px'} solid ${accentColor}`,
     backgroundColor,
-    boxShadow: alert.boxShadow ? '0 4px 12px rgba(0,0,0,0.15)' : 'none',
+    boxShadow: alert.boxShadow ? 'var(--shadow-md)' : 'none',
     animationDuration: `${alert.animationSpeed}s`,
   };
 

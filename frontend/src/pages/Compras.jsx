@@ -179,7 +179,7 @@ export default function Compras() {
     const confirmed = await confirm({
       title: 'Eliminar Compra',
       message: `¿Eliminar la compra de "${compra.insumo_nombre}"? El ingreso de stock NO será revertido.`,
-      type: 'warning',
+      type: 'error',
       confirmText: 'Sí, eliminar',
       cancelText: 'Cancelar',
     });

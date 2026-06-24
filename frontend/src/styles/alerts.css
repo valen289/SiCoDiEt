@@ -15,7 +15,7 @@
 .alert-custom {
   background: var(--white);
   border-radius: 0.5rem;
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-md);
   padding: 1rem 1.25rem;
   display: flex;
   align-items: flex-start;

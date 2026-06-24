@@ -91,7 +91,7 @@ export default function Actividades() {
     const confirmed = await confirm({
       title: 'Eliminar actividad',
       message: '¿Estás seguro que deseas eliminar este registro de actividad?',
-      type: 'warning', confirmText: 'Sí, eliminar', cancelText: 'Cancelar',
+      type: 'error', confirmText: 'Sí, eliminar', cancelText: 'Cancelar',
     });
     if (!confirmed) return;
     try {

@@ -66,7 +66,7 @@ export default function Lotes() {
     const confirmed = await confirm({
       title: 'Eliminar Lote',
       message: `¿Estás seguro que deseas eliminar el lote "${lote.nombre}"?`,
-      type: 'warning', confirmText: 'Sí, eliminar', cancelText: 'Cancelar',
+      type: 'error', confirmText: 'Sí, eliminar', cancelText: 'Cancelar',
     });
     if (!confirmed) return;
     try {

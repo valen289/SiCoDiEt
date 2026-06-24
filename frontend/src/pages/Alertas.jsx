@@ -57,7 +57,7 @@ export default function Alertas() {
     const confirmed = await confirm({
       title: 'Eliminar Alerta',
       message: '¿Estás seguro que deseas eliminar esta alerta?',
-      type: 'warning',
+      type: 'error',
       confirmText: 'Sí, eliminar',
       cancelText: 'Cancelar',
     });
