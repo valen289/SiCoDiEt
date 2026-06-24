@@ -4,6 +4,7 @@ const { body, validationResult } = require('express-validator');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 const pool = require('../config/database');
 const { verificarYGenerarAlertas } = require('../utils/alertas');
+const { calcularCostosIngredientes, calcularResumenEconomico } = require('../utils/dietasCalculos');
 
 router.get('/', authenticateToken, authorizeRoles('dueno', 'encargado'), async (req, res) => {
   try {
@@ -41,96 +42,52 @@ router.post('/calcular', authenticateToken, authorizeRoles('dueno', 'encargado')
     if (lotes.length === 0) {
       return res.status(404).json({ error: 'Lote no encontrado' });
     }
-    const { cantidad_animales: cantidadAnimalesLote, objetivo_productivo } = lotes[0];
+    const { cantidad_animales: cantAnimales, objetivo_productivo } = lotes[0];
 
-    let costoTotal = 0;
-    let materiaSecaTotal = 0;
-    let energiaTotal = 0;
-    let proteinaTotal = 0;
-    let fibraTotal = 0;
-    let cantidadTotalKg = 0;
-    const ingredientesCalculados = [];
-
-    for (const ing of ingredientes) {
-      const insumoId = parseInt(ing.insumo_id);
-      const cantidadKg = parseFloat(ing.cantidad_kg) || 0;
-      if (!insumoId || cantidadKg <= 0) continue;
-
-      const [params] = await pool.query('SELECT * FROM parametros_nutricionales WHERE insumo_id = ?', [insumoId]);
-      const [costos] = await pool.query('SELECT precio_por_kg FROM costos_ingredientes WHERE insumo_id = ?', [insumoId]);
-      const [insumos] = await pool.query('SELECT nombre, tipo_insumo FROM insumos WHERE id = ?', [insumoId]);
-
-      const param = params[0] || { materia_seca_porcentaje: 0, energia_mcal_por_kg: 0, proteina_porcentaje: 0, fibra_porcentaje: 0 };
-      const precioPorKg = parseFloat(costos[0]?.precio_por_kg) || 0;
-      const insumo = insumos[0] || { nombre: 'Desconocido', tipo_insumo: '' };
-
-      const costoParcial = cantidadKg * precioPorKg;
-      const msAportada = cantidadKg * (parseFloat(param.materia_seca_porcentaje) / 100);
-      const energiaAportada = cantidadKg * parseFloat(param.energia_mcal_por_kg);
-      const proteinaAportada = cantidadKg * (parseFloat(param.proteina_porcentaje) / 100);
-      const fibraAportada = cantidadKg * (parseFloat(param.fibra_porcentaje) / 100);
-
-      costoTotal += costoParcial;
-      materiaSecaTotal += msAportada;
-      energiaTotal += energiaAportada;
-      proteinaTotal += proteinaAportada;
-      fibraTotal += fibraAportada;
-      cantidadTotalKg += cantidadKg;
-
-      ingredientesCalculados.push({
-        ...insumo,
-        cantidad_kg: cantidadKg,
-        precio_por_kg: precioPorKg,
-        costo_parcial: costoParcial,
-        materia_seca_aportada: msAportada,
-        energia_aportada: energiaAportada,
-        proteina_aportada: proteinaAportada,
-        fibra_aportada: fibraAportada,
-      });
-    }
+    const { costoTotal, materiaSecaTotal, energiaTotal, proteinaTotal, fibraTotal, cantidadTotalKg, detalle } =
+      await calcularCostosIngredientes(ingredientes, (sql, params) => pool.query(sql, params));
 
     if (cantidadTotalKg <= 0) {
       return res.status(400).json({ error: 'No hay ingredientes validos' });
     }
 
-    const cantAnimales = parseInt(cantidadAnimalesLote) || 1;
-    // Los kg de cada ingrediente ya vienen expresados por vaca/dia (ver columna del formulario),
-    // por lo que costoTotal ya es el costo por vaca/dia. No dividir de nuevo por cantAnimales.
-    const costoPorVaca = costoTotal;
-    const costoTotalLote = costoTotal * cantAnimales;
+    const resumenEco = calcularResumenEconomico({
+      costoTotal,
+      cantAnimales,
+      objetivoProductivo: objetivo_productivo,
+      produccionLecheEsperada: produccion_leche_esperada,
+      precioLechePorLitro: precio_leche_por_litro,
+      gananciaKgEsperada: ganancia_kg_esperada,
+      precioKgEnPie: precio_kg_en_pie,
+    });
 
-    let costoPorLitro = 0, margenPorLitro = 0, costoPorKgGanado = 0, margenPorKgGanado = 0;
-    let ingresoPorVaca = 0;
-
-    if (objetivo_productivo === 'leche') {
-      const prodLeche = parseFloat(produccion_leche_esperada) || 0;
-      const precioLeche = parseFloat(precio_leche_por_litro) || 0;
-      ingresoPorVaca = prodLeche * precioLeche;
-      costoPorLitro = prodLeche > 0 ? costoPorVaca / prodLeche : 0;
-      margenPorLitro = prodLeche > 0 ? (ingresoPorVaca - costoPorVaca) / prodLeche : 0;
-    } else {
-      const gananciaKg = parseFloat(ganancia_kg_esperada) || 0;
-      const precioKg = parseFloat(precio_kg_en_pie) || 0;
-      ingresoPorVaca = gananciaKg * precioKg;
-      costoPorKgGanado = gananciaKg > 0 ? costoPorVaca / gananciaKg : 0;
-      margenPorKgGanado = gananciaKg > 0 ? (ingresoPorVaca - costoPorVaca) / gananciaKg : 0;
-    }
-
-    const margenAlimenticio = ingresoPorVaca - costoPorVaca;
-    const porcentajeGasto = ingresoPorVaca > 0 ? (costoPorVaca / ingresoPorVaca) * 100 : 0;
+    const ingredientesCalculados = await Promise.all(detalle.map(async (d) => {
+      const [insumos] = await pool.query('SELECT nombre, tipo_insumo FROM insumos WHERE id = ?', [d.insumoId]);
+      const insumo = insumos[0] || { nombre: 'Desconocido', tipo_insumo: '' };
+      return {
+        ...insumo,
+        cantidad_kg: d.cantidadKg,
+        precio_por_kg: d.precioPorKg,
+        costo_parcial: d.costoParcial,
+        materia_seca_aportada: d.msAportada,
+        energia_aportada: d.energiaAportada,
+        proteina_aportada: d.proteinaAportada,
+        fibra_aportada: d.fibraAportada,
+      };
+    }));
 
     res.json({
       resumen: {
         objetivo_productivo,
-        costo_total: costoTotalLote,
-        costo_por_vaca: costoPorVaca,
-        costo_por_litro: costoPorLitro,
-        ingreso_por_vaca: ingresoPorVaca,
-        margen_alimenticio: margenAlimenticio,
-        margen_por_litro: margenPorLitro,
-        costo_por_kg_ganado: costoPorKgGanado,
-        margen_por_kg_ganado: margenPorKgGanado,
-        porcentaje_gasto_alimentacion: porcentajeGasto,
+        costo_total: resumenEco.costoTotalLote,
+        costo_por_vaca: resumenEco.costoPorVaca,
+        costo_por_litro: resumenEco.costoPorLitro,
+        ingreso_por_vaca: resumenEco.ingresoPorVaca,
+        margen_alimenticio: resumenEco.margenAlimenticio,
+        margen_por_litro: resumenEco.margenPorLitro,
+        costo_por_kg_ganado: resumenEco.costoPorKgGanado,
+        margen_por_kg_ganado: resumenEco.margenPorKgGanado,
+        porcentaje_gasto_alimentacion: resumenEco.porcentajeGasto,
         materia_seca_total: materiaSecaTotal,
         energia_total: energiaTotal,
         proteina_total: proteinaTotal,
@@ -325,96 +282,40 @@ router.post('/', authenticateToken, authorizeRoles('dueno', 'encargado'), [
         }
       }
 
-      let costoTotal = 0;
-      let materiaSecaTotal = 0;
-      let energiaTotal = 0;
-      let proteinaTotal = 0;
-      let fibraTotal = 0;
-      let cantidadTotalKg = 0;
-
-      for (const ing of ingredientes) {
-        const insumoId = parseInt(ing.insumo_id);
-        const cantidadKg = parseFloat(ing.cantidad_kg) || 0;
-        if (!insumoId || cantidadKg <= 0) continue;
-
-        const [params] = await connection.query('SELECT * FROM parametros_nutricionales WHERE insumo_id = ?', [insumoId]);
-        const [costos] = await connection.query('SELECT precio_por_kg FROM costos_ingredientes WHERE insumo_id = ?', [insumoId]);
-
-        const param = params[0] || { materia_seca_porcentaje: 0, energia_mcal_por_kg: 0, proteina_porcentaje: 0, fibra_porcentaje: 0 };
-        const precioPorKg = parseFloat(costos[0]?.precio_por_kg) || 0;
-
-        const costoParcial = cantidadKg * precioPorKg;
-        const msAportada = cantidadKg * (parseFloat(param.materia_seca_porcentaje) / 100);
-        const energiaAportada = cantidadKg * parseFloat(param.energia_mcal_por_kg);
-        const proteinaAportada = cantidadKg * (parseFloat(param.proteina_porcentaje) / 100);
-        const fibraAportada = cantidadKg * (parseFloat(param.fibra_porcentaje) / 100);
-
-        costoTotal += costoParcial;
-        materiaSecaTotal += msAportada;
-        energiaTotal += energiaAportada;
-        proteinaTotal += proteinaAportada;
-        fibraTotal += fibraAportada;
-        cantidadTotalKg += cantidadKg;
-      }
+      const { costoTotal, materiaSecaTotal, energiaTotal, proteinaTotal, fibraTotal, cantidadTotalKg, detalle } =
+        await calcularCostosIngredientes(ingredientes, (sql, params) => connection.query(sql, params));
 
       if (cantidadTotalKg <= 0) {
         await connection.rollback();
         return res.status(400).json({ error: 'No hay ingredientes validos' });
       }
 
-      // Los kg de cada ingrediente ya vienen expresados por vaca/dia (ver columna del formulario),
-      // por lo que costoTotal ya es el costo por vaca/dia. No dividir de nuevo por cantidadAnimales.
-      const costoPorVaca = costoTotal;
-      const costoTotalLote = costoTotal * cantidadAnimales;
-      let prodLeche = 0, precioLeche = 0, costoPorLitro = 0, margenPorLitro = 0;
-      let gananciaKg = 0, precioKg = 0, costoPorKgGanado = 0, margenPorKgGanado = 0;
-      let ingresoPorVaca = 0;
-
-      if (objetivoProductivo === 'leche') {
-        prodLeche = parseFloat(produccion_leche_esperada) || 0;
-        precioLeche = parseFloat(precio_leche_por_litro) || 0;
-        ingresoPorVaca = prodLeche * precioLeche;
-        costoPorLitro = prodLeche > 0 ? costoPorVaca / prodLeche : 0;
-        margenPorLitro = prodLeche > 0 ? (ingresoPorVaca - costoPorVaca) / prodLeche : 0;
-      } else {
-        gananciaKg = parseFloat(ganancia_kg_esperada) || 0;
-        precioKg = parseFloat(precio_kg_en_pie) || 0;
-        ingresoPorVaca = gananciaKg * precioKg;
-        costoPorKgGanado = gananciaKg > 0 ? costoPorVaca / gananciaKg : 0;
-        margenPorKgGanado = gananciaKg > 0 ? (ingresoPorVaca - costoPorVaca) / gananciaKg : 0;
-      }
-
-      const margenAlimenticio = ingresoPorVaca - costoPorVaca;
-      const porcentajeGasto = ingresoPorVaca > 0 ? (costoPorVaca / ingresoPorVaca) * 100 : 0;
+      const resumenEco = calcularResumenEconomico({
+        costoTotal,
+        cantAnimales: cantidadAnimales,
+        objetivoProductivo,
+        produccionLecheEsperada: produccion_leche_esperada,
+        precioLechePorLitro: precio_leche_por_litro,
+        gananciaKgEsperada: ganancia_kg_esperada,
+        precioKgEnPie: precio_kg_en_pie,
+      });
 
       const [result] = await connection.query(
         `INSERT INTO dietas (tambo_id, nombre, lote_id, materia_seca_kg, energia_mcal, proteina_porcentaje, fibra_porcentaje, produccion_leche_esperada, precio_leche_por_litro, costo_total, costo_por_vaca, costo_por_litro, ingreso_por_vaca, margen_alimenticio, margen_por_litro, porcentaje_gasto_alimentacion, ganancia_kg_esperada, precio_kg_en_pie, costo_por_kg_ganado, margen_por_kg_ganado) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [req.user.tambo_id, nombre, lote_id, materiaSecaTotal, energiaTotal, proteinaTotal, fibraTotal, prodLeche, precioLeche, costoTotalLote, costoPorVaca, costoPorLitro, ingresoPorVaca, margenAlimenticio, margenPorLitro, porcentajeGasto, gananciaKg, precioKg, costoPorKgGanado, margenPorKgGanado]
+        [req.user.tambo_id, nombre, lote_id, materiaSecaTotal, energiaTotal, proteinaTotal, fibraTotal, resumenEco.prodLeche, resumenEco.precioLeche, resumenEco.costoTotalLote, resumenEco.costoPorVaca, resumenEco.costoPorLitro, resumenEco.ingresoPorVaca, resumenEco.margenAlimenticio, resumenEco.margenPorLitro, resumenEco.porcentajeGasto, resumenEco.gananciaKg, resumenEco.precioKg, resumenEco.costoPorKgGanado, resumenEco.margenPorKgGanado]
       );
 
       const dietaId = result.insertId;
       const insumoIdsAfectados = new Set();
 
-      for (const ing of ingredientes) {
-        const insumoId = parseInt(ing.insumo_id);
-        const cantidadKg = parseFloat(ing.cantidad_kg) || 0;
-        if (!insumoId || cantidadKg <= 0) continue;
-
-        const [params] = await connection.query('SELECT * FROM parametros_nutricionales WHERE insumo_id = ?', [insumoId]);
-        const [costos] = await connection.query('SELECT precio_por_kg FROM costos_ingredientes WHERE insumo_id = ?', [insumoId]);
-
-        const param = params[0] || { materia_seca_porcentaje: 0, energia_mcal_por_kg: 0, proteina_porcentaje: 0, fibra_porcentaje: 0 };
-        const precioPorKg = parseFloat(costos[0]?.precio_por_kg) || 0;
-
-        const costoParcial = cantidadKg * precioPorKg;
-        const porcentajeDieta = (cantidadKg / cantidadTotalKg) * 100;
-        const porcentajeAm = Math.min(100, Math.max(0, parseFloat(ing.porcentaje_am ?? 50)));
+      for (const d of detalle) {
+        const porcentajeDieta = (d.cantidadKg / cantidadTotalKg) * 100;
 
         await connection.query(
           `INSERT INTO dieta_ingredientes (dieta_id, insumo_id, cantidad_kg, porcentaje_dieta, costo_parcial, materia_seca_aportada, energia_aportada, proteina_aportada, fibra_aportada, porcentaje_am) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [dietaId, insumoId, cantidadKg, porcentajeDieta, costoParcial, cantidadKg * (parseFloat(param.materia_seca_porcentaje) / 100), cantidadKg * parseFloat(param.energia_mcal_por_kg), cantidadKg * (parseFloat(param.proteina_porcentaje) / 100), cantidadKg * (parseFloat(param.fibra_porcentaje) / 100), porcentajeAm]
+          [dietaId, d.insumoId, d.cantidadKg, porcentajeDieta, d.costoParcial, d.msAportada, d.energiaAportada, d.proteinaAportada, d.fibraAportada, d.porcentajeAm]
         );
-        insumoIdsAfectados.add(insumoId);
+        insumoIdsAfectados.add(d.insumoId);
       }
 
       await connection.commit();
@@ -492,88 +393,37 @@ router.put('/:id', authenticateToken, authorizeRoles('dueno', 'encargado'), [
 
       await connection.query('DELETE FROM dieta_ingredientes WHERE dieta_id = ?', [dietaId]);
 
-      let costoTotal = 0;
-      let materiaSecaTotal = 0;
-      let energiaTotal = 0;
-      let proteinaTotal = 0;
-      let fibraTotal = 0;
-      let cantidadTotalKg = 0;
-
-      for (const ing of ingredientes) {
-        const insumoId = parseInt(ing.insumo_id);
-        const cantidadKg = parseFloat(ing.cantidad_kg) || 0;
-        if (!insumoId || cantidadKg <= 0) continue;
-
-        const [params] = await connection.query('SELECT * FROM parametros_nutricionales WHERE insumo_id = ?', [insumoId]);
-        const [costos] = await connection.query('SELECT precio_por_kg FROM costos_ingredientes WHERE insumo_id = ?', [insumoId]);
-
-        const param = params[0] || { materia_seca_porcentaje: 0, energia_mcal_por_kg: 0, proteina_porcentaje: 0, fibra_porcentaje: 0 };
-        const precioPorKg = parseFloat(costos[0]?.precio_por_kg) || 0;
-
-        const costoParcial = cantidadKg * precioPorKg;
-        costoTotal += costoParcial;
-        materiaSecaTotal += cantidadKg * (parseFloat(param.materia_seca_porcentaje) / 100);
-        energiaTotal += cantidadKg * parseFloat(param.energia_mcal_por_kg);
-        proteinaTotal += cantidadKg * (parseFloat(param.proteina_porcentaje) / 100);
-        fibraTotal += cantidadKg * (parseFloat(param.fibra_porcentaje) / 100);
-        cantidadTotalKg += cantidadKg;
-      }
+      const { costoTotal, materiaSecaTotal, energiaTotal, proteinaTotal, fibraTotal, cantidadTotalKg, detalle } =
+        await calcularCostosIngredientes(ingredientes, (sql, params) => connection.query(sql, params));
 
       if (cantidadTotalKg <= 0) {
         await connection.rollback();
         return res.status(400).json({ error: 'No hay ingredientes validos' });
       }
 
-      // Los kg de cada ingrediente ya vienen expresados por vaca/dia (ver columna del formulario),
-      // por lo que costoTotal ya es el costo por vaca/dia. No dividir de nuevo por cantidadAnimales.
-      const costoPorVaca = costoTotal;
-      const costoTotalLote = costoTotal * cantidadAnimales;
-      let prodLeche = 0, precioLeche = 0, costoPorLitro = 0, margenPorLitro = 0;
-      let gananciaKg = 0, precioKg = 0, costoPorKgGanado = 0, margenPorKgGanado = 0;
-      let ingresoPorVaca = 0;
-
-      if (objetivoProductivo === 'leche') {
-        prodLeche = parseFloat(produccion_leche_esperada) || 0;
-        precioLeche = parseFloat(precio_leche_por_litro) || 0;
-        ingresoPorVaca = prodLeche * precioLeche;
-        costoPorLitro = prodLeche > 0 ? costoPorVaca / prodLeche : 0;
-        margenPorLitro = prodLeche > 0 ? (ingresoPorVaca - costoPorVaca) / prodLeche : 0;
-      } else {
-        gananciaKg = parseFloat(ganancia_kg_esperada) || 0;
-        precioKg = parseFloat(precio_kg_en_pie) || 0;
-        ingresoPorVaca = gananciaKg * precioKg;
-        costoPorKgGanado = gananciaKg > 0 ? costoPorVaca / gananciaKg : 0;
-        margenPorKgGanado = gananciaKg > 0 ? (ingresoPorVaca - costoPorVaca) / gananciaKg : 0;
-      }
-
-      const margenAlimenticio = ingresoPorVaca - costoPorVaca;
-      const porcentajeGasto = ingresoPorVaca > 0 ? (costoPorVaca / ingresoPorVaca) * 100 : 0;
+      const resumenEco = calcularResumenEconomico({
+        costoTotal,
+        cantAnimales: cantidadAnimales,
+        objetivoProductivo,
+        produccionLecheEsperada: produccion_leche_esperada,
+        precioLechePorLitro: precio_leche_por_litro,
+        gananciaKgEsperada: ganancia_kg_esperada,
+        precioKgEnPie: precio_kg_en_pie,
+      });
 
       await connection.query(
         `UPDATE dietas SET nombre = ?, lote_id = ?, materia_seca_kg = ?, energia_mcal = ?, proteina_porcentaje = ?, fibra_porcentaje = ?, produccion_leche_esperada = ?, precio_leche_por_litro = ?, costo_total = ?, costo_por_vaca = ?, costo_por_litro = ?, ingreso_por_vaca = ?, margen_alimenticio = ?, margen_por_litro = ?, porcentaje_gasto_alimentacion = ?, ganancia_kg_esperada = ?, precio_kg_en_pie = ?, costo_por_kg_ganado = ?, margen_por_kg_ganado = ? WHERE id = ?`,
-        [nombre, lote_id, materiaSecaTotal, energiaTotal, proteinaTotal, fibraTotal, prodLeche, precioLeche, costoTotalLote, costoPorVaca, costoPorLitro, ingresoPorVaca, margenAlimenticio, margenPorLitro, porcentajeGasto, gananciaKg, precioKg, costoPorKgGanado, margenPorKgGanado, dietaId]
+        [nombre, lote_id, materiaSecaTotal, energiaTotal, proteinaTotal, fibraTotal, resumenEco.prodLeche, resumenEco.precioLeche, resumenEco.costoTotalLote, resumenEco.costoPorVaca, resumenEco.costoPorLitro, resumenEco.ingresoPorVaca, resumenEco.margenAlimenticio, resumenEco.margenPorLitro, resumenEco.porcentajeGasto, resumenEco.gananciaKg, resumenEco.precioKg, resumenEco.costoPorKgGanado, resumenEco.margenPorKgGanado, dietaId]
       );
 
-      for (const ing of ingredientes) {
-        const insumoId = parseInt(ing.insumo_id);
-        const cantidadKg = parseFloat(ing.cantidad_kg) || 0;
-        if (!insumoId || cantidadKg <= 0) continue;
-
-        const [params] = await connection.query('SELECT * FROM parametros_nutricionales WHERE insumo_id = ?', [insumoId]);
-        const [costos] = await connection.query('SELECT precio_por_kg FROM costos_ingredientes WHERE insumo_id = ?', [insumoId]);
-
-        const param = params[0] || { materia_seca_porcentaje: 0, energia_mcal_por_kg: 0, proteina_porcentaje: 0, fibra_porcentaje: 0 };
-        const precioPorKg = parseFloat(costos[0]?.precio_por_kg) || 0;
-
-        const costoParcial = cantidadKg * precioPorKg;
-        const porcentajeDieta = (cantidadKg / cantidadTotalKg) * 100;
-        const porcentajeAm = Math.min(100, Math.max(0, parseFloat(ing.porcentaje_am ?? 50)));
+      for (const d of detalle) {
+        const porcentajeDieta = (d.cantidadKg / cantidadTotalKg) * 100;
 
         await connection.query(
           `INSERT INTO dieta_ingredientes (dieta_id, insumo_id, cantidad_kg, porcentaje_dieta, costo_parcial, materia_seca_aportada, energia_aportada, proteina_aportada, fibra_aportada, porcentaje_am) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [dietaId, insumoId, cantidadKg, porcentajeDieta, costoParcial, cantidadKg * (parseFloat(param.materia_seca_porcentaje) / 100), cantidadKg * parseFloat(param.energia_mcal_por_kg), cantidadKg * (parseFloat(param.proteina_porcentaje) / 100), cantidadKg * (parseFloat(param.fibra_porcentaje) / 100), porcentajeAm]
+          [dietaId, d.insumoId, d.cantidadKg, porcentajeDieta, d.costoParcial, d.msAportada, d.energiaAportada, d.proteinaAportada, d.fibraAportada, d.porcentajeAm]
         );
-        insumoIdsAfectados.add(insumoId);
+        insumoIdsAfectados.add(d.insumoId);
       }
 
       await connection.commit();
