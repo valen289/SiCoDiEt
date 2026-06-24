@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 import { Lock, Eye, EyeOff, CheckCircle, ArrowLeft } from 'lucide-react';
 import Footer from '../components/Footer';
