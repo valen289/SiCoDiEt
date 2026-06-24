@@ -2,27 +2,19 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useSEO } from '../hooks/useSEO';
+import { useAlert } from '../context/AlertContext';
 import {
   Calculator, DollarSign, Plus, Edit2, Trash2,
   Save, X, BarChart3, AlertTriangle, ChevronUp, Info,
   Milk, Leaf, Beef
 } from 'lucide-react';
+import { safeNum, fmtUSD } from '../utils/formatters';
 import '../styles/dietas.css';
-
-
-function safeNum(val, fallback = 0) {
-  const n = Number(val);
-  return Number.isFinite(n) ? n : fallback;
-}
-
-function fmtUSD(num) {
-  const n = safeNum(num);
-  return 'US$ ' + new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
-}
 
 export default function Dietas() {
   const navigate = useNavigate();
   useSEO({ title: 'Formulación de Dietas', description: 'Formulación y análisis económico de dietas para ganado con cálculo de costos, márgenes y simulación de escenarios.' });
+  const { success, error: showError, confirm } = useAlert();
   const mountedRef = useRef(true);
 
   const [dietas, setDietas] = useState([]);
@@ -206,10 +198,11 @@ export default function Dietas() {
 
     const ingredientesValidas = formData.ingredientes.filter(i => i.insumo_id && safeNum(i.cantidad_kg) > 0);
     if (ingredientesValidas.length === 0) {
-      alert('Debe agregar al menos un ingrediente con cantidad mayor a 0');
+      showError('Debe agregar al menos un ingrediente con cantidad mayor a 0');
       return;
     }
 
+    const wasEditing = !!editingId;
     try {
       if (editingId) {
         await api.put(`/dietas/${editingId}`, { ...formData, ingredientes: ingredientesValidas });
@@ -218,9 +211,10 @@ export default function Dietas() {
       }
       resetForm();
       await loadData();
+      success(wasEditing ? 'Dieta actualizada' : 'Dieta creada');
     } catch (error) {
       console.error('Error al guardar dieta:', error);
-      alert('Error al guardar la dieta: ' + (error.response?.data?.error || error.message));
+      showError(error.response?.data?.error || 'Error al guardar la dieta');
     }
   };
 
@@ -228,7 +222,7 @@ export default function Dietas() {
     try {
       const { data } = await api.get(`/dietas/${dieta.id}`);
       if (!data) {
-        alert('No se pudo cargar la dieta');
+        showError('No se pudo cargar la dieta');
         return;
       }
 
@@ -254,17 +248,26 @@ export default function Dietas() {
       setExpandedDieta(null);
     } catch (error) {
       console.error('Error al cargar dieta:', error);
-      alert('Error al cargar la dieta: ' + (error.response?.data?.error || error.message));
+      showError(error.response?.data?.error || 'Error al cargar la dieta');
     }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('¿Esta seguro de eliminar esta dieta?')) return;
+    const confirmed = await confirm({
+      title: 'Eliminar Dieta',
+      message: '¿Está seguro que desea eliminar esta dieta?',
+      type: 'error',
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+    });
+    if (!confirmed) return;
     try {
       await api.delete(`/dietas/${id}`);
       await loadData();
+      success('Dieta eliminada');
     } catch (error) {
       console.error('Error al eliminar dieta:', error);
+      showError(error.response?.data?.error || 'Error al eliminar la dieta');
     }
   };
 
@@ -282,13 +285,13 @@ export default function Dietas() {
   const runSimulation = () => {
     const ingredientesValidas = formData.ingredientes.filter(i => i.insumo_id && safeNum(i.cantidad_kg) > 0);
     if (ingredientesValidas.length === 0) {
-      alert('Primero agregue ingredientes a la dieta para simular');
+      showError('Primero agregue ingredientes a la dieta para simular');
       return;
     }
 
     const lote = lotes.find(l => l.id === parseInt(formData.lote_id));
     if (!lote) {
-      alert('Seleccione un lote para simular');
+      showError('Seleccione un lote para simular');
       return;
     }
 

@@ -4,14 +4,9 @@ import { useAlert } from '../context/AlertContext';
 import { useSEO } from '../hooks/useSEO';
 import { Users, Package, Calendar, Milk, History, X, Sun, Moon, Plus, Trash2, AlertTriangle, TrendingDown, FileText } from 'lucide-react';
 import { compartirReportePdf } from '../utils/reportes';
+import { formatFecha } from '../utils/formatters';
 import '../styles/silos.css';
 import '../styles/consumos.css';
-
-function formatFecha(fecha) {
-  if (!fecha) return '';
-  const [anio, mes, dia] = String(fecha).split('T')[0].split('-');
-  return `${dia}/${mes}/${anio}`;
-}
 
 // En lactancia temprana (vaca recien parida, todavia subiendo a pico de produccion) conviene
 // ser mas generoso con el comedero -- se prioriza que no le falte alimento mientras sube la

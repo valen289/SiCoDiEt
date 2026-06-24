@@ -5,6 +5,7 @@ const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 const { body, validationResult } = require('express-validator');
 const { verificarYGenerarAlertas, getNivelAlerta, calcularEstadoActual } = require('../utils/alertas');
 const { logActividad } = require('../utils/actividad');
+const { buildUpdateSet } = require('../utils/queryBuilder');
 
 router.use(authenticateToken);
 
@@ -143,22 +144,13 @@ router.put('/:id', duenoEncargado, [
     }
 
     const { nombre, tipo_insumo, categoria, unidad, capacidad_maxima, stock_minimo } = req.body;
-    const updates = [];
-    const values = [];
+    const { setClause, values, hasUpdates } = buildUpdateSet({ nombre, tipo_insumo, categoria, unidad, capacidad_maxima, stock_minimo });
 
-    if (nombre !== undefined) { updates.push('nombre = ?'); values.push(nombre); }
-    if (tipo_insumo !== undefined) { updates.push('tipo_insumo = ?'); values.push(tipo_insumo); }
-    if (categoria !== undefined) { updates.push('categoria = ?'); values.push(categoria); }
-    if (unidad !== undefined) { updates.push('unidad = ?'); values.push(unidad); }
-    if (capacidad_maxima !== undefined) { updates.push('capacidad_maxima = ?'); values.push(capacidad_maxima); }
-    if (stock_minimo !== undefined) { updates.push('stock_minimo = ?'); values.push(stock_minimo); }
-
-    if (updates.length === 0) {
+    if (!hasUpdates) {
       return res.status(400).json({ error: 'No hay datos para actualizar' });
     }
 
-    values.push(req.params.id, req.user.tambo_id);
-    await pool.query(`UPDATE insumos SET ${updates.join(', ')} WHERE id = ? AND tambo_id = ?`, values);
+    await pool.query(`UPDATE insumos SET ${setClause} WHERE id = ? AND tambo_id = ?`, [...values, req.params.id, req.user.tambo_id]);
 
     const [[insumo]] = await pool.query('SELECT nombre FROM insumos WHERE id = ?', [req.params.id]);
     await logActividad(pool, {

@@ -5,6 +5,7 @@ import {
   DollarSign, Download, Filter, BarChart2, Package, TrendingUp, FileText,
 } from 'lucide-react';
 import { compartirReportePdf } from '../utils/reportes';
+import { formatMoney, formatNumber, formatDate } from '../utils/formatters';
 import '../styles/costos.css';
 
 const PERIODOS = [
@@ -13,24 +14,6 @@ const PERIODOS = [
   { value: 'mes',   label: 'Este mes'      },
   { value: 'custom', label: 'Personalizado' },
 ];
-
-function formatMoney(num) {
-  if (num === null || num === undefined) return 'US$ 0,00';
-  return 'US$ ' + new Intl.NumberFormat('es-AR', {
-    minimumFractionDigits: 2, maximumFractionDigits: 2,
-  }).format(num);
-}
-
-function formatNumber(num) {
-  if (!num) return '0,00';
-  return parseFloat(num).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function formatDate(date) {
-  if (!date) return '';
-  const d = new Date(date);
-  return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-}
 
 export default function Costos() {
   useSEO({ title: 'Costos', description: 'Análisis de costos de alimentación por lote y período.' });

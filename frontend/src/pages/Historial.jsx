@@ -5,6 +5,7 @@ import {
   History, Download, Filter, ChevronLeft, ChevronRight,
   ArrowDownCircle, ArrowUpCircle, Package
 } from 'lucide-react';
+import { formatDate, formatNumber } from '../utils/formatters';
 import '../styles/historial.css';
 
 const PERIODOS = [
@@ -33,19 +34,6 @@ const TIPOS_INSUMO = [
   { value: 'aditivo', label: 'Aditivo' },
   { value: 'forraje', label: 'Forraje' },
 ];
-
-function formatDate(date) {
-  if (!date) return '';
-  // Parse as local date (not UTC) to avoid off-by-one-day in UTC-3 timezone
-  const str = date.toString().split('T')[0];
-  const [year, month, day] = str.split('-');
-  return `${day}/${month}/${year}`;
-}
-
-function formatNumber(num) {
-  if (num === null || num === undefined) return '0.00';
-  return parseFloat(num).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
 
 function getTipoIcon(tipo) {
   switch (tipo) {

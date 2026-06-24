@@ -6,6 +6,7 @@ const pool = require('../config/database');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 const { body, validationResult } = require('express-validator');
 const { logActividad } = require('../utils/actividad');
+const { buildUpdateSet } = require('../utils/queryBuilder');
 
 router.use(authenticateToken);
 
@@ -104,21 +105,19 @@ router.put('/:id', soloDueno, [
     }
 
     const { nombre, email, telefono, rol, activo } = req.body;
-    const updates = [];
-    const values = [];
+    const { setClause, values, hasUpdates } = buildUpdateSet({
+      nombre,
+      email: email !== undefined ? (email || null) : undefined,
+      telefono: telefono !== undefined ? (telefono || null) : undefined,
+      rol,
+      activo,
+    });
 
-    if (nombre   !== undefined) { updates.push('nombre = ?');   values.push(nombre); }
-    if (email    !== undefined) { updates.push('email = ?');    values.push(email || null); }
-    if (telefono !== undefined) { updates.push('telefono = ?'); values.push(telefono || null); }
-    if (rol      !== undefined) { updates.push('rol = ?');      values.push(rol); }
-    if (activo   !== undefined) { updates.push('activo = ?');   values.push(activo); }
-
-    if (updates.length === 0) {
+    if (!hasUpdates) {
       return res.status(400).json({ error: 'No hay datos para actualizar' });
     }
 
-    values.push(targetId, req.user.tambo_id);
-    await pool.query(`UPDATE usuarios SET ${updates.join(', ')} WHERE id = ? AND tambo_id = ?`, values);
+    await pool.query(`UPDATE usuarios SET ${setClause} WHERE id = ? AND tambo_id = ?`, [...values, targetId, req.user.tambo_id]);
 
     res.json({ message: 'Usuario actualizado exitosamente' });
   } catch (error) {

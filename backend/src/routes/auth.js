@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const pool = require('../config/database');
 const { body, validationResult } = require('express-validator');
+const { buildUpdateSet } = require('../utils/queryBuilder');
 
 router.post('/register', [
   body('cedula').notEmpty().withMessage('Cedula requerida'),
@@ -188,9 +189,8 @@ router.put('/profile', require('../middleware/auth').authenticateToken, [
     }
 
     const { nombre, email, telefono, password, currentPassword } = req.body;
-    const updates = [];
-    const values = [];
 
+    let hashedPassword;
     if (password) {
       if (!currentPassword) {
         return res.status(400).json({ error: 'Debes ingresar tu contraseña actual para cambiarla' });
@@ -200,30 +200,21 @@ router.put('/profile', require('../middleware/auth').authenticateToken, [
       if (!validPassword) {
         return res.status(400).json({ error: 'La contraseña actual es incorrecta' });
       }
-      const hashedPassword = await bcrypt.hash(password, 10);
-      updates.push('password = ?');
-      values.push(hashedPassword);
+      hashedPassword = await bcrypt.hash(password, 10);
     }
 
-    if (nombre !== undefined) {
-      updates.push('nombre = ?');
-      values.push(nombre);
-    }
-    if (email !== undefined) {
-      updates.push('email = ?');
-      values.push(email || null);
-    }
-    if (telefono !== undefined) {
-      updates.push('telefono = ?');
-      values.push(telefono || null);
-    }
+    const { setClause, values, hasUpdates } = buildUpdateSet({
+      password: hashedPassword,
+      nombre,
+      email: email !== undefined ? (email || null) : undefined,
+      telefono: telefono !== undefined ? (telefono || null) : undefined,
+    });
 
-    if (updates.length === 0) {
+    if (!hasUpdates) {
       return res.status(400).json({ error: 'No hay datos para actualizar' });
     }
 
-    values.push(req.user.id);
-    await pool.query(`UPDATE usuarios SET ${updates.join(', ')} WHERE id = ?`, values);
+    await pool.query(`UPDATE usuarios SET ${setClause} WHERE id = ?`, [...values, req.user.id]);
 
     const [users] = await pool.query(
       `SELECT u.id, u.cedula, u.nombre, u.email, u.telefono, u.rol, u.tambo_id, t.nombre AS tambo_nombre

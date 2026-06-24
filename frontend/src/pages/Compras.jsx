@@ -7,6 +7,7 @@ import {
   DollarSign, BarChart2, Users, X, ChevronDown, FileText,
 } from 'lucide-react';
 import { compartirReportePdf } from '../utils/reportes';
+import { formatMoney, formatNumber, formatDate } from '../utils/formatters';
 import '../styles/compras.css';
 
 const PERIODOS = [
@@ -41,24 +42,6 @@ function parsePhone(telefono) {
   if (!telefono) return { codigo: '+54', numero: '' };
   const match = telefono.match(/^(\+\d+)\s*(.*)$/);
   return match ? { codigo: match[1], numero: match[2] } : { codigo: '+54', numero: telefono };
-}
-
-function formatMoney(num) {
-  if (num === null || num === undefined) return 'US$ 0,00';
-  return 'US$ ' + new Intl.NumberFormat('es-AR', {
-    minimumFractionDigits: 2, maximumFractionDigits: 2,
-  }).format(num);
-}
-
-function formatNumber(num) {
-  if (!num) return '0';
-  return parseFloat(num).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function formatDate(date) {
-  if (!date) return '';
-  const d = new Date(date);
-  return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
 export default function Compras() {

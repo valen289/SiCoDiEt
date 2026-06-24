@@ -333,7 +333,7 @@ router.post('/', authenticateToken, authorizeRoles('dueno', 'encargado'), [
     }
   } catch (error) {
     console.error('Error al crear dieta:', error.message, error.code);
-    res.status(500).json({ error: 'Error al crear la dieta: ' + error.message });
+    res.status(500).json({ error: 'Error al crear la dieta' });
   }
 });
 
@@ -441,7 +441,7 @@ router.put('/:id', authenticateToken, authorizeRoles('dueno', 'encargado'), [
     }
   } catch (error) {
     console.error('Error al actualizar dieta:', error.message, error.code);
-    res.status(500).json({ error: 'Error al actualizar la dieta: ' + error.message });
+    res.status(500).json({ error: 'Error al actualizar la dieta' });
   }
 });
 

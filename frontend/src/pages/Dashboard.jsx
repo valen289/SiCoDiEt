@@ -2,21 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Package, TrendingDown, Bell, Tag } from 'lucide-react';
 import api from '../services/api';
+import { fmt, todayStr, todayLabel } from '../utils/formatters';
 import '../styles/dashboard.css';
-
-function fmt(num, dec = 0) {
-  const n = parseFloat(String(num).replace(',', '.'));
-  if (isNaN(n)) return '—';
-  return n.toLocaleString('es-AR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
-}
-
-function todayStr() {
-  return new Date().toISOString().split('T')[0];
-}
-
-function todayLabel() {
-  return new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
-}
 
 export default function Dashboard() {
   const navigate = useNavigate();

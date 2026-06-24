@@ -4,6 +4,7 @@ const pool = require('../config/database');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 const { body, validationResult } = require('express-validator');
 const { logActividad } = require('../utils/actividad');
+const { buildUpdateSet } = require('../utils/queryBuilder');
 
 router.use(authenticateToken);
 
@@ -178,23 +179,21 @@ router.put('/:id', duenoEncargado, [
     }
 
     const { nombre, tipo_animal, objetivo_productivo, etapa_lactancia, cantidad_animales, observaciones, activo } = req.body;
-    const updates = [];
-    const values = [];
+    const { setClause, values, hasUpdates } = buildUpdateSet({
+      nombre,
+      tipo_animal,
+      objetivo_productivo,
+      etapa_lactancia: etapa_lactancia !== undefined ? (etapa_lactancia || null) : undefined,
+      cantidad_animales,
+      observaciones,
+      activo,
+    });
 
-    if (nombre !== undefined) { updates.push('nombre = ?'); values.push(nombre); }
-    if (tipo_animal !== undefined) { updates.push('tipo_animal = ?'); values.push(tipo_animal); }
-    if (objetivo_productivo !== undefined) { updates.push('objetivo_productivo = ?'); values.push(objetivo_productivo); }
-    if (etapa_lactancia !== undefined) { updates.push('etapa_lactancia = ?'); values.push(etapa_lactancia || null); }
-    if (cantidad_animales !== undefined) { updates.push('cantidad_animales = ?'); values.push(cantidad_animales); }
-    if (observaciones !== undefined) { updates.push('observaciones = ?'); values.push(observaciones); }
-    if (activo !== undefined) { updates.push('activo = ?'); values.push(activo); }
-
-    if (updates.length === 0) {
+    if (!hasUpdates) {
       return res.status(400).json({ error: 'No hay datos para actualizar' });
     }
 
-    values.push(req.params.id, req.user.tambo_id);
-    await pool.query(`UPDATE lotes SET ${updates.join(', ')} WHERE id = ? AND tambo_id = ?`, values);
+    await pool.query(`UPDATE lotes SET ${setClause} WHERE id = ? AND tambo_id = ?`, [...values, req.params.id, req.user.tambo_id]);
 
     const [[lote]] = await pool.query('SELECT nombre FROM lotes WHERE id = ?', [req.params.id]);
     await logActividad(pool, {

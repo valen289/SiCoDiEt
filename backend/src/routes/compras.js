@@ -5,6 +5,7 @@ const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 const { body, validationResult } = require('express-validator');
 const { verificarYGenerarAlertas } = require('../utils/alertas');
 const { logActividad } = require('../utils/actividad');
+const { buildUpdateSet } = require('../utils/queryBuilder');
 
 router.use(authenticateToken);
 
@@ -53,19 +54,17 @@ router.put('/proveedores/:id', duenoEncargado, [
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
     const { nombre, contacto, telefono } = req.body;
-    const updates = [];
-    const values = [];
+    const { setClause, values, hasUpdates } = buildUpdateSet({
+      nombre,
+      contacto: contacto !== undefined ? (contacto || null) : undefined,
+      telefono: telefono !== undefined ? (telefono || null) : undefined,
+    });
 
-    if (nombre !== undefined) { updates.push('nombre = ?'); values.push(nombre); }
-    if (contacto !== undefined) { updates.push('contacto = ?'); values.push(contacto || null); }
-    if (telefono !== undefined) { updates.push('telefono = ?'); values.push(telefono || null); }
+    if (!hasUpdates) return res.status(400).json({ error: 'Sin datos para actualizar' });
 
-    if (updates.length === 0) return res.status(400).json({ error: 'Sin datos para actualizar' });
-
-    values.push(req.params.id, req.user.tambo_id);
     await pool.query(
-      `UPDATE proveedores SET ${updates.join(', ')} WHERE id = ? AND tambo_id = ?`,
-      values
+      `UPDATE proveedores SET ${setClause} WHERE id = ? AND tambo_id = ?`,
+      [...values, req.params.id, req.user.tambo_id]
     );
     res.json({ message: 'Proveedor actualizado' });
   } catch (error) {
@@ -296,45 +295,32 @@ router.put('/:id', duenoEncargado, async (req, res) => {
   try {
     const { proveedor_id, precio_unitario, numero_factura, observaciones } = req.body;
 
-    // Re-calcular monto si cambia precio
-    let extra = '';
-    const params = [];
-
-    if (proveedor_id !== undefined) {
-      params.push(proveedor_id || null);
-      extra += 'proveedor_id = ?, ';
-    }
-    if (precio_unitario !== undefined) {
-      params.push(parseFloat(precio_unitario));
-      extra += 'precio_unitario = ?, ';
-    }
-    if (numero_factura !== undefined) {
-      params.push(numero_factura || null);
-      extra += 'numero_factura = ?, ';
-    }
-    if (observaciones !== undefined) {
-      params.push(observaciones || null);
-      extra += 'observaciones = ?, ';
-    }
-
-    if (!extra) return res.status(400).json({ error: 'Sin datos para actualizar' });
-
-    // Si cambió precio_unitario, recalcular monto_total
+    // Si cambia el precio unitario, recalcular monto_total antes de armar el UPDATE
+    let montoTotal;
     if (precio_unitario !== undefined) {
       const [[compra]] = await pool.query(
         'SELECT cantidad FROM compras WHERE id = ? AND tambo_id = ?',
         [req.params.id, req.user.tambo_id]
       );
       if (compra) {
-        const nuevoMonto = parseFloat(compra.cantidad) * parseFloat(precio_unitario);
-        params.push(nuevoMonto);
-        extra += 'monto_total = ?, ';
+        montoTotal = parseFloat(compra.cantidad) * parseFloat(precio_unitario);
       }
     }
 
-    const sql = `UPDATE compras SET ${extra.replace(/, $/, '')} WHERE id = ? AND tambo_id = ?`;
-    params.push(req.params.id, req.user.tambo_id);
-    await pool.query(sql, params);
+    const { setClause, values, hasUpdates } = buildUpdateSet({
+      proveedor_id: proveedor_id !== undefined ? (proveedor_id || null) : undefined,
+      precio_unitario: precio_unitario !== undefined ? parseFloat(precio_unitario) : undefined,
+      numero_factura: numero_factura !== undefined ? (numero_factura || null) : undefined,
+      observaciones: observaciones !== undefined ? (observaciones || null) : undefined,
+      monto_total: montoTotal,
+    });
+
+    if (!hasUpdates) return res.status(400).json({ error: 'Sin datos para actualizar' });
+
+    await pool.query(
+      `UPDATE compras SET ${setClause} WHERE id = ? AND tambo_id = ?`,
+      [...values, req.params.id, req.user.tambo_id]
+    );
 
     res.json({ message: 'Compra actualizada' });
   } catch (error) {
