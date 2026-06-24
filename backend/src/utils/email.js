@@ -1,17 +1,39 @@
 const nodemailer = require('nodemailer');
+const dns = require('dns').promises;
 
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.EMAIL_PORT) || 587,
-  secure: false,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  // Railway no tiene salida IPv6: sin esto, Node puede intentar conectar a la
-  // direccion IPv6 de smtp.gmail.com y quedarse con ENETUNREACH/timeout.
-  family: 4,
-});
+const EMAIL_HOST = process.env.EMAIL_HOST || 'smtp.gmail.com';
+const EMAIL_PORT = parseInt(process.env.EMAIL_PORT) || 587;
+
+// Railway no tiene salida IPv6. Ni family:4 en el transporter ni
+// dns.setDefaultResultOrder('ipv4first') evitan que se intente conectar por la
+// direccion IPv6 de smtp.gmail.com (el ENETUNREACH/timeout que veiamos). La forma
+// que si funciona: resolver el registro A (IPv4) a mano con dns.resolve4 y
+// conectarse directo a esa IP, manteniendo el hostname original solo para la
+// validacion del certificado TLS (tls.servername) -- sin eso, Gmail rechazaria
+// el certificado porque no coincide con la IP. Se resuelve en cada envio (no se
+// cachea) porque el volumen de emails es bajo y asi nunca queda pegado a una IP
+// vieja si Gmail la rota.
+async function getTransporter() {
+  let connectHost = EMAIL_HOST;
+  try {
+    const [ipv4] = await dns.resolve4(EMAIL_HOST);
+    if (ipv4) connectHost = ipv4;
+  } catch (err) {
+    console.error('No se pudo resolver IPv4 de', EMAIL_HOST, '- se usa el hostname tal cual:', err.message);
+  }
+
+  return nodemailer.createTransport({
+    host: connectHost,
+    port: EMAIL_PORT,
+    secure: false,
+    requireTLS: true,
+    tls: { servername: EMAIL_HOST },
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+}
 
 const isEmailConfigured = () => Boolean(process.env.EMAIL_USER && process.env.EMAIL_PASS);
 
@@ -63,6 +85,7 @@ const sendPasswordResetEmail = async (email, token) => {
     `,
   };
 
+  const transporter = await getTransporter();
   return transporter.sendMail(mailOptions);
 };
 
@@ -106,6 +129,7 @@ const sendStockCriticoEmail = async (destinatarios, { nombreInsumo, diasRestante
     return null;
   }
 
+  const transporter = await getTransporter();
   return transporter.sendMail(mailOptions);
 };
 
