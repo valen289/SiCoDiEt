@@ -405,7 +405,6 @@ Archivos principales:
 
 - Node.js instalado
 - MySQL local accesible en `localhost:3306`
-- ngrok instalado y autenticado
 
 ### Configuración inicial
 
@@ -438,44 +437,7 @@ npm start
 - Frontend: http://localhost:3001
 - API Health: http://localhost:3001/api/health
 
-## 14. Conexión con ngrok
-
-Usa ngrok para exponer tu backend en un túnel público y probar la página desde cualquier red.
-
-### 1. Ejecutar el script de ngrok
-
-```powershell
-.\scripts\setup-ngrok.ps1
-```
-
-### 2. Agregar la URL pública a `.env`
-
-Después de obtener la URL de ngrok, agrega o actualiza la variable:
-
-```env
-FRONTEND_URL=http://localhost:3001,http://192.168.1.244:3001,https://abc123.ngrok-free.dev
-```
-
-### 3. Reiniciar el backend si cambias `FRONTEND_URL`
-
-Si ya tienes el backend corriendo, deténlo y vuélvelo a iniciar con:
-
-```powershell
-$env:NODE_ENV='production'
-npm start
-```
-
-### 4. Compartir la URL de ngrok
-
-La URL pública de ngrok es la que podrás usar para acceder al sitio desde otros dispositivos.
-
-### Notas
-
-- No se necesita Docker para esta configuración.
-- El backend sirve el frontend compilado desde `backend/public` en modo producción.
-- Asegúrate de compilar el frontend antes de usar el túnel.
-
-## 15. Instalación y ejecución local (sin Docker)
+## 14. Instalación y ejecución local (sin Docker)
 
 ### Base de datos
 
@@ -512,7 +474,7 @@ Nota tecnica: `frontend/vite.config.js` apunta el proxy `/api` a `http://localho
 3. Ejecutar `npm run dev`.
 4. Abrir la URL mostrada por Vite, normalmente `http://localhost:5173`.
 
-## 16. Flujo operativo recomendado
+## 15. Flujo operativo recomendado
 
 1. El usuario inicia sesion.
 2. Consulta alimentos por categoria en Alimentos.
@@ -523,7 +485,7 @@ Nota tecnica: `frontend/vite.config.js` apunta el proxy `/api` a `http://localho
 7. Revisa historiales de cargas y consumos.
 8. Consulta alertas y datos de ganado desde las funciones disponibles o futuras pantallas conectadas al backend.
 
-## 17. Observaciones tecnicas y mejoras sugeridas
+## 16. Observaciones tecnicas y mejoras sugeridas
 
 | ID | Observacion | Recomendacion |
 | --- | --- | --- |
@@ -534,7 +496,7 @@ Nota tecnica: `frontend/vite.config.js` apunta el proxy `/api` a `http://localho
 | OBS-05 | La tabla `logs_actividad` existe, pero no se observa uso activo. | Registrar acciones relevantes para auditoria general. |
 | OBS-06 | Algunas rutas de insumos y lotes importan `authorizeRoles` pero no lo aplican. | Definir politica de permisos y aplicarla de forma consistente. |
 
-## 18. Criterios generales de aceptacion del sistema
+## 17. Criterios generales de aceptacion del sistema
 
 | ID | Criterio |
 | --- | --- |
@@ -549,7 +511,7 @@ Nota tecnica: `frontend/vite.config.js` apunta el proxy `/api` a `http://localho
 | CA-09 | La interfaz debe mostrar mensajes claros de exito o error. |
 | CA-10 | La base de datos debe conservar relaciones entre usuarios, lotes, insumos, consumos y cargas. |
 
-## 19. Glosario
+## 18. Glosario
 
 | Termino | Definicion |
 | --- | --- |

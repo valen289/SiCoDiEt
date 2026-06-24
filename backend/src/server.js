@@ -83,7 +83,7 @@ if (isProduction) {
       return callback(null, true);
     }
 
-    if (origin.endsWith('.ngrok-free.dev') || origin.endsWith('.trycloudflare.com') || origin.endsWith('.vercel.app')) {
+    if (origin.endsWith('.trycloudflare.com') || origin.endsWith('.vercel.app')) {
       return callback(null, true);
     }
 
@@ -108,7 +108,7 @@ if (isProduction) {
       return callback(null, true);
     }
 
-    if (origin.endsWith('.ngrok-free.dev') || origin.endsWith('.trycloudflare.com')) {
+    if (origin.endsWith('.trycloudflare.com')) {
       return callback(null, true);
     }
 
