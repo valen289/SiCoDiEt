@@ -5,30 +5,32 @@ import '../styles/alerts.css';
 // Colores alineados al sistema de diseño de la app (index.css --success/--danger/--warning/--info),
 // no a los genericos de Bootstrap, para que los toasts se sientan parte de la misma marca que el
 // resto de la UI (dashboard, sidebar, alertas de stock).
+// Hex solidos (no rgba) mezclados con blanco -- evita que el toast se vea
+// "transparente"/desvaido independientemente de lo que haya detras.
 const typeConfig = {
   success: {
     icon: CheckCircle,
     defaultColor: '#4D8A54',
-    defaultBg: 'rgba(77, 138, 84, 0.1)',
-    defaultBorder: 'rgba(77, 138, 84, 0.25)',
+    defaultBg: '#E4EDE5',
+    defaultBorder: '#C1D6C3',
   },
   error: {
     icon: AlertCircle,
     defaultColor: '#D35D4E',
-    defaultBg: 'rgba(211, 93, 78, 0.1)',
-    defaultBorder: 'rgba(211, 93, 78, 0.25)',
+    defaultBg: '#F8E7E4',
+    defaultBorder: '#F0C6C1',
   },
   warning: {
     icon: AlertTriangle,
     defaultColor: '#D9A441',
-    defaultBg: 'rgba(217, 164, 65, 0.12)',
-    defaultBorder: 'rgba(217, 164, 65, 0.3)',
+    defaultBg: '#F8EFDD',
+    defaultBorder: '#F2DFBD',
   },
   info: {
     icon: Info,
     defaultColor: '#5E8CB8',
-    defaultBg: 'rgba(94, 140, 184, 0.1)',
-    defaultBorder: 'rgba(94, 140, 184, 0.25)',
+    defaultBg: '#E7EEF4',
+    defaultBorder: '#C7D7E6',
   },
 };
 
