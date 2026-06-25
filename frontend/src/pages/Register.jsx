@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { Eye, EyeOff, Mail, Phone, Lock, CheckCircle, AlertCircle } from 'lucide-react';
 import api from '../services/api';
 import Footer from '../components/Footer';
+import PhoneInputField from '../components/PhoneInputField';
+import { passwordStrength } from '../utils/passwordPolicy';
 import '../styles/login.css';
 
 function validateCedula(cedula) {
@@ -52,11 +54,16 @@ export default function Register() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  const passwordInfo = passwordStrength(form.password);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     if (!validateCedula(form.cedula)) {
       return setError('La cédula ingresada no es válida');
+    }
+    if (!passwordStrength(form.password)?.valid) {
+      return setError('La contraseña debe tener mínimo 8 caracteres, mayúscula, minúscula, número y carácter especial');
     }
     if (form.password !== form.confirmPassword) {
       return setError('Las contraseñas no coinciden');
@@ -173,17 +180,25 @@ export default function Register() {
 
             <div className="form-group">
               <label className="form-label"><Phone size={14} /> Teléfono</label>
-              <input name="telefono" type="text" className="form-control" value={form.telefono} onChange={handleChange} placeholder="094 231 234" />
+              <PhoneInputField value={form.telefono} onChange={(value) => setForm(f => ({ ...f, telefono: value || '' }))} />
             </div>
 
             <div className="form-group">
               <label className="form-label"><Lock size={14} /> Contraseña</label>
               <div className="input-group">
-                <input type={showPassword ? 'text' : 'password'} name="password" className="form-control" value={form.password} onChange={handleChange} required />
+                <input type={showPassword ? 'text' : 'password'} name="password" className="form-control" value={form.password} onChange={handleChange} placeholder="Mínimo 8 caracteres, mayúscula, minúscula, número y símbolo" required />
                 <button type="button" className="btn btn-outline-secondary input-group-text" onClick={() => setShowPassword(!showPassword)}>
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+              {passwordInfo && (
+                <div className="password-strength">
+                  <div className={`password-strength__bar password-strength__bar--${passwordInfo.level}`} />
+                  <span className={`password-strength__label password-strength__label--${passwordInfo.level}`}>
+                    {passwordInfo.label}
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="form-group">

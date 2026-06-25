@@ -6,11 +6,13 @@ const crypto = require('crypto');
 const pool = require('../config/database');
 const { body, validationResult } = require('express-validator');
 const { buildUpdateSet } = require('../utils/queryBuilder');
+const { PASSWORD_REGEX } = require('../utils/passwordPolicy');
 
 router.post('/register', [
-  body('cedula').notEmpty().withMessage('Cedula requerida'),
+  body('cedula').matches(/^[0-9]{8}$/).withMessage('Cedula invalida, debe tener 8 digitos'),
   body('nombre').notEmpty().withMessage('Nombre requerido'),
-  body('password').isLength({ min: 6 }).withMessage('Password minimo 6 caracteres')
+  body('password').matches(PASSWORD_REGEX).withMessage('Password debe tener minimo 8 caracteres, mayuscula, minuscula, numero y caracter especial'),
+  body('telefono').optional({ checkFalsy: true }).matches(/^[0-9+\- ]{8,20}$/).withMessage('Telefono invalido')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -178,8 +180,8 @@ router.get('/me', require('../middleware/auth').authenticateToken, async (req, r
 router.put('/profile', require('../middleware/auth').authenticateToken, [
   body('nombre').optional().notEmpty().withMessage('Nombre no puede estar vacio'),
   body('email').optional().isEmail().withMessage('Email invalido'),
-  body('telefono').optional().matches(/^[0-9+\- ]{8,20}$/).withMessage('Telefono invalido'),
-  body('password').optional().isLength({ min: 6 }).withMessage('Password minimo 6 caracteres'),
+  body('telefono').optional({ checkFalsy: true }).matches(/^[0-9+\- ]{8,20}$/).withMessage('Telefono invalido'),
+  body('password').optional().matches(PASSWORD_REGEX).withMessage('Password debe tener minimo 8 caracteres, mayuscula, minuscula, numero y caracter especial'),
   body('currentPassword').optional().notEmpty().withMessage('Contraseña actual requerida')
 ], async (req, res) => {
   try {

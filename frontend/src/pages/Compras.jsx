@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { compartirReportePdf } from '../utils/reportes';
 import { formatMoney, formatNumber, formatDate } from '../utils/formatters';
+import PhoneInputField from '../components/PhoneInputField';
 import '../styles/compras.css';
 
 const PERIODOS = [
@@ -27,22 +28,7 @@ const FORM_VACIO = {
   observaciones: '',
 };
 
-const PROV_FORM_VACIO = { nombre: '', contacto: '', telefono_codigo: '+54', telefono_numero: '' };
-
-const CODIGOS_PAIS = [
-  { codigo: '+54',  label: '🇦🇷 +54'  },
-  { codigo: '+598', label: '🇺🇾 +598' },
-  { codigo: '+55',  label: '🇧🇷 +55'  },
-  { codigo: '+595', label: '🇵🇾 +595' },
-  { codigo: '+56',  label: '🇨🇱 +56'  },
-  { codigo: '+591', label: '🇧🇴 +591' },
-];
-
-function parsePhone(telefono) {
-  if (!telefono) return { codigo: '+54', numero: '' };
-  const match = telefono.match(/^(\+\d+)\s*(.*)$/);
-  return match ? { codigo: match[1], numero: match[2] } : { codigo: '+54', numero: telefono };
-}
+const PROV_FORM_VACIO = { nombre: '', contacto: '', telefono: '' };
 
 export default function Compras() {
   useSEO({ title: 'Compras', description: 'Registro de compras de insumos con impacto en stock.' });
@@ -188,10 +174,7 @@ export default function Compras() {
     e.preventDefault();
     setSavingProv(true);
     try {
-      const telefono = provForm.telefono_numero
-        ? `${provForm.telefono_codigo} ${provForm.telefono_numero}`
-        : '';
-      const payload = { nombre: provForm.nombre, contacto: provForm.contacto, telefono };
+      const payload = { nombre: provForm.nombre, contacto: provForm.contacto, telefono: provForm.telefono };
       if (editingProv) {
         await api.put(`/compras/proveedores/${editingProv.id}`, payload);
         success('Proveedor actualizado');
@@ -598,9 +581,8 @@ export default function Compras() {
                           className="compras__action-btn"
                           title="Editar"
                           onClick={() => {
-                            const ph = parsePhone(p.telefono);
                             setEditingProv(p);
-                            setProvForm({ nombre: p.nombre, contacto: p.contacto || '', telefono_codigo: ph.codigo, telefono_numero: ph.numero });
+                            setProvForm({ nombre: p.nombre, contacto: p.contacto || '', telefono: p.telefono || '' });
                           }}
                         >
                           <Edit2 size={14} />
@@ -644,25 +626,10 @@ export default function Compras() {
                 </div>
                 <div className="mb-3">
                   <label className="form-label form-label-sm">Teléfono</label>
-                  <div className="compras__phone-input">
-                    <select
-                      className="compras__phone-code"
-                      value={provForm.telefono_codigo}
-                      onChange={e => setProvForm(f => ({ ...f, telefono_codigo: e.target.value }))}
-                    >
-                      {CODIGOS_PAIS.map(c => (
-                        <option key={c.codigo} value={c.codigo}>{c.label}</option>
-                      ))}
-                    </select>
-                    <input
-                      type="tel"
-                      className="form-control form-control-sm"
-                      placeholder="Número"
-                      inputMode="numeric"
-                      value={provForm.telefono_numero}
-                      onChange={e => setProvForm(f => ({ ...f, telefono_numero: e.target.value.replace(/\D/g, '') }))}
-                    />
-                  </div>
+                  <PhoneInputField
+                    value={provForm.telefono}
+                    onChange={(value) => setProvForm(f => ({ ...f, telefono: value || '' }))}
+                  />
                 </div>
                 <button type="submit" className="btn btn-success btn-sm w-100" disabled={savingProv}>
                   {savingProv ? 'Guardando...' : editingProv ? 'Guardar cambios' : '+ Agregar proveedor'}

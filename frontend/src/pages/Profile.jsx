@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../context/AlertContext';
 import api from '../services/api';
 import { Mail, Phone, Lock, Save, UserCog, Building2, LockKeyhole } from 'lucide-react';
+import { passwordStrength } from '../utils/passwordPolicy';
 import '../styles/profile.css';
 
 const ROL_LABELS = {
@@ -12,19 +13,6 @@ const ROL_LABELS = {
 };
 
 const TELEFONO_REGEX = /^[0-9+\- ]{8,20}$/;
-
-function passwordStrength(password) {
-  if (!password) return null;
-  let score = 0;
-  if (password.length >= 8) score++;
-  if (/[A-Z]/.test(password)) score++;
-  if (/[0-9]/.test(password)) score++;
-  if (/[^A-Za-z0-9]/.test(password)) score++;
-
-  if (score <= 1) return { label: 'Débil', level: 'weak' };
-  if (score <= 2) return { label: 'Media', level: 'medium' };
-  return { label: 'Fuerte', level: 'strong' };
-}
 
 function ProfileAvatar({ nombre, rol }) {
   const initials = (nombre || '?')
@@ -72,6 +60,9 @@ export default function Profile() {
     if (form.password) {
       if (!form.currentPassword) {
         nextErrors.currentPassword = 'Ingresá tu contraseña actual';
+      }
+      if (!passwordStrength(form.password)?.valid) {
+        nextErrors.password = 'La contraseña debe tener mínimo 8 caracteres, mayúscula, minúscula, número y carácter especial';
       }
       if (form.password !== form.confirmPassword) {
         nextErrors.confirmPassword = 'Las contraseñas no coinciden';
@@ -225,10 +216,10 @@ export default function Profile() {
               </label>
               <input
                 type="password"
-                className="form-control"
+                className={`form-control ${formErrors.password ? 'is-invalid' : ''}`}
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
-                placeholder="Mínimo 6 caracteres"
+                placeholder="Mínimo 8 caracteres, mayúscula, minúscula, número y símbolo"
               />
               {strength && (
                 <div className="password-strength">
@@ -238,6 +229,7 @@ export default function Profile() {
                   </span>
                 </div>
               )}
+              {formErrors.password && <span className="form-error">{formErrors.password}</span>}
             </div>
             {form.password && (
               <div className="form-group">

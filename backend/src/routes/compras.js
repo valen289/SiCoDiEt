@@ -28,6 +28,7 @@ router.get('/proveedores', duenoEncargado, async (req, res) => {
 
 router.post('/proveedores', duenoEncargado, [
   body('nombre').notEmpty().withMessage('Nombre requerido'),
+  body('telefono').optional({ checkFalsy: true }).matches(/^[0-9+\- ]{8,20}$/).withMessage('Telefono invalido'),
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -48,6 +49,7 @@ router.post('/proveedores', duenoEncargado, [
 
 router.put('/proveedores/:id', duenoEncargado, [
   body('nombre').optional().notEmpty().withMessage('Nombre no puede estar vacío'),
+  body('telefono').optional({ checkFalsy: true }).matches(/^[0-9+\- ]{8,20}$/).withMessage('Telefono invalido'),
 ], async (req, res) => {
   try {
     const errors = validationResult(req);

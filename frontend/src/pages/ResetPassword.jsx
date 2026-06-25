@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 import { Lock, Eye, EyeOff, CheckCircle, ArrowLeft } from 'lucide-react';
 import Footer from '../components/Footer';
+import { passwordStrength } from '../utils/passwordPolicy';
 import '../styles/login.css';
 
 export default function ResetPassword() {
@@ -34,8 +35,8 @@ export default function ResetPassword() {
     setError('');
     setSuccess('');
 
-    if (password.length < 6) {
-      return setError('La contraseña debe tener al menos 6 caracteres');
+    if (!passwordStrength(password)?.valid) {
+      return setError('La contraseña debe tener mínimo 8 caracteres, mayúscula, minúscula, número y carácter especial');
     }
 
     if (password !== confirmPassword) {
@@ -103,9 +104,8 @@ export default function ResetPassword() {
                     className="form-control"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Mínimo 6 caracteres"
+                    placeholder="Mínimo 8 caracteres, mayúscula, minúscula, número y símbolo"
                     required
-                    minLength={6}
                   />
                   <button
                     type="button"
@@ -116,6 +116,17 @@ export default function ResetPassword() {
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
+                {password && (() => {
+                  const strength = passwordStrength(password);
+                  return strength && (
+                    <div className="password-strength">
+                      <div className={`password-strength__bar password-strength__bar--${strength.level}`} />
+                      <span className={`password-strength__label password-strength__label--${strength.level}`}>
+                        {strength.label}
+                      </span>
+                    </div>
+                  );
+                })()}
               </div>
 
               <div className="form-group">
@@ -130,7 +141,6 @@ export default function ResetPassword() {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Repite tu contraseña"
                     required
-                    minLength={6}
                   />
                   <button
                     type="button"

@@ -7,6 +7,7 @@ const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 const { body, validationResult } = require('express-validator');
 const { logActividad } = require('../utils/actividad');
 const { buildUpdateSet } = require('../utils/queryBuilder');
+const { PASSWORD_REGEX } = require('../utils/passwordPolicy');
 
 router.use(authenticateToken);
 
@@ -43,9 +44,10 @@ router.get('/:id', soloDueno, async (req, res) => {
 });
 
 router.post('/', soloDueno, [
-  body('cedula').notEmpty().withMessage('Cédula requerida'),
+  body('cedula').matches(/^[0-9]{8}$/).withMessage('Cédula inválida, debe tener 8 dígitos'),
   body('nombre').notEmpty().withMessage('Nombre requerido'),
-  body('password').isLength({ min: 6 }).withMessage('Contraseña mínimo 6 caracteres'),
+  body('password').matches(PASSWORD_REGEX).withMessage('Contraseña debe tener mínimo 8 caracteres, mayúscula, minúscula, número y carácter especial'),
+  body('telefono').optional({ checkFalsy: true }).matches(/^[0-9+\- ]{8,20}$/).withMessage('Teléfono inválido'),
   body('rol').optional().isIn(['dueno', 'encargado', 'trabajador'])
 ], async (req, res) => {
   try {
@@ -84,7 +86,7 @@ router.post('/', soloDueno, [
 router.put('/:id', soloDueno, [
   body('nombre').optional().notEmpty().withMessage('Nombre no puede estar vacío'),
   body('email').optional().isEmail().withMessage('Email inválido'),
-  body('telefono').optional(),
+  body('telefono').optional({ checkFalsy: true }).matches(/^[0-9+\- ]{8,20}$/).withMessage('Teléfono inválido'),
   body('rol').optional().isIn(['dueno', 'encargado', 'trabajador']).withMessage('Rol inválido'),
   body('activo').optional().isBoolean()
 ], async (req, res) => {
@@ -128,7 +130,7 @@ router.put('/:id', soloDueno, [
 
 // Restablecer contraseña de un usuario (el Dueño lo hace por usuarios sin email)
 router.put('/:id/password', soloDueno, [
-  body('password').isLength({ min: 6 }).withMessage('Contraseña mínimo 6 caracteres')
+  body('password').matches(PASSWORD_REGEX).withMessage('Contraseña debe tener mínimo 8 caracteres, mayúscula, minúscula, número y carácter especial')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);

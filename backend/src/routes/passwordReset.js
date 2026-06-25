@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const pool = require('../config/database');
 const { body, validationResult } = require('express-validator');
 const { sendPasswordResetEmail } = require('../utils/email');
+const { PASSWORD_REGEX } = require('../utils/passwordPolicy');
 
 const TOKEN_EXPIRY_HOURS = parseInt(process.env.RESET_TOKEN_EXPIRY) || 1;
 
@@ -50,7 +51,7 @@ router.post('/forgot-password', [
 
 router.post('/reset-password', [
   body('token').notEmpty().withMessage('Token requerido'),
-  body('password').isLength({ min: 6 }).withMessage('La contraseña debe tener al menos 6 caracteres'),
+  body('password').matches(PASSWORD_REGEX).withMessage('La contraseña debe tener minimo 8 caracteres, mayuscula, minuscula, numero y caracter especial'),
   body('confirmPassword').notEmpty().withMessage('Confirma tu contraseña'),
 ], async (req, res) => {
   try {

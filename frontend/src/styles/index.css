@@ -265,3 +265,32 @@ table {
   button, [role="button"], .btn { min-height: 40px; }
   .page-header { gap: 0.75rem; }
 }
+
+/* Password strength */
+.password-strength {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.password-strength__bar {
+  flex: 1;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--divider);
+}
+
+.password-strength__bar--weak   { background: var(--danger); }
+.password-strength__bar--medium { background: var(--warning); }
+.password-strength__bar--strong { background: var(--success); }
+
+.password-strength__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.password-strength__label--weak   { color: var(--danger); }
+.password-strength__label--medium { color: var(--warning); }
+.password-strength__label--strong { color: var(--success); }

@@ -1,0 +1,26 @@
+:root {
+  --PhoneInput-color--focus: var(--primary);
+  --PhoneInputCountrySelectArrow-color--focus: var(--primary);
+  --PhoneInputCountryFlag-borderColor--focus: var(--primary);
+}
+
+.phone-input-field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-left: 0.5rem;
+}
+
+.phone-input-field .PhoneInputCountry {
+  margin-right: 0.25rem;
+}
+
+.phone-input-field__number {
+  border: none;
+  outline: none;
+  flex: 1;
+  background: transparent;
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--text);
+}

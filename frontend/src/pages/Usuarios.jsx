@@ -4,6 +4,8 @@ import { useAlert } from '../context/AlertContext';
 import { useSEO } from '../hooks/useSEO';
 import { Users, Plus, Edit2, UserCheck, UserX, Lock, Save, X, Mail, Phone, Hash, Link2, Copy, QrCode } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
+import PhoneInputField from '../components/PhoneInputField';
+import { passwordStrength } from '../utils/passwordPolicy';
 import '../styles/usuarios.css';
 
 const ROL_CONFIG = {
@@ -52,6 +54,10 @@ export default function Usuarios() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!editingUser && !passwordStrength(form.password)?.valid) {
+      error('La contraseña debe tener mínimo 8 caracteres, mayúscula, minúscula, número y carácter especial');
+      return;
+    }
     try {
       if (editingUser) {
         const payload = { nombre: form.nombre, email: form.email, telefono: form.telefono, rol: form.rol };
@@ -110,6 +116,10 @@ export default function Usuarios() {
 
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
+    if (!passwordStrength(passwordForm.password)?.valid) {
+      error('La contraseña debe tener mínimo 8 caracteres, mayúscula, minúscula, número y carácter especial');
+      return;
+    }
     if (passwordForm.password !== passwordForm.confirmPassword) {
       error('Las contraseñas no coinciden');
       return;
@@ -303,7 +313,9 @@ export default function Usuarios() {
                     type="text"
                     className="form-control"
                     value={form.cedula}
-                    onChange={e => setForm(prev => ({ ...prev, cedula: e.target.value }))}
+                    onChange={e => setForm(prev => ({ ...prev, cedula: e.target.value.replace(/[^0-9]/g, '').slice(0, 8) }))}
+                    inputMode="numeric"
+                    maxLength={8}
                     required
                     disabled={!!editingUser}
                   />
@@ -329,11 +341,9 @@ export default function Usuarios() {
                 </div>
                 <div className="mb-3">
                   <label className="form-label">Teléfono <span className="text-muted">(opcional)</span></label>
-                  <input
-                    type="text"
-                    className="form-control"
+                  <PhoneInputField
                     value={form.telefono}
-                    onChange={e => setForm(prev => ({ ...prev, telefono: e.target.value }))}
+                    onChange={(value) => setForm(prev => ({ ...prev, telefono: value || '' }))}
                   />
                 </div>
                 {!editingUser && (
@@ -345,9 +355,19 @@ export default function Usuarios() {
                       value={form.password}
                       onChange={e => setForm(prev => ({ ...prev, password: e.target.value }))}
                       required
-                      minLength={6}
                     />
-                    <small className="text-muted">Mínimo 6 caracteres</small>
+                    <small className="text-muted">Mínimo 8 caracteres, mayúscula, minúscula, número y símbolo</small>
+                    {form.password && (() => {
+                      const strength = passwordStrength(form.password);
+                      return strength && (
+                        <div className="password-strength">
+                          <div className={`password-strength__bar password-strength__bar--${strength.level}`} />
+                          <span className={`password-strength__label password-strength__label--${strength.level}`}>
+                            {strength.label}
+                          </span>
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
                 <div className="mb-3">
@@ -462,9 +482,19 @@ export default function Usuarios() {
                     value={passwordForm.password}
                     onChange={e => setPasswordForm(prev => ({ ...prev, password: e.target.value }))}
                     required
-                    minLength={6}
                     autoFocus
                   />
+                  {passwordForm.password && (() => {
+                    const strength = passwordStrength(passwordForm.password);
+                    return strength && (
+                      <div className="password-strength">
+                        <div className={`password-strength__bar password-strength__bar--${strength.level}`} />
+                        <span className={`password-strength__label password-strength__label--${strength.level}`}>
+                          {strength.label}
+                        </span>
+                      </div>
+                    );
+                  })()}
                 </div>
                 <div className="mb-3">
                   <label className="form-label">Confirmar Contraseña</label>

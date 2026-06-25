@@ -75,9 +75,10 @@ export default function Login() {
                 type="text"
                 className="form-control"
                 value={cedula}
-                onChange={(e) => setCedula(e.target.value.replace(/[^0-9]/g, ''))}
+                onChange={(e) => setCedula(e.target.value.replace(/[^0-9]/g, '').slice(0, 8))}
                 placeholder="Ej: 12345678"
                 inputMode="numeric"
+                maxLength={8}
                 required
               />
               <small className="form-text text-muted">Sin puntos ni guiones, con dígito verificador</small>
