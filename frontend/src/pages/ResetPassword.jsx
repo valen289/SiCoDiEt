@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 import { Lock, Eye, EyeOff, CheckCircle, ArrowLeft } from 'lucide-react';
 import Footer from '../components/Footer';
+import PasswordRulesHint from '../components/PasswordRulesHint';
 import { passwordStrength } from '../utils/passwordPolicy';
 import '../styles/login.css';
 
@@ -104,7 +105,6 @@ export default function ResetPassword() {
                     className="form-control"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Mínimo 8 caracteres, mayúscula, minúscula, número y símbolo"
                     required
                   />
                   <button
@@ -116,6 +116,7 @@ export default function ResetPassword() {
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
+                <PasswordRulesHint />
                 {password && (() => {
                   const strength = passwordStrength(password);
                   return strength && (

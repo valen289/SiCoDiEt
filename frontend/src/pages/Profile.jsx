@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../context/AlertContext';
 import api from '../services/api';
 import { Mail, Phone, Lock, Save, UserCog, Building2, LockKeyhole } from 'lucide-react';
+import PasswordRulesHint from '../components/PasswordRulesHint';
 import { passwordStrength } from '../utils/passwordPolicy';
 import '../styles/profile.css';
 
@@ -219,8 +220,8 @@ export default function Profile() {
                 className={`form-control ${formErrors.password ? 'is-invalid' : ''}`}
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
-                placeholder="Mínimo 8 caracteres, mayúscula, minúscula, número y símbolo"
               />
+              <PasswordRulesHint />
               {strength && (
                 <div className="password-strength">
                   <div className={`password-strength__bar password-strength__bar--${strength.level}`} />

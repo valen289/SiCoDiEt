@@ -5,6 +5,7 @@ import { useSEO } from '../hooks/useSEO';
 import { Users, Plus, Edit2, UserCheck, UserX, Lock, Save, X, Mail, Phone, Hash, Link2, Copy, QrCode } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import PhoneInputField from '../components/PhoneInputField';
+import PasswordRulesHint from '../components/PasswordRulesHint';
 import { passwordStrength } from '../utils/passwordPolicy';
 import '../styles/usuarios.css';
 
@@ -356,7 +357,7 @@ export default function Usuarios() {
                       onChange={e => setForm(prev => ({ ...prev, password: e.target.value }))}
                       required
                     />
-                    <small className="text-muted">Mínimo 8 caracteres, mayúscula, minúscula, número y símbolo</small>
+                    <PasswordRulesHint />
                     {form.password && (() => {
                       const strength = passwordStrength(form.password);
                       return strength && (
@@ -484,6 +485,7 @@ export default function Usuarios() {
                     required
                     autoFocus
                   />
+                  <PasswordRulesHint />
                   {passwordForm.password && (() => {
                     const strength = passwordStrength(passwordForm.password);
                     return strength && (

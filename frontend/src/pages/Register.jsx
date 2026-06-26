@@ -5,6 +5,7 @@ import { Eye, EyeOff, Mail, Phone, Lock, CheckCircle, AlertCircle } from 'lucide
 import api from '../services/api';
 import Footer from '../components/Footer';
 import PhoneInputField from '../components/PhoneInputField';
+import PasswordRulesHint from '../components/PasswordRulesHint';
 import { passwordStrength } from '../utils/passwordPolicy';
 import '../styles/login.css';
 
@@ -186,11 +187,12 @@ export default function Register() {
             <div className="form-group">
               <label className="form-label"><Lock size={14} /> Contraseña</label>
               <div className="input-group">
-                <input type={showPassword ? 'text' : 'password'} name="password" className="form-control" value={form.password} onChange={handleChange} placeholder="Mínimo 8 caracteres, mayúscula, minúscula, número y símbolo" required />
+                <input type={showPassword ? 'text' : 'password'} name="password" className="form-control" value={form.password} onChange={handleChange} required />
                 <button type="button" className="btn btn-outline-secondary input-group-text" onClick={() => setShowPassword(!showPassword)}>
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+              <PasswordRulesHint />
               {passwordInfo && (
                 <div className="password-strength">
                   <div className={`password-strength__bar password-strength__bar--${passwordInfo.level}`} />

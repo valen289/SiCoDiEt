@@ -294,3 +294,40 @@ table {
 .password-strength__label--weak   { color: var(--danger); }
 .password-strength__label--medium { color: var(--warning); }
 .password-strength__label--strong { color: var(--success); }
+
+/* Password rules hint */
+.password-rules-hint {
+  margin-top: 0.5rem;
+}
+
+.password-rules-hint__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--primary-light);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--primary-dark);
+  cursor: pointer;
+}
+
+.password-rules-hint__list {
+  margin: 0.5rem 0 0;
+  padding: 0.6rem 0.6rem 0.6rem 1.4rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--text-light);
+}
+
+.password-rules-hint__list li {
+  margin-bottom: 0.2rem;
+}
+
+.password-rules-hint__list li:last-child {
+  margin-bottom: 0;
+}
