@@ -2,7 +2,7 @@ import '../styles/footer.css';
 
 export default function Footer() {
   const gmailComposeUrl =
-    'https://mail.google.com/mail/?view=cm&fs=1&to=valeencoria28@gmail.com&su=Consulta%20SiCoDiEt';
+    'https://mail.google.com/mail/?view=cm&fs=1&to=sicodietapp@gmail.com&su=Consulta%20SiCoDiEt';
 
   return (
     <footer className="login-footer">
@@ -13,9 +13,9 @@ export default function Footer() {
         </div>
         <div className="footer-contact">
           <h4>Contacto</h4>
-          <p><strong>Coria</strong></p>
+          <p><strong>SiCoDiEt</strong></p>
           <p>+598 091 840 339</p>
-          <p>valeencoria28@gmail.com</p>
+          <p>sicodietapp@gmail.com</p>
         </div>
         <div className="footer-help">
           <h4>¿Necesitas ayuda?</h4>

@@ -114,7 +114,7 @@ export default function Landing() {
         <h2>¿Querés llevarlo a tu establecimiento?</h2>
         <p>Escribime y te ayudo a poner en marcha el sistema con tus datos.</p>
         <a
-          href="https://mail.google.com/mail/?view=cm&fs=1&to=valeencoria28@gmail.com&su=Quiero%20SiCoDiEt%20en%20mi%20establecimiento"
+          href="https://mail.google.com/mail/?view=cm&fs=1&to=sicodietapp@gmail.com&su=Quiero%20SiCoDiEt%20en%20mi%20establecimiento"
           target="_blank"
           rel="noopener noreferrer"
           className="btn-link-mail"
