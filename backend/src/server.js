@@ -39,7 +39,9 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: isProduction ? 100 : 500,
+  // Varios usuarios de un mismo tambo suelen compartir IP (un solo router), y cada
+  // carga de pantalla dispara varias peticiones GET: 100/15min se agotaba con uso normal.
+  max: isProduction ? 600 : 500,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Demasiadas peticiones, intente nuevamente en 15 minutos' },
@@ -51,7 +53,7 @@ const limiter = rateLimit({
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: isProduction ? 20 : 100,
+  max: isProduction ? 40 : 100,
   message: { error: 'Demasiados intentos de autenticación' }
 });
 
