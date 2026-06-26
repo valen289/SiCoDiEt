@@ -8,6 +8,7 @@ export default function PhoneInputField({ value, onChange, defaultCountry = 'UY'
   return (
     <PhoneInput
       international
+      countryCallingCodeEditable={false}
       defaultCountry={defaultCountry}
       labels={es}
       flags={flags}
