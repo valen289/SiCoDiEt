@@ -11,33 +11,33 @@ import '../styles/landing.css';
 const features = [
   {
     icon: Database,
-    title: 'Stock con días restantes',
-    desc: 'Cada silo, fardo o bolsón muestra cuánto queda y cuántos días de cobertura, con alerta cuando entra en estado crítico.',
+    title: 'Reservas con cobertura al día',
+    desc: 'Cada depósito muestra unidades, días de cobertura y estado de alerta en tiempo real. Sin revisión manual.',
   },
   {
     icon: ClipboardList,
-    title: 'Consumo diario por lote',
-    desc: 'Registrá el consumo de cada lote en el turno AM o PM y el stock se actualiza automáticamente.',
+    title: 'Registro de consumo por turno y lote',
+    desc: 'Cargá el turno AM o PM y el stock se descuenta automáticamente.',
   },
   {
     icon: DollarSign,
-    title: 'Costos por lote y por animal',
-    desc: 'Costo total, promedio diario y costo por animal/día, con exportación a CSV para tus números.',
+    title: 'Costo real por lote y por animal',
+    desc: 'Costo total, diario y por animal disponibles al instante. Exportable a CSV para tus análisis.',
   },
   {
     icon: ShoppingCart,
-    title: 'Compras y proveedores',
-    desc: 'Registrá cada compra con proveedor, precio y remito, y mirá el gasto del período exportado a CSV.',
+    title: 'Historial de compras por proveedor',
+    desc: 'Cada compra registrada con proveedor, precio y remito. El gasto del período, siempre disponible.',
   },
   {
     icon: Users,
-    title: 'Roles por persona',
-    desc: 'Dueño, Técnico y Trabajador ven y hacen solo lo que les corresponde dentro del sistema.',
+    title: 'Acceso definido por rol',
+    desc: 'Dueño, Técnico y Trabajador acceden solo a lo que les corresponde. Sin configuración compleja.',
   },
   {
     icon: Activity,
-    title: 'Auditoría de actividad',
-    desc: 'Quién hizo qué y cuándo: cada alta, edición o carga de stock queda registrada.',
+    title: 'Trazabilidad de cada acción',
+    desc: 'Cada alta, edición o carga queda registrada con usuario y fecha. Historial completo del sistema.',
   },
 ];
 
@@ -110,17 +110,9 @@ export default function Landing() {
         </div>
       </section>
 
-      <section className="landing-cta-band">
+<section className="landing-cta-band">
         <h2>¿Querés llevarlo a tu establecimiento?</h2>
         <p>Escribime y te ayudo a poner en marcha el sistema con tus datos.</p>
-        <a
-          href="https://mail.google.com/mail/?view=cm&fs=1&to=sicodietapp@gmail.com&su=Quiero%20SiCoDiEt%20en%20mi%20establecimiento"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn-link-mail"
-        >
-          Contactame
-        </a>
       </section>
 
       <Footer />

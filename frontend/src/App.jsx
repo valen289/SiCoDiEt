@@ -22,6 +22,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Costos = lazy(() => import('./pages/Costos'));
 const Compras = lazy(() => import('./pages/Compras'));
 const Landing = lazy(() => import('./pages/Landing'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 
 function PageLoader() {
   return (
@@ -126,6 +127,7 @@ function AppRoutes() {
         <Route path="/reset-password" element={<ResetPassword />} />
         {/* Landing pública o redirect según rol */}
         <Route path="/" element={<RootRoute />} />
+        <Route path="/privacidad" element={<PrivacyPolicy />} />
 
         {/* Rutas solo para dueño + encargado */}
         <Route path="/dashboard" element={

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, TrendingDown, Bell, Tag } from 'lucide-react';
+import { Package, TrendingDown, Bell, Tag, ArrowRight } from 'lucide-react';
 import api from '../services/api';
 import { fmt, todayStr, todayLabel } from '../utils/formatters';
 import '../styles/dashboard.css';
@@ -226,9 +226,42 @@ export default function Dashboard() {
       )}
 
       {alertas.length === 0 && insumosAlerta.length === 0 && (
-        <div className="dashboard-empty">
-          Todo en orden — no hay alertas activas ni insumos en estado crítico.
-        </div>
+        insumoCount === 0 && loteCount === 0 ? (
+          <div className="dashboard-onboarding">
+            <p className="dashboard-onboarding-title">Empezá en 3 pasos</p>
+            <p className="dashboard-onboarding-sub">Tu establecimiento todavía no tiene datos cargados. Seguí estos pasos para comenzar.</p>
+            <div className="onboarding-steps">
+              <button className="onboarding-step" onClick={() => navigate('/silos')}>
+                <span className="onboarding-step-num">1</span>
+                <div className="onboarding-step-body">
+                  <strong>Cargá tus insumos</strong>
+                  <span>Silos, fardos, bolsones y concentrados</span>
+                </div>
+                <ArrowRight size={16} />
+              </button>
+              <button className="onboarding-step" onClick={() => navigate('/lotes')}>
+                <span className="onboarding-step-num">2</span>
+                <div className="onboarding-step-body">
+                  <strong>Creá tus lotes</strong>
+                  <span>Nombre, cantidad de animales y etapa</span>
+                </div>
+                <ArrowRight size={16} />
+              </button>
+              <button className="onboarding-step" onClick={() => navigate('/consumos')}>
+                <span className="onboarding-step-num">3</span>
+                <div className="onboarding-step-body">
+                  <strong>Registrá el primer consumo</strong>
+                  <span>Qué se dio, en qué turno y cuánto</span>
+                </div>
+                <ArrowRight size={16} />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="dashboard-empty">
+            Todo en orden — no hay alertas activas ni insumos en estado crítico.
+          </div>
+        )
       )}
     </div>
   );

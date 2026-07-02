@@ -36,11 +36,11 @@ services:
       - MYSQL_DATABASE=${DB_NAME:-gestion_tambo}
       - MYSQL_USER=${DB_USER:-sicodiet}
       - MYSQL_PASSWORD=${DB_PASSWORD:-secret}
-    ports:
-      - "3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
       - ./backend/database.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    # Puerto no expuesto al host: el contenedor app lo alcanza por red interna de Docker.
+    # Para conectarte desde tu máquina con un cliente SQL, usá: docker exec -it sicodiet-db mysql -u sicodiet -p
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s

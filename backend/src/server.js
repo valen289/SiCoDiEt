@@ -85,10 +85,6 @@ if (isProduction) {
       return callback(null, true);
     }
 
-    if (origin.endsWith('.trycloudflare.com') || origin.endsWith('.vercel.app')) {
-      return callback(null, true);
-    }
-
     console.error('CORS rechazado, origin:', origin, '| permitidos:', allowedOrigins);
     callback(new Error('Not allowed by CORS'));
   };
@@ -108,10 +104,6 @@ if (isProduction) {
     }
 
     if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-
-    if (origin.endsWith('.trycloudflare.com')) {
       return callback(null, true);
     }
 
@@ -151,15 +143,12 @@ app.use('/api/compras', comprasRoutes);
 app.use('/api/reportes', reportesRoutes);
 
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    memory: process.memoryUsage()
-  });
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-app.get('/api/metrics', (req, res) => {
+const { authenticateToken, authorizeRoles } = require('./middleware/auth');
+
+app.get('/api/metrics', authenticateToken, authorizeRoles('dueno'), (req, res) => {
   res.json({
     uptime: process.uptime(),
     memory: process.memoryUsage(),

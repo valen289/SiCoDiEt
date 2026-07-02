@@ -1,0 +1,2 @@
+ALTER TABLE usuarios ADD COLUMN intentos_fallidos INT NOT NULL DEFAULT 0;
+ALTER TABLE usuarios ADD COLUMN bloqueado_hasta DATETIME NULL DEFAULT NULL;

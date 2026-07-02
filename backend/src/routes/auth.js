@@ -105,25 +105,44 @@ router.post('/login', [
     const { cedula, password } = req.body;
 
     const [users] = await pool.query(
-      `SELECT u.id, u.cedula, u.nombre, u.email, u.telefono, u.rol, u.password, u.tambo_id, t.nombre AS tambo_nombre
+      `SELECT u.id, u.cedula, u.nombre, u.email, u.telefono, u.rol, u.password, u.tambo_id,
+              u.intentos_fallidos, u.bloqueado_hasta, t.nombre AS tambo_nombre
        FROM usuarios u
        JOIN tambos t ON u.tambo_id = t.id
        WHERE u.cedula = ? AND u.activo = TRUE`,
       [cedula]
     );
-    
+
     if (users.length === 0) {
       return res.status(401).json({ error: 'Credenciales invalidas' });
     }
 
     const user = users[0];
+
+    if (user.bloqueado_hasta && new Date(user.bloqueado_hasta) > new Date()) {
+      const minutosRestantes = Math.ceil((new Date(user.bloqueado_hasta) - new Date()) / 60000);
+      return res.status(429).json({ error: `Cuenta bloqueada temporalmente. Intentá de nuevo en ${minutosRestantes} minuto${minutosRestantes !== 1 ? 's' : ''}.` });
+    }
+
     const validPassword = await bcrypt.compare(password, user.password);
 
     if (!validPassword) {
+      const intentos = (user.intentos_fallidos || 0) + 1;
+      if (intentos >= 5) {
+        await pool.query(
+          'UPDATE usuarios SET intentos_fallidos = ?, bloqueado_hasta = DATE_ADD(NOW(), INTERVAL 15 MINUTE) WHERE id = ?',
+          [intentos, user.id]
+        );
+        return res.status(429).json({ error: 'Demasiados intentos fallidos. Cuenta bloqueada por 15 minutos.' });
+      }
+      await pool.query('UPDATE usuarios SET intentos_fallidos = ? WHERE id = ?', [intentos, user.id]);
       return res.status(401).json({ error: 'Credenciales invalidas' });
     }
 
-    await pool.query('UPDATE usuarios SET ultimo_acceso = NOW() WHERE id = ?', [user.id]);
+    await pool.query(
+      'UPDATE usuarios SET ultimo_acceso = NOW(), intentos_fallidos = 0, bloqueado_hasta = NULL WHERE id = ?',
+      [user.id]
+    );
 
     const token = jwt.sign(
       {
