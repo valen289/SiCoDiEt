@@ -8,13 +8,13 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = sessionStorage.getItem('token');
+    const token = localStorage.getItem('token');
     if (token) {
       api.get('/auth/me')
         .then(res => setUser(res.data.user))
         .catch(err => {
           if (err.response?.status === 401 || err.response?.status === 403) {
-            sessionStorage.removeItem('token');
+            localStorage.removeItem('token');
             setUser(null);
           }
         })
@@ -29,14 +29,14 @@ export function AuthProvider({ children }) {
     if (res.data.requiresTwoFactor) {
       return res.data;
     }
-    sessionStorage.setItem('token', res.data.token);
+    localStorage.setItem('token', res.data.token);
     setUser(res.data.user);
     return res.data;
   };
 
   const verifyTwoFactor = async (tempToken, code) => {
     const res = await api.post('/auth/verify-2fa', { tempToken, code });
-    sessionStorage.setItem('token', res.data.token);
+    localStorage.setItem('token', res.data.token);
     setUser(res.data.user);
     return res.data;
   };
@@ -46,7 +46,7 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => {
-    sessionStorage.removeItem('token');
+    localStorage.removeItem('token');
     setUser(null);
   };
 
