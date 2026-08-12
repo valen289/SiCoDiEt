@@ -124,4 +124,44 @@ const sendStockCriticoEmail = async (destinatarios, { nombreInsumo, diasRestante
   return enviarEmail({ to: destinatarios, subject, html });
 };
 
-module.exports = { sendPasswordResetEmail, sendStockCriticoEmail, isEmailConfigured };
+const sendTwoFactorCodeEmail = async (email, code) => {
+  const subject = 'Tu código de verificación - SiCoDiEt';
+
+  if (!isEmailConfigured()) {
+    console.log('[email] BREVO_API_KEY no configurada, no se envía email real. Contenido:');
+    console.log(`[email] Para: ${email} | Código de verificación: ${code}`);
+    return null;
+  }
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="background: #2e7d32; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+        <h1 style="color: #ffffff; margin: 0; font-size: 24px;">SiCoDiEt</h1>
+        <p style="color: rgba(255,255,255,0.8); margin: 8px 0 0; font-size: 14px;">Verificación en dos pasos</p>
+      </div>
+      <div style="background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; border-top: none;">
+        <h2 style="color: #212529; margin: 0 0 16px; font-size: 20px;">Tu código de verificación</h2>
+        <p style="color: #495057; font-size: 14px; line-height: 1.6; margin: 0 0 24px;">
+          Ingresá este código para completar el inicio de sesión en SiCoDiEt. Es válido por <strong>10 minutos</strong>.
+        </p>
+        <div style="text-align: center; margin: 32px 0;">
+          <span style="display: inline-block; background: #f8f9fa; color: #2e7d32; padding: 16px 32px; border-radius: 6px; font-size: 32px; font-weight: 700; letter-spacing: 8px;">
+            ${code}
+          </span>
+        </div>
+        <div style="border-top: 1px solid #e0e0e0; padding-top: 24px; margin-top: 24px;">
+          <p style="color: #6c757d; font-size: 13px; line-height: 1.6; margin: 0;">
+            Si no intentaste iniciar sesión, ignorá este email y cambiá tu contraseña por seguridad.
+          </p>
+        </div>
+      </div>
+      <div style="background: #f8f9fa; padding: 16px; text-align: center; border-radius: 0 0 8px 8px; border: 1px solid #e0e0e0; border-top: none;">
+        <p style="color: #6c757d; font-size: 12px; margin: 0;">© 2026 SiCoDiEt. Todos los derechos reservados.</p>
+      </div>
+    </div>
+  `;
+
+  return enviarEmail({ to: email, subject, html });
+};
+
+module.exports = { sendPasswordResetEmail, sendStockCriticoEmail, sendTwoFactorCodeEmail, isEmailConfigured };

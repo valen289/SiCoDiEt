@@ -23,8 +23,19 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const [step, setStep] = useState('credentials');
+  const [tempToken, setTempToken] = useState('');
+  const [code, setCode] = useState('');
+  const { login, verifyTwoFactor } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const authMessage = sessionStorage.getItem('authMessage');
+    if (authMessage) {
+      setError(authMessage);
+      sessionStorage.removeItem('authMessage');
+    }
+  }, []);
 
   useEffect(() => {
     document.title = 'Iniciar Sesión - SiCoDiEt';
@@ -46,13 +57,39 @@ export default function Login() {
     }
     setLoading(true);
     try {
-      await login(cedula, password);
-      navigate('/');
+      const result = await login(cedula, password);
+      if (result.requiresTwoFactor) {
+        setTempToken(result.tempToken);
+        setStep('code');
+      } else {
+        navigate('/');
+      }
     } catch (err) {
       setError(err.response?.data?.error || 'Error al iniciar sesión');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleVerifyCode = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      await verifyTwoFactor(tempToken, code);
+      navigate('/');
+    } catch (err) {
+      setError(err.response?.data?.error || 'Código incorrecto');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBackToCredentials = () => {
+    setStep('credentials');
+    setCode('');
+    setTempToken('');
+    setError('');
   };
 
   return (
@@ -66,62 +103,98 @@ export default function Login() {
 
           {error && <div className="alert alert-danger" role="alert">{error}</div>}
 
-          <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label className="form-label">
-                <User size={14} /> Cédula de Identidad
-              </label>
-              <input
-                type="text"
-                className="form-control"
-                value={cedula}
-                onChange={(e) => setCedula(e.target.value.replace(/[^0-9]/g, '').slice(0, 8))}
-                placeholder="Ej: 12345678"
-                inputMode="numeric"
-                maxLength={8}
-                required
-              />
-              <small className="form-text text-muted">Sin puntos ni guiones, con dígito verificador</small>
-            </div>
+          {step === 'credentials' ? (
+            <>
+              <form onSubmit={handleSubmit}>
+                <div className="form-group">
+                  <label className="form-label">
+                    <User size={14} /> Cédula de Identidad
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={cedula}
+                    onChange={(e) => setCedula(e.target.value.replace(/[^0-9]/g, '').slice(0, 8))}
+                    placeholder="Ej: 12345678"
+                    inputMode="numeric"
+                    maxLength={8}
+                    required
+                  />
+                  <small className="form-text text-muted">Sin puntos ni guiones, con dígito verificador</small>
+                </div>
 
-            <div className="form-group">
-              <label className="form-label">
-                <Lock size={14} /> Contraseña
-              </label>
-              <div className="input-group">
+                <div className="form-group">
+                  <label className="form-label">
+                    <Lock size={14} /> Contraseña
+                  </label>
+                  <div className="input-group">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      className="form-control"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary input-group-text"
+                      onClick={() => setShowPassword(!showPassword)}
+                      tabIndex={-1}
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+
+                <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
+                  {loading ? 'Ingresando...' : 'Ingresar'}
+                </button>
+              </form>
+
+              <div className="login-links">
+                <Link to="/forgot-password" className="link-forgot">
+                  <Key size={14} /> ¿Olvidaste tu contraseña?
+                </Link>
+                <div className="register-link">
+                  <span>¿No tenés cuenta?</span>
+                  <Link to="/register">Registrarse</Link>
+                </div>
+              </div>
+            </>
+          ) : (
+            <form onSubmit={handleVerifyCode}>
+              <p className="login-subtitle">
+                Te enviamos un código de 6 dígitos por email. Ingresalo para completar el inicio de sesión.
+              </p>
+              <div className="form-group">
+                <label className="form-label">
+                  <Key size={14} /> Código de verificación
+                </label>
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type="text"
                   className="form-control"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+                  placeholder="000000"
+                  inputMode="numeric"
+                  maxLength={6}
+                  autoFocus
                   required
                 />
-                <button
-                  type="button"
-                  className="btn btn-outline-secondary input-group-text"
-                  onClick={() => setShowPassword(!showPassword)}
-                  tabIndex={-1}
-                >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </div>
+
+              <button type="submit" className="btn btn-primary btn-block" disabled={loading || code.length !== 6}>
+                {loading ? 'Verificando...' : 'Verificar'}
+              </button>
+
+              <div className="login-links">
+                <button type="button" className="link-back link-back-btn" onClick={handleBackToCredentials}>
+                  Volver
                 </button>
               </div>
-            </div>
-
-            <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
-              {loading ? 'Ingresando...' : 'Ingresar'}
-            </button>
-          </form>
-
-          <div className="login-links">
-            <Link to="/forgot-password" className="link-forgot">
-              <Key size={14} /> ¿Olvidaste tu contraseña?
-            </Link>
-            <div className="register-link">
-              <span>¿No tenés cuenta?</span>
-              <Link to="/register">Registrarse</Link>
-            </div>
-          </div>
+            </form>
+          )}
         </div>
       </div>
 

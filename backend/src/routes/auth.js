@@ -7,10 +7,14 @@ const pool = require('../config/database');
 const { body, validationResult } = require('express-validator');
 const { buildUpdateSet } = require('../utils/queryBuilder');
 const { PASSWORD_REGEX } = require('../utils/passwordPolicy');
+const { sendTwoFactorCodeEmail } = require('../utils/email');
+
+const TWO_FACTOR_CODE_EXPIRY_MINUTES = 10;
 
 router.post('/register', [
   body('cedula').matches(/^[0-9]{8}$/).withMessage('Cedula invalida, debe tener 8 digitos'),
   body('nombre').notEmpty().withMessage('Nombre requerido'),
+  body('email').isEmail().withMessage('Email invalido, es necesario para la verificación en dos pasos'),
   body('password').matches(PASSWORD_REGEX).withMessage('Password debe tener minimo 8 caracteres, mayuscula, minuscula, numero y caracter especial'),
   body('telefono').optional({ checkFalsy: true }).matches(/^[0-9+\- ]{8,20}$/).withMessage('Telefono invalido')
 ], async (req, res) => {
@@ -106,7 +110,7 @@ router.post('/login', [
 
     const [users] = await pool.query(
       `SELECT u.id, u.cedula, u.nombre, u.email, u.telefono, u.rol, u.password, u.tambo_id,
-              u.intentos_fallidos, u.bloqueado_hasta, t.nombre AS tambo_nombre
+              u.intentos_fallidos, u.bloqueado_hasta, u.token_version, t.nombre AS tambo_nombre
        FROM usuarios u
        JOIN tambos t ON u.tambo_id = t.id
        WHERE u.cedula = ? AND u.activo = TRUE`,
@@ -140,40 +144,139 @@ router.post('/login', [
     }
 
     await pool.query(
-      'UPDATE usuarios SET ultimo_acceso = NOW(), intentos_fallidos = 0, bloqueado_hasta = NULL WHERE id = ?',
+      'UPDATE usuarios SET intentos_fallidos = 0, bloqueado_hasta = NULL WHERE id = ?',
       [user.id]
     );
 
-    const token = jwt.sign(
-      {
-        id: user.id,
-        cedula: user.cedula,
-        nombre: user.nombre,
-        rol: user.rol,
-        tambo_id: user.tambo_id
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN }
+    // Cuentas viejas sin email cargado no tienen a donde recibir el codigo: se
+    // les deja entrar sin 2FA en vez de bloquearlas (recomendar agregar email
+    // desde Perfil queda para mas adelante).
+    if (!user.email) {
+      return emitirSesion(res, user);
+    }
+
+    const code = crypto.randomInt(0, 1000000).toString().padStart(6, '0');
+    const codeHash = crypto.createHash('sha256').update(code).digest('hex');
+    const expiresAt = new Date(Date.now() + TWO_FACTOR_CODE_EXPIRY_MINUTES * 60 * 1000);
+
+    await pool.query(
+      'UPDATE usuarios SET two_factor_code_hash = ?, two_factor_code_expires = ? WHERE id = ?',
+      [codeHash, expiresAt, user.id]
     );
 
-    res.json({
-      token,
-      user: {
-        id: user.id,
-        cedula: user.cedula,
-        nombre: user.nombre,
-        email: user.email,
-        telefono: user.telefono,
-        rol: user.rol,
-        tambo_id: user.tambo_id,
-        tambo_nombre: user.tambo_nombre
-      }
-    });
+    try {
+      await sendTwoFactorCodeEmail(user.email, code);
+    } catch (emailErr) {
+      console.error('Error enviando codigo 2FA:', emailErr);
+    }
+
+    const tempToken = jwt.sign(
+      { id: user.id, purpose: 'two_factor' },
+      process.env.JWT_SECRET,
+      { expiresIn: `${TWO_FACTOR_CODE_EXPIRY_MINUTES}m` }
+    );
+
+    res.json({ requiresTwoFactor: true, tempToken });
   } catch (error) {
     console.error('Error en login:', error);
     res.status(500).json({ error: 'Error al iniciar sesion' });
   }
 });
+
+router.post('/verify-2fa', [
+  body('tempToken').notEmpty().withMessage('Token requerido'),
+  body('code').matches(/^[0-9]{6}$/).withMessage('Código inválido')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { tempToken, code } = req.body;
+
+    let payload;
+    try {
+      payload = jwt.verify(tempToken, process.env.JWT_SECRET);
+    } catch {
+      return res.status(401).json({ error: 'La sesión de verificación expiró, iniciá sesión nuevamente' });
+    }
+    if (payload.purpose !== 'two_factor') {
+      return res.status(401).json({ error: 'Token inválido' });
+    }
+
+    const [users] = await pool.query(
+      `SELECT u.id, u.cedula, u.nombre, u.email, u.telefono, u.rol, u.tambo_id, u.token_version,
+              u.two_factor_code_hash, u.two_factor_code_expires, t.nombre AS tambo_nombre
+       FROM usuarios u
+       JOIN tambos t ON u.tambo_id = t.id
+       WHERE u.id = ? AND u.activo = TRUE`,
+      [payload.id]
+    );
+
+    const user = users[0];
+    if (!user) {
+      return res.status(401).json({ error: 'Usuario no encontrado' });
+    }
+
+    if (!user.two_factor_code_hash || !user.two_factor_code_expires || new Date(user.two_factor_code_expires) < new Date()) {
+      return res.status(400).json({ error: 'El código expiró, iniciá sesión nuevamente' });
+    }
+
+    const codeHash = crypto.createHash('sha256').update(code).digest('hex');
+    if (codeHash !== user.two_factor_code_hash) {
+      return res.status(400).json({ error: 'Código incorrecto' });
+    }
+
+    await pool.query(
+      'UPDATE usuarios SET two_factor_code_hash = NULL, two_factor_code_expires = NULL WHERE id = ?',
+      [user.id]
+    );
+
+    await emitirSesion(res, user);
+  } catch (error) {
+    console.error('Error en verify-2fa:', error);
+    res.status(500).json({ error: 'Error al verificar el código' });
+  }
+});
+
+// Incrementa token_version (invalida cualquier sesion anterior del usuario),
+// emite el JWT definitivo y responde con el usuario logueado.
+async function emitirSesion(res, user) {
+  const tokenVersion = (user.token_version || 1) + 1;
+
+  await pool.query(
+    'UPDATE usuarios SET ultimo_acceso = NOW(), token_version = ? WHERE id = ?',
+    [tokenVersion, user.id]
+  );
+
+  const token = jwt.sign(
+    {
+      id: user.id,
+      cedula: user.cedula,
+      nombre: user.nombre,
+      rol: user.rol,
+      tambo_id: user.tambo_id,
+      token_version: tokenVersion
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRES_IN }
+  );
+
+  res.json({
+    token,
+    user: {
+      id: user.id,
+      cedula: user.cedula,
+      nombre: user.nombre,
+      email: user.email,
+      telefono: user.telefono,
+      rol: user.rol,
+      tambo_id: user.tambo_id,
+      tambo_nombre: user.tambo_nombre
+    }
+  });
+}
 
 router.get('/me', require('../middleware/auth').authenticateToken, async (req, res) => {
   try {

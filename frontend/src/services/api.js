@@ -43,6 +43,9 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       const currentPath = window.location.pathname;
       if (currentPath !== '/login' && currentPath !== '/register') {
+        if (error.response.data?.code === 'SESSION_INVALIDATED') {
+          sessionStorage.setItem('authMessage', error.response.data.error);
+        }
         sessionStorage.removeItem('token');
         window.location.href = '/login';
       }

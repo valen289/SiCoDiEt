@@ -26,6 +26,16 @@ export function AuthProvider({ children }) {
 
   const login = async (cedula, password) => {
     const res = await api.post('/auth/login', { cedula, password });
+    if (res.data.requiresTwoFactor) {
+      return res.data;
+    }
+    sessionStorage.setItem('token', res.data.token);
+    setUser(res.data.user);
+    return res.data;
+  };
+
+  const verifyTwoFactor = async (tempToken, code) => {
+    const res = await api.post('/auth/verify-2fa', { tempToken, code });
     sessionStorage.setItem('token', res.data.token);
     setUser(res.data.user);
     return res.data;
@@ -45,7 +55,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, updateUser, loading }}>
+    <AuthContext.Provider value={{ user, login, verifyTwoFactor, register, logout, updateUser, loading }}>
       {children}
     </AuthContext.Provider>
   );

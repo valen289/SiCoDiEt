@@ -1,0 +1,2 @@
+ALTER TABLE usuarios ADD COLUMN two_factor_code_hash VARCHAR(64) NULL DEFAULT NULL;
+ALTER TABLE usuarios ADD COLUMN two_factor_code_expires DATETIME NULL DEFAULT NULL;
