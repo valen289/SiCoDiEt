@@ -10,6 +10,7 @@ import {
 import { compartirReportePdf } from '../utils/reportes';
 import SiloGauge from '../components/SiloGauge';
 import '../styles/silos.css';
+import '../styles/dashboard.css';
 
 const categoriasBase = [
   { value: 'reserva_forrajera', label: 'Reserva Forrajera' },
@@ -80,6 +81,9 @@ export default function Silos() {
   const [insumos, setInsumos] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [showHistorial, setShowHistorial] = useState(false);
+  const [showDetalle, setShowDetalle] = useState(false);
+  const [selectedInsumo, setSelectedInsumo] = useState(null);
+  const [ultimoMovimiento, setUltimoMovimiento] = useState(undefined);
   const [editingInsumo, setEditingInsumo] = useState(null);
   const [form, setForm] = useState({
     nombre: '', categoria: '', tipo_insumo: 'silo', unidad: 'kg', peso_unidad: '',
@@ -205,6 +209,21 @@ export default function Silos() {
     setShowModal(true);
   };
 
+  const handleVerDetalle = async (insumo) => {
+    setSelectedInsumo(insumo);
+    setUltimoMovimiento(undefined);
+    setShowDetalle(true);
+    try {
+      const res = await api.get('/movimientos/historial-insumo', {
+        params: { insumo_id: insumo.id, periodo: '365' },
+      });
+      setUltimoMovimiento(res.data.historial?.[0] || null);
+    } catch (err) {
+      console.error('Error:', err);
+      setUltimoMovimiento(null);
+    }
+  };
+
   const handleVerHistorial = async (insumo = null) => {
     const targetInsumo = insumo || editingInsumo || (insumos.length > 0 ? insumos[0] : null);
     if (!targetInsumo) return;
@@ -234,6 +253,14 @@ export default function Silos() {
 
   const getPorcentaje = (insumo) => {
     return ((parseFloat(insumo.stock_actual) / parseFloat(insumo.capacidad_maxima)) * 100).toFixed(0);
+  };
+
+  const formatDiasRestantes = (insumo) => {
+    const diasRaw = parseInt(insumo.dias_restantes) || 0;
+    const esEstimado = insumo.dias_restantes_origen === 'formulado';
+    if (diasRaw === 999 || diasRaw === 0) return 'Sin datos';
+    if (diasRaw > 365) return `${Math.floor(diasRaw / 30)} meses${esEstimado ? ' (estimado)' : ''}`;
+    return `${esEstimado ? '~' : ''}${diasRaw} dias${esEstimado ? ' (estimado)' : ''}`;
   };
 
   const getNivelAlerta = (diasRestantes) => {
@@ -311,21 +338,21 @@ export default function Silos() {
           {insumos.map(insumo => {
             const porcentaje = getPorcentaje(insumo);
             const diasRaw = parseInt(insumo.dias_restantes) || 0;
-            const esEstimado = insumo.dias_restantes_origen === 'formulado';
             const nivelAlerta = getNivelAlerta(diasRaw);
-            let dias;
-            if (diasRaw === 999 || diasRaw === 0) {
-              dias = 'Sin datos';
-            } else if (diasRaw > 365) {
-              dias = `${Math.floor(diasRaw / 30)} meses${esEstimado ? ' (estimado)' : ''}`;
-            } else {
-              dias = `${esEstimado ? '~' : ''}${diasRaw} dias${esEstimado ? ' (estimado)' : ''}`;
-            }
+            const dias = formatDiasRestantes(insumo);
             const isCritical = nivelAlerta.nivel === 'critico' || nivelAlerta.nivel === 'precaucion';
             const stockClass = getStockClass(porcentaje);
 
             return (
-              <article key={insumo.id} className="insumo-card-wrapper" role="listitem" aria-label={`Insumo ${insumo.nombre}`}>
+              <article
+                key={insumo.id}
+                className="insumo-card-wrapper insumo-card-wrapper--clickable"
+                role="listitem"
+                tabIndex={0}
+                aria-label={`Ver detalle de ${insumo.nombre}`}
+                onClick={() => handleVerDetalle(insumo)}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleVerDetalle(insumo); } }}
+              >
                 <div className={`insumo-card nivel-${nivelAlerta.nivel}`}>
 
                   {/* Header: nombre */}
@@ -391,10 +418,10 @@ export default function Silos() {
 
                   {/* Botones acción */}
                   <div className="card-btn-row">
-                    <button className="card-btn card-btn--edit" onClick={() => handleEdit(insumo)} aria-label={`Editar ${insumo.nombre}`}>
+                    <button className="card-btn card-btn--edit" onClick={e => { e.stopPropagation(); handleEdit(insumo); }} aria-label={`Editar ${insumo.nombre}`}>
                       <Edit2 size={13} /> Editar
                     </button>
-                    <button className="card-btn card-btn--history" onClick={() => handleVerHistorial(insumo)} aria-label={`Movimientos ${insumo.nombre}`}>
+                    <button className="card-btn card-btn--history" onClick={e => { e.stopPropagation(); handleVerHistorial(insumo); }} aria-label={`Movimientos ${insumo.nombre}`}>
                       <History size={13} /> Movimientos
                     </button>
                   </div>
@@ -690,6 +717,96 @@ export default function Silos() {
           </div>
         </div>
       )}
+
+      {/* Detalle Modal */}
+      {showDetalle && selectedInsumo && (() => {
+        const porcentaje = getPorcentaje(selectedInsumo);
+        const stockClass = getStockClass(porcentaje);
+        const diasRaw = parseInt(selectedInsumo.dias_restantes) || 0;
+        const nivelAlerta = getNivelAlerta(diasRaw);
+        const dias = formatDiasRestantes(selectedInsumo);
+        return (
+          <div className="modal-overlay" onClick={() => setShowDetalle(false)}>
+            <div className="modal-content modal-large" onClick={e => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3 className="h5 mb-0">{selectedInsumo.nombre}</h3>
+                <button type="button" className="btn-close" onClick={() => setShowDetalle(false)}></button>
+              </div>
+              <div className="modal-body">
+                <div className="detalle-insumo">
+                  <div className="detalle-insumo__header">
+                    <span className="insumo-tipo-badge">{selectedInsumo.tipo_insumo}</span>
+                    <span className={`insumo-badge insumo-badge--${nivelAlerta.nivel}`}>{nivelAlerta.label}</span>
+                  </div>
+
+                  <div className="detalle-insumo__gauge-row">
+                    <div className="detalle-insumo__gauge">
+                      <SiloGauge porcentaje={porcentaje} stockClass={stockClass} />
+                    </div>
+                    <div className="detalle-insumo__gauge-info">
+                      <span className="detalle-insumo__pct">{porcentaje}%</span>
+                      <span className="detalle-insumo__pct-label">Nivel actual</span>
+                    </div>
+                  </div>
+
+                  <div className="detalle-insumo__stats">
+                    <div className="detalle-insumo__stat">
+                      <span className="detalle-insumo__stat-label">Contenido</span>
+                      <strong className="detalle-insumo__stat-value">
+                        {formatNumber(selectedInsumo.stock_actual, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} {selectedInsumo.unidad}
+                      </strong>
+                    </div>
+                    <div className="detalle-insumo__stat">
+                      <span className="detalle-insumo__stat-label">Capacidad total</span>
+                      <strong className="detalle-insumo__stat-value">
+                        {formatNumber(selectedInsumo.capacidad_maxima, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} {selectedInsumo.unidad}
+                      </strong>
+                    </div>
+                    <div className="detalle-insumo__stat">
+                      <span className="detalle-insumo__stat-label">Días restantes</span>
+                      <strong className="detalle-insumo__stat-value">{dias}</strong>
+                    </div>
+                    <div className="detalle-insumo__stat">
+                      <span className="detalle-insumo__stat-label">Precio/kg</span>
+                      <strong className="detalle-insumo__stat-value">
+                        {costosInsumos[selectedInsumo.id] !== undefined
+                          ? `US$${parseFloat(costosInsumos[selectedInsumo.id]).toFixed(2)}`
+                          : <span style={{ color: 'var(--text-light)', fontWeight: 400 }}>—</span>}
+                      </strong>
+                    </div>
+                    {selectedInsumo.kg_materia_seca_disponible !== null && selectedInsumo.kg_materia_seca_disponible !== undefined && (
+                      <div className="detalle-insumo__stat">
+                        <span className="detalle-insumo__stat-label">MS disponible</span>
+                        <strong className="detalle-insumo__stat-value">
+                          {formatNumber(selectedInsumo.kg_materia_seca_disponible, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} kg
+                        </strong>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="detalle-insumo__ultimo-mov">
+                    {ultimoMovimiento === undefined && 'Cargando último movimiento...'}
+                    {ultimoMovimiento === null && 'Sin movimientos registrados'}
+                    {ultimoMovimiento && (() => {
+                      const tipoLabels = { ingreso: 'Ingreso', consumo: 'Consumo', ajuste_positivo: 'Ajuste +', ajuste_negativo: 'Ajuste -' };
+                      return `Último movimiento: ${tipoLabels[ultimoMovimiento.tipo] || ultimoMovimiento.tipo} el ${ultimoMovimiento.fecha?.split('T')[0]} ${ultimoMovimiento.hora?.substring(0, 5) || ''}`;
+                    })()}
+                  </div>
+                </div>
+
+                <div className="modal-actions">
+                  <button type="button" className="btn btn-secondary" onClick={() => { setShowDetalle(false); handleVerHistorial(selectedInsumo); }}>
+                    <History size={16} className="me-1" /> Ver movimientos
+                  </button>
+                  <button type="button" className="btn btn-success" onClick={() => { setShowDetalle(false); handleEdit(selectedInsumo); }}>
+                    <Edit2 size={16} className="me-1" /> Editar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

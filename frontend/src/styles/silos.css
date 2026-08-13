@@ -73,6 +73,15 @@
   box-shadow: var(--shadow-md);
 }
 
+.insumo-card-wrapper--clickable {
+  cursor: pointer;
+}
+
+.insumo-card-wrapper--clickable:focus-visible .insumo-card {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
 .insumo-card.nivel-critico    { --card-accent: var(--alerta-critico); }
 .insumo-card.nivel-precaucion { --card-accent: var(--alerta-precaucion); }
 .insumo-card.nivel-normal     { --card-accent: var(--alerta-normal); }
@@ -410,6 +419,81 @@
   width: 95vw;
 }
 
+/* ─── Detalle de insumo (modal) ──────────────────────────────────────────────── */
+
+.detalle-insumo__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.detalle-insumo__gauge-row {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1rem 0;
+  border-top: 1px solid var(--divider);
+  border-bottom: 1px solid var(--divider);
+  margin-bottom: 1.25rem;
+}
+
+.detalle-insumo__gauge svg {
+  width: 90px;
+  height: 112px;
+}
+
+.detalle-insumo__gauge-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.detalle-insumo__pct {
+  font-size: 2.5rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--primary);
+  letter-spacing: -1px;
+}
+
+.detalle-insumo__pct-label {
+  font-size: 0.8rem;
+  color: var(--text-light);
+  margin-top: 0.25rem;
+}
+
+.detalle-insumo__stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.detalle-insumo__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.detalle-insumo__stat-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-light);
+  opacity: 0.8;
+}
+
+.detalle-insumo__stat-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.detalle-insumo__ultimo-mov {
+  font-size: 0.8rem;
+  color: var(--text-light);
+}
+
 /* ─── Historial ──────────────────────────────────────────────────────────────── */
 
 .historial-list {
@@ -481,6 +565,15 @@
   .footer-stat + .footer-stat {
     border-left: none;
     border-top: 1px solid var(--divider);
+  }
+
+  .detalle-insumo__stats {
+    grid-template-columns: 1fr;
+  }
+
+  .detalle-insumo__gauge-row {
+    justify-content: center;
+    text-align: center;
   }
 }
 
