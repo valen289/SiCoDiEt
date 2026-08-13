@@ -8,6 +8,7 @@ import {
   X, Trash2, FileText
 } from 'lucide-react';
 import { compartirReportePdf } from '../utils/reportes';
+import SiloGauge from '../components/SiloGauge';
 import '../styles/silos.css';
 
 const categoriasBase = [
@@ -313,6 +314,7 @@ export default function Silos() {
                       <h3 className="insumo-name">{insumo.nombre}</h3>
                       <span className="insumo-tipo-badge">{insumo.tipo_insumo}</span>
                     </div>
+                    <SiloGauge porcentaje={porcentaje} stockClass={stockClass} />
                   </div>
 
                   {/* Stock hero */}

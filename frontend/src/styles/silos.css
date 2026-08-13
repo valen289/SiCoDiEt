@@ -129,6 +129,27 @@
   letter-spacing: 0.02em;
 }
 
+.silo-gauge {
+  width: 28px;
+  height: 35px;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.silo-gauge-outline {
+  fill: none;
+  stroke: var(--text-light);
+  stroke-width: 1.5;
+}
+
+.silo-gauge-fill {
+  transition: y 0.4s ease, height 0.4s ease;
+}
+
+.silo-gauge-fill.stock-low  { fill: var(--stock-low); }
+.silo-gauge-fill.stock-mid  { fill: var(--stock-mid); }
+.silo-gauge-fill.stock-high { fill: var(--stock-high); }
+
 .insumo-card-actions {
   display: flex;
   gap: 0.25rem;
