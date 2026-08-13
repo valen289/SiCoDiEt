@@ -2,11 +2,12 @@
 /* ===== SICODIET - Base Styles ===== */
 
 :root {
-  /* Brand — verde salvia */
-  --primary:       #5F8A61;
-  --primary-dark:  #507652;
-  --primary-light: #EDF7EE;
-  --primary-rgb:   95, 138, 97;
+  /* Brand — verde y navy del logo */
+  --primary:       #006633;
+  --primary-dark:  #00572B;
+  --primary-light: #E6F0EB;
+  --primary-rgb:   0, 102, 51;
+  --secondary:     #A7C49A;
 
   /* Semantic — paleta de estados */
   --gold:      #D9A441;   /* advertencia */
@@ -31,10 +32,10 @@
 
   /* Text */
   --text:       #263028;
-  --text-light: #6B7280;
+  --text-light: #6B6F72;
 
   /* Surfaces */
-  --bg:      #F5F7F4;
+  --bg:      #F3F1E9;
   --white:   #FFFFFF;
   --border:  #E4E8E1;
   --divider: #ECF0EA;
@@ -53,14 +54,14 @@
   --card-shadow-hover: var(--shadow-md);
   --indicator-size:   5px;
 
-  /* ─── Sidebar — verde bosque ─────────────────────────────────────────────── */
-  --sidebar-bg:            #2E4735;
+  /* ─── Sidebar — navy del logo ────────────────────────────────────────────── */
+  --sidebar-bg:            #1D3E53;
   --sidebar-text:          rgba(255, 255, 255, 0.85);
   --sidebar-text-dim:      rgba(255, 255, 255, 0.40);
-  --sidebar-hover-bg:      #3C5B45;
+  --sidebar-hover-bg:      #3F5B6D;
   --sidebar-active-bg:     #DDE7DC;
-  --sidebar-active-text:   #2E4735;
-  --sidebar-active-accent: #5F8A61;
+  --sidebar-active-text:   #1D3E53;
+  --sidebar-active-accent: #006633;
   --sidebar-border:        rgba(255, 255, 255, 0.08);
 }
 
@@ -75,11 +76,15 @@ html {
 }
 
 body {
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Manrope', Arial, Helvetica, sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.5;
   overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
 }
 
 button {

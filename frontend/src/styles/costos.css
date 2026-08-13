@@ -133,7 +133,7 @@
   flex-shrink: 0;
 }
 
-.costos__kpi-card--total   .costos__kpi-icon { background: #EDF7EE; color: #4D8A54; }
+.costos__kpi-card--total   .costos__kpi-icon { background: var(--primary-light); color: #4D8A54; }
 .costos__kpi-card--promedio .costos__kpi-icon { background: #EEF4FA; color: #5E8CB8; }
 .costos__kpi-card--lote    .costos__kpi-icon { background: #FFF4E5; color: #D9A441; }
 .costos__kpi-card--insumo  .costos__kpi-icon { background: #F2F4F7; color: #667085; }
@@ -271,7 +271,7 @@
   border-radius: 0.3rem;
   font-size: 0.8rem;
   font-weight: 600;
-  background: #EDF7EE;
+  background: var(--primary-light);
   color: #4D8A54;
   white-space: nowrap;
 }

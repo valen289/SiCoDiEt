@@ -4,7 +4,7 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(140deg, #F5F7F4 0%, #E8EEE5 55%, #F0F3EE 100%);
+  background: linear-gradient(140deg, #F3F1E9 0%, #ECE7DA 55%, #F0EEE4 100%);
 }
 
 .login-wrapper {

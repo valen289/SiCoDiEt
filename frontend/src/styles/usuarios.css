@@ -61,7 +61,7 @@
   height: 52px;
   min-width: 52px;                   /* no se achica con flex */
   border-radius: 50%;
-  background: var(--primary, #2d6a4f);
+  background: var(--primary, #006633);
   color: #fff;
   display: flex;
   align-items: center;
@@ -112,7 +112,7 @@
 }
 
 .badge-danger   { background-color: #dc3545 !important; color: #fff !important; }
-.badge-primary  { background-color: var(--primary, #2d6a4f) !important; color: #fff !important; }
+.badge-primary  { background-color: var(--primary, #006633) !important; color: #fff !important; }
 .badge-success  { background-color: #198754 !important; color: #fff !important; }
 .badge-secondary{ background-color: #6c757d !important; color: #fff !important; }
 

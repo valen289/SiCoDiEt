@@ -1,9 +1,9 @@
 /* ===== SICODIET - Landing pública ===== */
 
 .landing-page {
-  --landing-green: #5F7A61;
-  --landing-green-dark: #3E5641;
-  --landing-beige: #F5F2EA;
+  --landing-green: #006633;
+  --landing-green-dark: #00572B;
+  --landing-beige: #F3F1E9;
   --landing-gray: #4B5563;
   min-height: 100vh;
   display: flex;
@@ -131,7 +131,7 @@
 }
 
 .landing-hero-trust svg {
-  color: #9CCB9E;
+  color: var(--secondary);
   flex-shrink: 0;
 }
 
@@ -183,7 +183,7 @@
 }
 
 .landing-feature-card:hover {
-  box-shadow: 0 12px 28px rgba(62, 86, 65, 0.12);
+  box-shadow: 0 12px 28px rgba(0, 87, 43, 0.12);
   transform: translateY(-4px);
 }
 
@@ -191,7 +191,7 @@
   width: 52px;
   height: 52px;
   border-radius: 0.75rem;
-  background: rgba(95, 122, 97, 0.12);
+  background: rgba(0, 102, 51, 0.12);
   color: var(--landing-green-dark);
   display: flex;
   align-items: center;

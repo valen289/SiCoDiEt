@@ -85,7 +85,7 @@
   flex-shrink: 0;
 }
 
-.kpi-icon--stock   { background: #EDF7EE; color: #4D8A54; }
+.kpi-icon--stock   { background: var(--primary-light); color: #4D8A54; }
 .kpi-icon--consumo { background: #EEF4FA; color: #5E8CB8; }
 .kpi-icon--alertas { background: #FFF4E5; color: #D9A441; }
 .kpi-icon--lotes   { background: #F2F4F7; color: #667085; }
