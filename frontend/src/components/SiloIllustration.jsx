@@ -1,10 +1,10 @@
 import { useId } from 'react';
+import '../styles/silo-illustration.css';
 
 // Ilustración más detallada de un silo (techo cónico, cuerpo con costuras,
-// escalera lateral y patas) para el modal de detalle de insumo. SiloGauge.jsx
-// sigue siendo el ícono chico usado en las tarjetas — este componente es la
-// versión grande "real" que pidió el usuario, inspirada en el mockup del
-// dashboard (silo con escala de % al costado).
+// escalera lateral y patas), usada en el modal de detalle de Silos.jsx y en
+// el widget "Silo principal" / grilla "Estado de silos" del Dashboard.
+// SiloGauge.jsx sigue siendo el ícono chico usado en las tarjetas de Silos.
 const BODY_LEFT = 40;
 const BODY_RIGHT = 160;
 const BODY_TOP = 82;

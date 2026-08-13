@@ -465,6 +465,41 @@ router.get('/resumen-diario', async (req, res) => {
   }
 });
 
+// Stock total por categoria, para la dona del dashboard. stock_actual esta en la
+// unidad nativa de cada insumo (kg, fardos, bolsones...), asi que se convierte todo
+// a kg antes de sumar por categoria -- sumar unidades mixtas sin convertir daria un
+// numero sin sentido.
+router.get('/stock-por-categoria', async (req, res) => {
+  try {
+    const [insumos] = await pool.query(
+      'SELECT categoria, unidad, peso_unidad, stock_actual FROM insumos WHERE tambo_id = ? AND activo = TRUE',
+      [req.user.tambo_id]
+    );
+
+    const stockPorCategoria = {};
+    for (const insumo of insumos) {
+      const categoria = insumo.categoria || 'sin_categoria';
+      const stockKg = unidadNativaAKg(parseFloat(insumo.stock_actual), insumo);
+      stockPorCategoria[categoria] = (stockPorCategoria[categoria] || 0) + stockKg;
+    }
+
+    const totalKg = Object.values(stockPorCategoria).reduce((sum, kg) => sum + kg, 0);
+
+    const categorias = Object.entries(stockPorCategoria).map(([categoria, stock_kg]) => ({
+      categoria,
+      stock_kg,
+      porcentaje: totalKg > 0 ? (stock_kg / totalKg) * 100 : 0,
+    }));
+
+    categorias.sort((a, b) => b.stock_kg - a.stock_kg);
+
+    res.json({ categorias, total_kg: totalKg });
+  } catch (error) {
+    console.error('Error obteniendo stock por categoria:', error);
+    res.status(500).json({ error: 'Error al obtener stock por categoria' });
+  }
+});
+
 router.get('/historial-consumo', async (req, res) => {
   try {
     const { fecha_desde, fecha_hasta, insumo_id, lote_id } = req.query;

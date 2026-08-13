@@ -58,6 +58,7 @@
 
 .kpi-card--stock   { border-top-color: #4D8A54; }
 .kpi-card--consumo { border-top-color: #5E8CB8; }
+.kpi-card--costo   { border-top-color: #B8834A; }
 .kpi-card--alertas { border-top-color: #D9A441; }
 .kpi-card--lotes   { border-top-color: #667085; }
 
@@ -87,6 +88,7 @@
 
 .kpi-icon--stock   { background: var(--primary-light); color: #4D8A54; }
 .kpi-icon--consumo { background: #EEF4FA; color: #5E8CB8; }
+.kpi-icon--costo   { background: #F6ECDF; color: #B8834A; }
 .kpi-icon--alertas { background: #FFF4E5; color: #D9A441; }
 .kpi-icon--lotes   { background: #F2F4F7; color: #667085; }
 
@@ -100,6 +102,7 @@
 
 .kpi-value--stock   { color: #4D8A54; }
 .kpi-value--consumo { color: #5E8CB8; }
+.kpi-value--costo   { color: #B8834A; }
 .kpi-value--alertas { color: #D9A441; }
 .kpi-value--lotes   { color: #667085; }
 
@@ -114,6 +117,28 @@
   font-size: 0.78rem;
   color: var(--text-light);
   margin-top: 0.125rem;
+}
+
+.kpi-sub-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.kpi-trend {
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.kpi-trend--up   { color: var(--danger); }
+.kpi-trend--down { color: var(--success); }
+
+.kpi-sparkline {
+  width: 100%;
+  height: 34px;
+  margin-top: 0.25rem;
 }
 
 /* ─── Sections ─────────────────────────────────────────────────────────────── */
@@ -163,6 +188,285 @@
 .section-link:hover {
   color: var(--primary-dark);
   text-decoration: underline;
+}
+
+.dashboard-card-empty {
+  color: var(--text-light);
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 1.5rem 0.5rem;
+  margin: 0;
+}
+
+/* ─── Charts grid: dona / silo principal / consumo semanal ──────────────────── */
+
+.dashboard-charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-areas:
+    "donut  hero"
+    "weekly hero";
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  align-items: start;
+}
+
+.dashboard-card {
+  background: var(--white);
+  border-radius: var(--card-radius);
+  box-shadow: var(--shadow);
+  padding: 1.25rem 1.375rem;
+}
+
+.dashboard-card--donut  { grid-area: donut; }
+.dashboard-card--weekly { grid-area: weekly; }
+
+.dashboard-card--hero {
+  grid-area: hero;
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+}
+
+/* ─── Dona "Stock por categoría" ─────────────────────────────────────────────── */
+
+.donut-layout {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.donut-chart-wrap {
+  position: relative;
+  width: 130px;
+  height: 130px;
+  flex-shrink: 0;
+}
+
+.donut-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.donut-center-value {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+
+.donut-center-unit {
+  font-size: 0.7rem;
+  color: var(--text-light);
+}
+
+.donut-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.donut-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+}
+
+.donut-legend-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.donut-legend-label {
+  color: var(--text);
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.donut-legend-pct {
+  color: var(--text);
+  font-weight: 700;
+  width: 2.5rem;
+  text-align: right;
+}
+
+.donut-legend-kg {
+  color: var(--text-light);
+  width: 4.5rem;
+  text-align: right;
+  font-size: 0.75rem;
+}
+
+/* ─── Silo principal (hero) ──────────────────────────────────────────────────── */
+
+.silo-hero-badge {
+  --pill-accent: var(--alerta-sin-datos);
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pill-accent) 14%, var(--white));
+  color: var(--pill-accent);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.silo-hero-badge--critico    { --pill-accent: var(--alerta-critico); }
+.silo-hero-badge--precaucion { --pill-accent: var(--alerta-precaucion); }
+.silo-hero-badge--normal     { --pill-accent: var(--alerta-normal); }
+.silo-hero-badge--holgado    { --pill-accent: var(--alerta-holgado); }
+.silo-hero-badge--sin_datos  { --pill-accent: var(--alerta-sin-datos); }
+
+.silo-hero-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.silo-hero-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.silo-hero-pct {
+  font-size: 2.5rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--primary);
+  letter-spacing: -1px;
+}
+
+.silo-hero-pct-label {
+  font-size: 0.78rem;
+  color: var(--text-light);
+  margin: 0.2rem 0 1rem;
+}
+
+.silo-hero-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  margin-bottom: 0.75rem;
+}
+
+.silo-hero-stat-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-light);
+  opacity: 0.8;
+}
+
+.silo-hero-stat strong {
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.silo-hero-visual {
+  flex-shrink: 0;
+  width: 42%;
+  max-width: 170px;
+}
+
+.silo-hero-visual .silo-illustration {
+  width: 100%;
+  height: auto;
+}
+
+/* ─── Estado de silos (grilla) ────────────────────────────────────────────────── */
+
+.silo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.silo-mini-card {
+  background: var(--white);
+  border-radius: var(--card-radius);
+  box-shadow: var(--shadow);
+  padding: 0.875rem;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.silo-mini-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.silo-mini-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
+
+.silo-mini-nombre {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.silo-mini-visual {
+  width: 70px;
+}
+
+.silo-mini-visual .silo-illustration {
+  width: 100%;
+  height: auto;
+}
+
+.silo-mini-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+.silo-mini-pct {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.silo-mini-stock {
+  font-size: 0.72rem;
+  color: var(--text-light);
 }
 
 /* ─── Alertas ─────────────────────────────────────────────────────────────── */
@@ -438,6 +742,16 @@
 
 /* ─── Responsive ────────────────────────────────────────────────────────────── */
 
+@media (max-width: 900px) {
+  .dashboard-charts-grid {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "hero"
+      "donut"
+      "weekly";
+  }
+}
+
 @media (max-width: 767px) {
   .kpi-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -450,6 +764,21 @@
 
   .kpi-card {
     padding: 1rem;
+  }
+
+  .donut-layout {
+    flex-direction: column;
+  }
+
+  .silo-hero-body {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .silo-hero-visual {
+    width: 60%;
+    max-width: 220px;
+    align-self: center;
   }
 }
 

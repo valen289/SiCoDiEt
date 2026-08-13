@@ -10,6 +10,7 @@ import {
 import { compartirReportePdf } from '../utils/reportes';
 import SiloGauge from '../components/SiloGauge';
 import SiloIllustration from '../components/SiloIllustration';
+import { getNivelAlerta, getStockClass } from '../utils/nivelAlerta';
 import '../styles/silos.css';
 
 const categoriasBase = [
@@ -277,23 +278,9 @@ export default function Silos() {
     return `${esEstimado ? '~' : ''}${diasRaw} dias${esEstimado ? ' (estimado)' : ''}`;
   };
 
-  const getNivelAlerta = (diasRestantes) => {
-    if (diasRestantes === 0 || diasRestantes === 999) return { nivel: 'sin_datos', color: '#6c757d', label: 'SIN DATOS', bgClass: 'bg-secondary' };
-    if (diasRestantes <= 5) return { nivel: 'critico', color: '#dc3545', label: 'CRITICO', bgClass: 'bg-danger' };
-    if (diasRestantes <= 7) return { nivel: 'precaucion', color: '#ffc107', label: 'PRECAUCION', bgClass: 'bg-warning text-dark' };
-    if (diasRestantes <= 20) return { nivel: 'normal', color: '#28a745', label: 'NORMAL', bgClass: 'bg-success' };
-    return { nivel: 'holgado', color: '#17a2b8', label: 'HOLGADO', bgClass: 'bg-info' };
-  };
-
   const NIVEL_LABEL_DISPLAY = {
     critico: 'Crítico', precaucion: 'Precaución', normal: 'Normal',
     holgado: 'Holgado', sin_datos: 'Sin datos',
-  };
-
-  const getStockClass = (porcentaje) => {
-    if (porcentaje <= 30) return 'stock-low';
-    if (porcentaje <= 60) return 'stock-mid';
-    return 'stock-high';
   };
 
   const parseIntegerValue = (value) => {

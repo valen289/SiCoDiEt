@@ -1,0 +1,83 @@
+/* ===== SICODIET - SiloIllustration (silo grande, usado en el modal de detalle
+   de Silos.jsx y en el widget "Silo principal" / grilla "Estado de silos" del
+   Dashboard) ===== */
+
+.silo-illustration__shadow {
+  fill: #000;
+  opacity: 0.1;
+}
+
+.silo-illustration__legs {
+  fill: #a4abb2;
+}
+
+.silo-illustration__legs-brace {
+  stroke: #a4abb2;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.silo-illustration__finial {
+  stroke: #7b8288;
+  stroke-width: 2;
+}
+
+.silo-illustration__finial-cap {
+  fill: #7b8288;
+}
+
+.silo-illustration__roof-highlight {
+  fill: #fff;
+  opacity: 0.35;
+}
+
+.silo-illustration__outline--stroke {
+  fill: none;
+  stroke: #7c838a;
+  stroke-width: 2;
+}
+
+.silo-illustration__seams {
+  stroke: #7c838a;
+  stroke-width: 1;
+  opacity: 0.45;
+}
+
+.silo-illustration__panels {
+  stroke: #fff;
+  stroke-width: 1;
+  opacity: 0.4;
+}
+
+.silo-illustration__fill-stop-light.stock-low   { stop-color: color-mix(in srgb, var(--stock-low) 55%, white); }
+.silo-illustration__fill-stop-light.stock-mid   { stop-color: color-mix(in srgb, var(--stock-mid) 55%, white); }
+.silo-illustration__fill-stop-light.stock-high  { stop-color: color-mix(in srgb, var(--stock-high) 55%, white); }
+
+.silo-illustration__fill-stop-dark.stock-low   { stop-color: color-mix(in srgb, var(--stock-low) 80%, black); }
+.silo-illustration__fill-stop-dark.stock-mid   { stop-color: color-mix(in srgb, var(--stock-mid) 80%, black); }
+.silo-illustration__fill-stop-dark.stock-high  { stop-color: color-mix(in srgb, var(--stock-high) 80%, black); }
+
+.silo-illustration__fill-top.stock-low   { fill: color-mix(in srgb, var(--stock-low) 60%, white); }
+.silo-illustration__fill-top.stock-mid   { fill: color-mix(in srgb, var(--stock-mid) 60%, white); }
+.silo-illustration__fill-top.stock-high  { fill: color-mix(in srgb, var(--stock-high) 60%, white); }
+
+.silo-illustration__ladder {
+  stroke: #7b8288;
+  stroke-width: 1.75;
+}
+
+.silo-illustration__platform {
+  fill: #9199a1;
+  stroke: none;
+}
+
+.silo-illustration__scale line {
+  stroke: var(--text-light);
+  stroke-width: 1;
+  opacity: 0.6;
+}
+
+.silo-illustration__scale text {
+  font-size: 9px;
+  fill: var(--text-light);
+}
