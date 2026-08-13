@@ -8,9 +8,9 @@ import { passwordStrength } from '../utils/passwordPolicy';
 import '../styles/profile.css';
 
 const ROL_LABELS = {
-  dueno:      'Dueño',
+  dueno:      'Administrador',
   encargado:  'Técnico',
-  trabajador: 'Trabajador',
+  trabajador: 'Operario',
 };
 
 const TELEFONO_REGEX = /^[0-9+\- ]{8,20}$/;

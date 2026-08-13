@@ -69,7 +69,7 @@ function DuenoRoute({ children }) {
       <div className="d-flex align-items-center justify-content-center" style={{ minHeight: '100vh' }}>
         <div className="text-center">
           <h2 className="text-danger mb-3">Acceso Denegado</h2>
-          <p className="text-muted">Solo el Dueño puede acceder a esta sección.</p>
+          <p className="text-muted">Solo el Administrador puede acceder a esta sección.</p>
           <button className="btn btn-success" onClick={() => window.location.href = '/silos'}>
             Volver al inicio
           </button>

@@ -10,9 +10,9 @@ import { passwordStrength } from '../utils/passwordPolicy';
 import '../styles/usuarios.css';
 
 const ROL_CONFIG = {
-  dueno:      { label: 'Dueño',      class: 'badge-danger' },
-  encargado:  { label: 'Técnico',  class: 'badge-primary' },
-  trabajador: { label: 'Trabajador', class: 'badge-success' },
+  dueno:      { label: 'Administrador', class: 'badge-danger' },
+  encargado:  { label: 'Técnico',       class: 'badge-primary' },
+  trabajador: { label: 'Operario',      class: 'badge-success' },
 };
 
 export default function Usuarios() {
@@ -378,9 +378,9 @@ export default function Usuarios() {
                     value={form.rol}
                     onChange={e => setForm(prev => ({ ...prev, rol: e.target.value }))}
                   >
-                    <option value="trabajador">Trabajador</option>
+                    <option value="trabajador">Operario</option>
                     <option value="encargado">Técnico</option>
-                    <option value="dueno">Dueño</option>
+                    <option value="dueno">Administrador</option>
                   </select>
                 </div>
                 <div className="modal-actions d-flex gap-2 justify-content-end mt-4">
@@ -402,14 +402,14 @@ export default function Usuarios() {
         <div className="modal-overlay" onClick={handleCloseInvite}>
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 460 }}>
             <div className="modal-header">
-              <h2 className="h5 mb-0 d-flex align-items-center gap-2"><QrCode size={18} /> Invitar trabajador</h2>
+              <h2 className="h5 mb-0 d-flex align-items-center gap-2"><QrCode size={18} /> Invitar operario</h2>
               <button type="button" className="btn-close" onClick={handleCloseInvite} />
             </div>
             <div className="modal-body">
               {!inviteResult ? (
                 <>
                   <p className="text-muted small mb-3">
-                    Generá un link de invitación. El trabajador escanea el QR o abre el link y se registra directamente en tu establecimiento.
+                    Generá un link de invitación. El operario escanea el QR o abre el link y se registra directamente en tu establecimiento.
                   </p>
                   <div className="mb-3">
                     <label className="form-label">Rol que tendrá</label>
@@ -418,7 +418,7 @@ export default function Usuarios() {
                       value={inviteRol}
                       onChange={e => setInviteRol(e.target.value)}
                     >
-                      <option value="trabajador">Trabajador</option>
+                      <option value="trabajador">Operario</option>
                       <option value="encargado">Técnico</option>
                     </select>
                   </div>
@@ -432,7 +432,7 @@ export default function Usuarios() {
               ) : (
                 <>
                   <p className="text-muted small mb-3">
-                    Este link expira en <strong>24 horas</strong>. Compartilo o mostrá el QR al trabajador.
+                    Este link expira en <strong>24 horas</strong>. Compartilo o mostrá el QR al operario.
                   </p>
                   <div className="text-center mb-3">
                     <div

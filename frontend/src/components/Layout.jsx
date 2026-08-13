@@ -56,7 +56,7 @@ const sistemaItems = [
   { path: '/perfil',      iconKey: 'perfil',       label: 'Perfil'      },
 ];
 
-const ROL_LABELS = { dueno: 'Dueño', encargado: 'Técnico', trabajador: 'Trabajador' };
+const ROL_LABELS = { dueno: 'Administrador', encargado: 'Técnico', trabajador: 'Operario' };
 
 function NavItem({ mobile, iconKey, label, onClick, isActive }) {
   return (

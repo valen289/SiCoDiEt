@@ -5,9 +5,9 @@ import { useAlert } from '../context/AlertContext';
 import '../styles/actividades.css';
 
 const ROL_LABELS = {
-  dueno:      'Dueño',
+  dueno:      'Administrador',
   encargado:  'Técnico',
-  trabajador: 'Trabajador',
+  trabajador: 'Operario',
 };
 
 const ACCION_LABELS = {

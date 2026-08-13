@@ -100,7 +100,7 @@ router.put('/:id', soloDueno, [
 
     // Impedir que el único Dueño se quite el rol o se desactive
     if (req.body.rol && req.body.rol !== 'dueno' && targetId === req.user.id) {
-      return res.status(400).json({ error: 'No puedes cambiar tu propio rol de Dueño' });
+      return res.status(400).json({ error: 'No puedes cambiar tu propio rol de Administrador' });
     }
     if (req.body.activo === false && targetId === req.user.id) {
       return res.status(400).json({ error: 'No puedes desactivar tu propio usuario' });

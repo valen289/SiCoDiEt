@@ -22,7 +22,7 @@ function validateCedula(cedula) {
   return verifier === digits[7];
 }
 
-const ROL_LABELS = { trabajador: 'Trabajador', encargado: 'Técnico' };
+const ROL_LABELS = { trabajador: 'Operario', encargado: 'Técnico' };
 
 export default function Register() {
   const [searchParams] = useSearchParams();

@@ -33,7 +33,7 @@ const features = [
   {
     icon: Users,
     title: 'Acceso definido por rol',
-    desc: 'Dueño, Técnico y Trabajador acceden solo a lo que les corresponde. Sin configuración compleja.',
+    desc: 'Administrador, Técnico y Operario acceden solo a lo que les corresponde. Sin configuración compleja.',
   },
   {
     icon: Activity,
