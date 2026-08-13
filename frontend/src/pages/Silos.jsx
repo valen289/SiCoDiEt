@@ -5,12 +5,12 @@ import { useAlert } from '../context/AlertContext';
 import { useSEO } from '../hooks/useSEO';
 import {
   Plus, Edit2, History, AlertTriangle, Database,
-  X, Trash2, FileText
+  X, Trash2, FileText, CheckCircle2
 } from 'lucide-react';
 import { compartirReportePdf } from '../utils/reportes';
 import SiloGauge from '../components/SiloGauge';
+import SiloIllustration from '../components/SiloIllustration';
 import '../styles/silos.css';
-import '../styles/dashboard.css';
 
 const categoriasBase = [
   { value: 'reserva_forrajera', label: 'Reserva Forrajera' },
@@ -25,6 +25,20 @@ const tiposContenedor = [
   { value: 'bolsa',   label: 'Bolsa'   },
   { value: 'pastura', label: 'Pastura' },
 ];
+
+function formatRelativeTime(fecha, hora) {
+  if (!fecha) return null;
+  const date = new Date(`${fecha.split('T')[0]}T${(hora || '00:00:00').substring(0, 8)}`);
+  if (Number.isNaN(date.getTime())) return null;
+  const diffMin = Math.floor(Math.max(Date.now() - date.getTime(), 0) / 60000);
+  if (diffMin < 1) return 'hace instantes';
+  if (diffMin < 60) return `hace ${diffMin} min`;
+  const diffHoras = Math.floor(diffMin / 60);
+  if (diffHoras < 24) return `hace ${diffHoras} h`;
+  const diffDias = Math.floor(diffHoras / 24);
+  if (diffDias < 30) return `hace ${diffDias} día${diffDias === 1 ? '' : 's'}`;
+  return `el ${fecha.split('T')[0]}`;
+}
 
 // Capacidad tipica de silo-bolsa por diametro (fuente: tabla del fabricante Pacifil).
 // kgPorMetro es el punto medio del rango — varia segun el cultivo ensilado, el
@@ -269,6 +283,11 @@ export default function Silos() {
     if (diasRestantes <= 7) return { nivel: 'precaucion', color: '#ffc107', label: 'PRECAUCION', bgClass: 'bg-warning text-dark' };
     if (diasRestantes <= 20) return { nivel: 'normal', color: '#28a745', label: 'NORMAL', bgClass: 'bg-success' };
     return { nivel: 'holgado', color: '#17a2b8', label: 'HOLGADO', bgClass: 'bg-info' };
+  };
+
+  const NIVEL_LABEL_DISPLAY = {
+    critico: 'Crítico', precaucion: 'Precaución', normal: 'Normal',
+    holgado: 'Holgado', sin_datos: 'Sin datos',
   };
 
   const getStockClass = (porcentaje) => {
@@ -724,73 +743,81 @@ export default function Silos() {
         const stockClass = getStockClass(porcentaje);
         const diasRaw = parseInt(selectedInsumo.dias_restantes) || 0;
         const nivelAlerta = getNivelAlerta(diasRaw);
+        const nivelDisplay = NIVEL_LABEL_DISPLAY[nivelAlerta.nivel] || nivelAlerta.label;
         const dias = formatDiasRestantes(selectedInsumo);
+        const relTime = ultimoMovimiento ? formatRelativeTime(ultimoMovimiento.fecha, ultimoMovimiento.hora) : null;
+
         return (
           <div className="modal-overlay" onClick={() => setShowDetalle(false)}>
             <div className="modal-content modal-large" onClick={e => e.stopPropagation()}>
               <div className="modal-header">
-                <h3 className="h5 mb-0">{selectedInsumo.nombre}</h3>
-                <button type="button" className="btn-close" onClick={() => setShowDetalle(false)}></button>
+                <div>
+                  <h3 className="h5 mb-0">{selectedInsumo.nombre}</h3>
+                  <span className="detalle-insumo__subtitle">{selectedInsumo.tipo_insumo}</span>
+                </div>
+                <div className="d-flex align-items-center gap-2">
+                  <span className={`detalle-insumo__status-pill detalle-insumo__status-pill--${nivelAlerta.nivel}`}>
+                    {nivelDisplay}
+                  </span>
+                  <button type="button" className="btn-close" onClick={() => setShowDetalle(false)}></button>
+                </div>
               </div>
               <div className="modal-body">
                 <div className="detalle-insumo">
-                  <div className="detalle-insumo__header">
-                    <span className="insumo-tipo-badge">{selectedInsumo.tipo_insumo}</span>
-                    <span className={`insumo-badge insumo-badge--${nivelAlerta.nivel}`}>{nivelAlerta.label}</span>
-                  </div>
-
-                  <div className="detalle-insumo__gauge-row">
-                    <div className="detalle-insumo__gauge">
-                      <SiloGauge porcentaje={porcentaje} stockClass={stockClass} />
-                    </div>
-                    <div className="detalle-insumo__gauge-info">
+                  <div className="detalle-insumo__grid">
+                    <div className="detalle-insumo__info">
                       <span className="detalle-insumo__pct">{porcentaje}%</span>
                       <span className="detalle-insumo__pct-label">Nivel actual</span>
-                    </div>
-                  </div>
+                      <span className={`detalle-insumo__status-pill detalle-insumo__status-pill--${nivelAlerta.nivel} detalle-insumo__status-pill--inline`}>
+                        Stock {nivelDisplay.toLowerCase()}
+                      </span>
 
-                  <div className="detalle-insumo__stats">
-                    <div className="detalle-insumo__stat">
-                      <span className="detalle-insumo__stat-label">Contenido</span>
-                      <strong className="detalle-insumo__stat-value">
-                        {formatNumber(selectedInsumo.stock_actual, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} {selectedInsumo.unidad}
-                      </strong>
-                    </div>
-                    <div className="detalle-insumo__stat">
-                      <span className="detalle-insumo__stat-label">Capacidad total</span>
-                      <strong className="detalle-insumo__stat-value">
-                        {formatNumber(selectedInsumo.capacidad_maxima, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} {selectedInsumo.unidad}
-                      </strong>
-                    </div>
-                    <div className="detalle-insumo__stat">
-                      <span className="detalle-insumo__stat-label">Días restantes</span>
-                      <strong className="detalle-insumo__stat-value">{dias}</strong>
-                    </div>
-                    <div className="detalle-insumo__stat">
-                      <span className="detalle-insumo__stat-label">Precio/kg</span>
-                      <strong className="detalle-insumo__stat-value">
-                        {costosInsumos[selectedInsumo.id] !== undefined
-                          ? `US$${parseFloat(costosInsumos[selectedInsumo.id]).toFixed(2)}`
-                          : <span style={{ color: 'var(--text-light)', fontWeight: 400 }}>—</span>}
-                      </strong>
-                    </div>
-                    {selectedInsumo.kg_materia_seca_disponible !== null && selectedInsumo.kg_materia_seca_disponible !== undefined && (
-                      <div className="detalle-insumo__stat">
-                        <span className="detalle-insumo__stat-label">MS disponible</span>
-                        <strong className="detalle-insumo__stat-value">
-                          {formatNumber(selectedInsumo.kg_materia_seca_disponible, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} kg
-                        </strong>
+                      <div className="detalle-insumo__stats">
+                        <div className="detalle-insumo__stat">
+                          <span className="detalle-insumo__stat-label">Contenido</span>
+                          <strong className="detalle-insumo__stat-value">
+                            {formatNumber(selectedInsumo.stock_actual, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} {selectedInsumo.unidad}
+                          </strong>
+                        </div>
+                        <div className="detalle-insumo__stat">
+                          <span className="detalle-insumo__stat-label">Capacidad total</span>
+                          <strong className="detalle-insumo__stat-value">
+                            {formatNumber(selectedInsumo.capacidad_maxima, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} {selectedInsumo.unidad}
+                          </strong>
+                        </div>
+                        <div className="detalle-insumo__stat">
+                          <span className="detalle-insumo__stat-label">Días restantes</span>
+                          <strong className="detalle-insumo__stat-value">{dias}</strong>
+                        </div>
+                        <div className="detalle-insumo__stat">
+                          <span className="detalle-insumo__stat-label">Precio/kg</span>
+                          <strong className="detalle-insumo__stat-value">
+                            {costosInsumos[selectedInsumo.id] !== undefined
+                              ? `US$${parseFloat(costosInsumos[selectedInsumo.id]).toFixed(2)}`
+                              : <span style={{ color: 'var(--text-light)', fontWeight: 400 }}>—</span>}
+                          </strong>
+                        </div>
+                        {selectedInsumo.kg_materia_seca_disponible !== null && selectedInsumo.kg_materia_seca_disponible !== undefined && (
+                          <div className="detalle-insumo__stat">
+                            <span className="detalle-insumo__stat-label">MS disponible</span>
+                            <strong className="detalle-insumo__stat-value">
+                              {formatNumber(selectedInsumo.kg_materia_seca_disponible, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} kg
+                            </strong>
+                          </div>
+                        )}
                       </div>
-                    )}
+                    </div>
+
+                    <div className="detalle-insumo__visual">
+                      <SiloIllustration porcentaje={porcentaje} stockClass={stockClass} />
+                    </div>
                   </div>
 
                   <div className="detalle-insumo__ultimo-mov">
-                    {ultimoMovimiento === undefined && 'Cargando último movimiento...'}
+                    <CheckCircle2 size={14} aria-hidden="true" />
+                    {ultimoMovimiento === undefined && 'Cargando actividad...'}
                     {ultimoMovimiento === null && 'Sin movimientos registrados'}
-                    {ultimoMovimiento && (() => {
-                      const tipoLabels = { ingreso: 'Ingreso', consumo: 'Consumo', ajuste_positivo: 'Ajuste +', ajuste_negativo: 'Ajuste -' };
-                      return `Último movimiento: ${tipoLabels[ultimoMovimiento.tipo] || ultimoMovimiento.tipo} el ${ultimoMovimiento.fecha?.split('T')[0]} ${ultimoMovimiento.hora?.substring(0, 5) || ''}`;
-                    })()}
+                    {ultimoMovimiento && `Actualizado ${relTime || 'recientemente'}`}
                   </div>
                 </div>
 
