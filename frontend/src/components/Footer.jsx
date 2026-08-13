@@ -3,18 +3,18 @@ import '../styles/footer.css';
 
 export default function Footer() {
   const gmailComposeUrl =
-    'https://mail.google.com/mail/?view=cm&fs=1&to=sicodietapp@gmail.com&su=Consulta%20SiCoDiEt';
+    'https://mail.google.com/mail/?view=cm&fs=1&to=sicodietapp@gmail.com&su=Consulta%20Sicodiet';
 
   return (
     <footer className="login-footer">
       <div className="footer-content">
         <div className="footer-brand">
-          <h4>SiCoDiEt</h4>
+          <h4>Sicodiet</h4>
           <p>Sistema de Consumo Diario del Establecimiento</p>
         </div>
         <div className="footer-contact">
           <h4>Contacto</h4>
-          <p><strong>SiCoDiEt</strong></p>
+          <p><strong>Sicodiet</strong></p>
           <p>+598 091 840 339</p>
           <p>sicodietapp@gmail.com</p>
         </div>
@@ -31,7 +31,7 @@ export default function Footer() {
         </div>
       </div>
       <div className="footer-bottom">
-        <p>© 2026 SiCoDiEt. Todos los derechos reservados.</p>
+        <p>© 2026 Sicodiet. Todos los derechos reservados.</p>
         <p style={{ marginTop: '0.375rem' }}>
           <Link to="/privacidad" style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.75rem', textDecoration: 'none' }}
             onMouseEnter={e => e.target.style.color = 'rgba(255,255,255,0.7)'}

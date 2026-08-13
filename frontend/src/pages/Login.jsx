@@ -39,15 +39,15 @@ export default function Login() {
   }, []);
 
   useEffect(() => {
-    document.title = 'Iniciar Sesión - SiCoDiEt';
+    document.title = 'Iniciar Sesión - Sicodiet';
     let metaDesc = document.querySelector('meta[name="description"]');
     if (!metaDesc) {
       metaDesc = document.createElement('meta');
       metaDesc.name = 'description';
       document.head.appendChild(metaDesc);
     }
-    metaDesc.content = 'Inicia sesión en SiCoDiEt, el sistema de control y distribución de alimentos para establecimientos.';
-    return () => { document.title = 'SiCoDiEt'; };
+    metaDesc.content = 'Inicia sesión en Sicodiet, el sistema de control y distribución de alimentos para establecimientos.';
+    return () => { document.title = 'Sicodiet'; };
   }, []);
 
   const handleSubmit = async (e) => {
@@ -98,7 +98,7 @@ export default function Login() {
       <div className="login-wrapper">
         <div className="login-card">
           <div className="login-header">
-            <img src={logoFull} alt="SiCoDiEt" className="login-logo" />
+            <img src={logoFull} alt="Sicodiet" className="login-logo" />
             <p className="login-subtitle">Inicia sesión para acceder al sistema</p>
           </div>
 

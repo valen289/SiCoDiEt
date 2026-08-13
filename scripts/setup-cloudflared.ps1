@@ -1,11 +1,11 @@
 # ==========================================
-# SiCoDiEt - Configuración de Cloudflare Tunnel
+# Sicodiet - Configuración de Cloudflare Tunnel
 # ==========================================
 # Este script configura Cloudflare Tunnel para acceso remoto permanente
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "=== Configuración de Cloudflare Tunnel para SiCoDiEt ===" -ForegroundColor Cyan
+Write-Host "=== Configuración de Cloudflare Tunnel para Sicodiet ===" -ForegroundColor Cyan
 Write-Host ""
 
 # Verificar si cloudflared está instalado

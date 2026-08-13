@@ -31,7 +31,7 @@ Configura Cloudflare Tunnel para acceso remoto permanente.
 
 ## start-local.ps1
 
-Inicia SiCoDiEt localmente sin Docker.
+Inicia Sicodiet localmente sin Docker.
 
 **Uso:**
 ```powershell

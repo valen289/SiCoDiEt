@@ -22,7 +22,7 @@ async function obtenerNombreTambo(tamboId) {
 // periodo (si aplica) y fecha de generacion.
 function buildHeader({ tamboNombre, titulo, periodo }) {
   return [
-    { text: 'SiCoDiEt', style: 'marca' },
+    { text: 'Sicodiet', style: 'marca' },
     { text: tamboNombre, style: 'tambo' },
     { text: titulo, style: 'titulo' },
     {

@@ -45,9 +45,9 @@ export default function Profile() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    document.title = 'Mi Perfil - SiCoDiEt';
+    document.title = 'Mi Perfil - Sicodiet';
     return () => {
-      document.title = 'SiCoDiEt';
+      document.title = 'Sicodiet';
     };
   }, []);
 

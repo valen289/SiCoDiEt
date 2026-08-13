@@ -1,5 +1,5 @@
 # ============================================================
-# SiCoDiEt - Exportar base de datos local para importar en Railway
+# Sicodiet - Exportar base de datos local para importar en Railway
 # Uso: .\scripts\export-for-railway.ps1
 # ============================================================
 
@@ -86,7 +86,7 @@ Write-Host "     npm install -g @railway/cli"
 Write-Host ""
 Write-Host "  2. Conectarse:"
 Write-Host "     railway login"
-Write-Host "     railway link   # elegir el proyecto SiCoDiEt"
+Write-Host "     railway link   # elegir el proyecto Sicodiet"
 Write-Host ""
 Write-Host "  3. Importar los datos:"
 Write-Host "     railway run mysql `$MYSQLDATABASE < pilot-data.sql"

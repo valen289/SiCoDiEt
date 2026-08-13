@@ -22,14 +22,14 @@ export default function ResetPassword() {
   const [validating, setValidating] = useState(true);
 
   useEffect(() => {
-    document.title = 'Nueva Contraseña - SiCoDiEt';
+    document.title = 'Nueva Contraseña - Sicodiet';
     if (!token) {
       setError('Token no proporcionado');
       setValidating(false);
     } else {
       setValidating(false);
     }
-    return () => { document.title = 'SiCoDiEt'; };
+    return () => { document.title = 'Sicodiet'; };
   }, [token]);
 
   const handleSubmit = async (e) => {
@@ -80,7 +80,7 @@ export default function ResetPassword() {
       <div className="login-wrapper">
         <div className="login-card">
           <div className="login-header">
-            <img src={logoFull} alt="SiCoDiEt" className="login-logo" />
+            <img src={logoFull} alt="Sicodiet" className="login-logo" />
             <p className="login-subtitle">Crear nueva contraseña</p>
           </div>
 

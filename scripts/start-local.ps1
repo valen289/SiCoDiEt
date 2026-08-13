@@ -1,5 +1,5 @@
 # ==========================================
-# SiCoDiEt - Inicio local sin Docker
+# Sicodiet - Inicio local sin Docker
 # ==========================================
 
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -8,7 +8,7 @@ $frontendPath = Join-Path $projectRoot 'frontend'
 $backendPath = Join-Path $projectRoot 'backend'
 $publicPath = Join-Path $backendPath 'public'
 
-Write-Host "=== Iniciando SiCoDiEt local sin Docker ===" -ForegroundColor Cyan
+Write-Host "=== Iniciando Sicodiet local sin Docker ===" -ForegroundColor Cyan
 Write-Host ""
 
 if (-Not (Test-Path $frontendPath)) {

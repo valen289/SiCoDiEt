@@ -128,7 +128,7 @@ export default function Register() {
       <div className="login-wrapper">
         <div className="login-card register-card">
           <div className="login-header">
-            <img src={logoFull} alt="SiCoDiEt" className="login-logo" />
+            <img src={logoFull} alt="Sicodiet" className="login-logo" />
             <p className="login-subtitle">Crear nueva cuenta</p>
           </div>
 

@@ -1,7 +1,7 @@
 {
   "name": "sicodiet-backend",
   "version": "1.0.0",
-  "description": "Backend API for SiCoDiEt - Sistema de Control y Distribucion de Alimentos y Tambo",
+  "description": "Backend API for Sicodiet - Sistema de Control y Distribucion de Alimentos y Tambo",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",

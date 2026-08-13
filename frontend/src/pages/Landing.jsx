@@ -45,7 +45,7 @@ const features = [
 export default function Landing() {
   useSEO({
     title: 'Gestión de alimentación y stock para establecimientos',
-    description: 'SiCoDiEt es el sistema para controlar el stock de alimento, el consumo diario por lote y los costos de tu establecimiento, todo en un solo lugar.',
+    description: 'Sicodiet es el sistema para controlar el stock de alimento, el consumo diario por lote y los costos de tu establecimiento, todo en un solo lugar.',
     keywords: 'establecimiento, ganado, alimentos, stock, consumo, costos, gestion, sicodiet',
   });
 
@@ -53,7 +53,7 @@ export default function Landing() {
     const structuredData = {
       '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
-      name: 'SiCoDiEt',
+      name: 'Sicodiet',
       applicationCategory: 'BusinessApplication',
       operatingSystem: 'Web',
       description: 'Sistema de control de stock de alimento, consumo diario y costos para establecimientos.',
@@ -68,7 +68,7 @@ export default function Landing() {
   return (
     <div className="landing-page">
       <nav className="landing-nav">
-        <img src={logoFull} alt="SiCoDiEt" className="landing-logo" />
+        <img src={logoFull} alt="Sicodiet" className="landing-logo" />
         <Link to="/login" className="btn btn-outline-secondary btn-sm">Ingresar</Link>
       </nav>
 
@@ -99,7 +99,7 @@ export default function Landing() {
       </header>
 
       <section className="landing-features" aria-label="Funcionalidades">
-        <h2>Qué hace SiCoDiEt por tu establecimiento</h2>
+        <h2>Qué hace Sicodiet por tu establecimiento</h2>
         <div className="landing-features-grid">
           {features.map(({ icon: Icon, title, desc }) => (
             <article key={title} className="landing-feature-card">

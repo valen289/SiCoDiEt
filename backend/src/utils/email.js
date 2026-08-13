@@ -3,12 +3,12 @@
 // IPv4/IPv6. La salida es mandar el email por la API HTTP de Brevo (puerto 443,
 // siempre abierto), en vez de hablar SMTP directamente.
 const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
-const FROM_RAW = process.env.EMAIL_FROM || `"SiCoDiEt" <${process.env.EMAIL_USER || ''}>`;
+const FROM_RAW = process.env.EMAIL_FROM || `"Sicodiet" <${process.env.EMAIL_USER || ''}>`;
 
 function parseSender(raw) {
   const match = raw.match(/^"?([^"<]*)"?\s*<(.+)>$/);
-  if (match) return { name: match[1].trim() || 'SiCoDiEt', email: match[2].trim() };
-  return { name: 'SiCoDiEt', email: raw.trim() };
+  if (match) return { name: match[1].trim() || 'Sicodiet', email: match[2].trim() };
+  return { name: 'Sicodiet', email: raw.trim() };
 }
 
 const isEmailConfigured = () => Boolean(process.env.BREVO_API_KEY);
@@ -45,13 +45,13 @@ const sendPasswordResetEmail = async (email, token) => {
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="background: #2e7d32; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
-        <h1 style="color: #ffffff; margin: 0; font-size: 24px;">SiCoDiEt</h1>
+        <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Sicodiet</h1>
         <p style="color: rgba(255,255,255,0.8); margin: 8px 0 0; font-size: 14px;">Sistema de Control y Distribucion de Alimentos y Establecimiento</p>
       </div>
       <div style="background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; border-top: none;">
         <h2 style="color: #212529; margin: 0 0 16px; font-size: 20px;">Restablecer contraseña</h2>
         <p style="color: #495057; font-size: 14px; line-height: 1.6; margin: 0 0 24px;">
-          Hemos recibido una solicitud para restablecer la contraseña de tu cuenta en SiCoDiEt.
+          Hemos recibido una solicitud para restablecer la contraseña de tu cuenta en Sicodiet.
         </p>
         <p style="color: #495057; font-size: 14px; line-height: 1.6; margin: 0 0 24px;">
           Haz clic en el siguiente botón para crear una nueva contraseña. Este enlace es válido por <strong>1 hora</strong>.
@@ -77,17 +77,17 @@ const sendPasswordResetEmail = async (email, token) => {
         </div>
       </div>
       <div style="background: #f8f9fa; padding: 16px; text-align: center; border-radius: 0 0 8px 8px; border: 1px solid #e0e0e0; border-top: none;">
-        <p style="color: #6c757d; font-size: 12px; margin: 0;">© 2026 SiCoDiEt. Todos los derechos reservados.</p>
+        <p style="color: #6c757d; font-size: 12px; margin: 0;">© 2026 Sicodiet. Todos los derechos reservados.</p>
       </div>
     </div>
   `;
 
-  return enviarEmail({ to: email, subject: 'Restablecer contraseña - SiCoDiEt', html });
+  return enviarEmail({ to: email, subject: 'Restablecer contraseña - Sicodiet', html });
 };
 
 const sendStockCriticoEmail = async (destinatarios, { nombreInsumo, diasRestantes, stockActual, unidad }) => {
   const appUrl = (process.env.FRONTEND_URL || 'http://localhost:3001').split(',')[0].trim();
-  const subject = `Stock crítico: ${nombreInsumo} - SiCoDiEt`;
+  const subject = `Stock crítico: ${nombreInsumo} - Sicodiet`;
 
   if (!isEmailConfigured()) {
     console.log('[email] BREVO_API_KEY no configurada, no se envía email real. Contenido:');
@@ -99,7 +99,7 @@ const sendStockCriticoEmail = async (destinatarios, { nombreInsumo, diasRestante
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="background: #c0392b; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
-        <h1 style="color: #ffffff; margin: 0; font-size: 24px;">SiCoDiEt</h1>
+        <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Sicodiet</h1>
         <p style="color: rgba(255,255,255,0.85); margin: 8px 0 0; font-size: 14px;">Alerta de stock crítico</p>
       </div>
       <div style="background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; border-top: none;">
@@ -111,12 +111,12 @@ const sendStockCriticoEmail = async (destinatarios, { nombreInsumo, diasRestante
         </p>
         <div style="text-align: center; margin: 32px 0;">
           <a href="${appUrl}/alertas" style="display: inline-block; background: #c0392b; color: #ffffff; padding: 12px 32px; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600;">
-            Ver alertas en SiCoDiEt
+            Ver alertas en Sicodiet
           </a>
         </div>
       </div>
       <div style="background: #f8f9fa; padding: 16px; text-align: center; border-radius: 0 0 8px 8px; border: 1px solid #e0e0e0; border-top: none;">
-        <p style="color: #6c757d; font-size: 12px; margin: 0;">© 2026 SiCoDiEt. Todos los derechos reservados.</p>
+        <p style="color: #6c757d; font-size: 12px; margin: 0;">© 2026 Sicodiet. Todos los derechos reservados.</p>
       </div>
     </div>
   `;
@@ -125,7 +125,7 @@ const sendStockCriticoEmail = async (destinatarios, { nombreInsumo, diasRestante
 };
 
 const sendTwoFactorCodeEmail = async (email, code) => {
-  const subject = 'Tu código de verificación - SiCoDiEt';
+  const subject = 'Tu código de verificación - Sicodiet';
 
   if (!isEmailConfigured()) {
     console.log('[email] BREVO_API_KEY no configurada, no se envía email real. Contenido:');
@@ -136,13 +136,13 @@ const sendTwoFactorCodeEmail = async (email, code) => {
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="background: #2e7d32; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
-        <h1 style="color: #ffffff; margin: 0; font-size: 24px;">SiCoDiEt</h1>
+        <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Sicodiet</h1>
         <p style="color: rgba(255,255,255,0.8); margin: 8px 0 0; font-size: 14px;">Verificación en dos pasos</p>
       </div>
       <div style="background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; border-top: none;">
         <h2 style="color: #212529; margin: 0 0 16px; font-size: 20px;">Tu código de verificación</h2>
         <p style="color: #495057; font-size: 14px; line-height: 1.6; margin: 0 0 24px;">
-          Ingresá este código para completar el inicio de sesión en SiCoDiEt. Es válido por <strong>10 minutos</strong>.
+          Ingresá este código para completar el inicio de sesión en Sicodiet. Es válido por <strong>10 minutos</strong>.
         </p>
         <div style="text-align: center; margin: 32px 0;">
           <span style="display: inline-block; background: #f8f9fa; color: #2e7d32; padding: 16px 32px; border-radius: 6px; font-size: 32px; font-weight: 700; letter-spacing: 8px;">
@@ -156,7 +156,7 @@ const sendTwoFactorCodeEmail = async (email, code) => {
         </div>
       </div>
       <div style="background: #f8f9fa; padding: 16px; text-align: center; border-radius: 0 0 8px 8px; border: 1px solid #e0e0e0; border-top: none;">
-        <p style="color: #6c757d; font-size: 12px; margin: 0;">© 2026 SiCoDiEt. Todos los derechos reservados.</p>
+        <p style="color: #6c757d; font-size: 12px; margin: 0;">© 2026 Sicodiet. Todos los derechos reservados.</p>
       </div>
     </div>
   `;

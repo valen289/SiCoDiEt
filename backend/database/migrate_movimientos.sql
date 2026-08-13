@@ -1,5 +1,5 @@
 -- ==========================================
--- SiCoDiEt - Migración a movimientos_stock
+-- Sicodiet - Migración a movimientos_stock
 -- ==========================================
 -- Ejecutar este script en bases de datos existentes
 -- para migrar datos de las 3 tablas antiguas a la nueva

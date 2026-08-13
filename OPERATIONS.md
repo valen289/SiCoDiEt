@@ -1,4 +1,4 @@
-# Operaciones — SiCoDiEt en producción
+# Operaciones — Sicodiet en producción
 
 ## Backups
 
@@ -40,7 +40,7 @@ servicio MySQL → pestaña Backups), hay un backup independiente y automático:
 
 ## Si el productor reporta un error
 
-1. Railway → servicio **SiCoDiEt** (backend) → pestaña **Deployments** → el
+1. Railway → servicio **Sicodiet** (backend) → pestaña **Deployments** → el
    deployment activo → **Deploy Logs** (errores en tiempo de arranque) o
    **HTTP Logs** (errores por request, con status code y timestamp).
 2. Cruzar el timestamp que reporta el productor con los logs de esa franja.

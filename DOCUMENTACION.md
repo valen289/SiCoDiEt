@@ -1,10 +1,10 @@
-# Documentacion del proyecto SiCoDiEt
+# Documentacion del proyecto Sicodiet
 
 Fecha: 2026-06-01
 
 ## 1. Descripcion general
 
-SiCoDiEt significa Sistema de Control y Distribucion de Alimentos y Tambo. Es una aplicacion web para gestionar alimentos e insumos de un tambo, controlar stock, registrar ingresos de alimentos, registrar consumos por lote de ganado y consultar historiales operativos.
+Sicodiet significa Sistema de Control y Distribucion de Alimentos y Tambo. Es una aplicacion web para gestionar alimentos e insumos de un tambo, controlar stock, registrar ingresos de alimentos, registrar consumos por lote de ganado y consultar historiales operativos.
 
 El sistema esta dividido en dos partes principales:
 
@@ -158,7 +158,7 @@ Observacion: el frontend activo en `App.jsx` muestra las rutas `/login`, `/regis
 | Campo | Detalle |
 | --- | --- |
 | Actor principal | Usuario nuevo |
-| Objetivo | Crear una cuenta en SiCoDiEt. |
+| Objetivo | Crear una cuenta en Sicodiet. |
 | Precondiciones | La cedula no debe estar registrada previamente. |
 | Flujo principal | 1. El actor completa nombre, apellido, rol, cedula, email, telefono y password. 2. El sistema valida que las passwords coincidan en frontend. 3. La API valida campos requeridos. 4. La API cifra la password. 5. La API guarda el usuario. 6. El frontend redirige al login. |
 | Flujo alternativo | Si la cedula ya existe o los datos no son validos, se muestra un error. |

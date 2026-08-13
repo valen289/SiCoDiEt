@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 
 export function useSEO({ title, description, canonical, keywords, ogImage } = {}) {
   useEffect(() => {
-    const baseTitle = 'SiCoDiEt';
+    const baseTitle = 'Sicodiet';
     const fullTitle = title ? `${title} - ${baseTitle}` : `${baseTitle} - Sistema de Control y Distribución de Alimentos y Establecimiento`;
     document.title = fullTitle;
 

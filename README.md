@@ -1,4 +1,4 @@
-# SiCoDiEt
+# Sicodiet
 
 Sistema de Consumo diario del establecimiento. Gestión de stock de
 alimentos, dietas, consumos, compras y costos para producción lechera/ganadera.

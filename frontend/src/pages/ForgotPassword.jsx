@@ -13,8 +13,8 @@ export default function ForgotPassword() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    document.title = 'Recuperar Contraseña - SiCoDiEt';
-    return () => { document.title = 'SiCoDiEt'; };
+    document.title = 'Recuperar Contraseña - Sicodiet';
+    return () => { document.title = 'Sicodiet'; };
   }, []);
 
   const handleSubmit = async (e) => {
@@ -39,7 +39,7 @@ export default function ForgotPassword() {
       <div className="login-wrapper">
         <div className="login-card">
           <div className="login-header">
-            <img src={logoFull} alt="SiCoDiEt" className="login-logo" />
+            <img src={logoFull} alt="Sicodiet" className="login-logo" />
             <p className="login-subtitle">Recuperar contraseña</p>
           </div>
 

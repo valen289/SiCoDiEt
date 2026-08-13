@@ -273,7 +273,7 @@ export default function Layout() {
             <button className="menu-toggle" onClick={() => setDrawerOpen(true)} aria-label="Menu">
               <Menu size={22} />
             </button>
-            <img src={logoFull} alt="SiCoDiEt" className="header-logo" />
+            <img src={logoFull} alt="Sicodiet" className="header-logo" />
           </div>
           <div className="header-right">
             <div className="user-info" onClick={handleUserClick} role="button" tabIndex={0} aria-label="Ir a perfil">
@@ -315,7 +315,7 @@ export default function Layout() {
       {/* Mobile Drawer */}
       <aside className={`drawer ${drawerOpen ? 'open' : ''}`}>
         <div className="drawer-header">
-          <h2 className="drawer-logo">SiCoDiEt</h2>
+          <h2 className="drawer-logo">Sicodiet</h2>
           <button className="drawer-close" onClick={() => setDrawerOpen(false)} aria-label="Cerrar">
             <X size={22} />
           </button>

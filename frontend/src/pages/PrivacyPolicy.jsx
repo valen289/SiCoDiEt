@@ -6,15 +6,15 @@ import '../styles/landing.css';
 
 export default function PrivacyPolicy() {
   useSEO({
-    title: 'Política de Privacidad — SiCoDiEt',
-    description: 'Política de privacidad y tratamiento de datos personales de SiCoDiEt, conforme a la Ley 18.331 (Uruguay) y Ley 25.326 (Argentina).',
+    title: 'Política de Privacidad — Sicodiet',
+    description: 'Política de privacidad y tratamiento de datos personales de Sicodiet, conforme a la Ley 18.331 (Uruguay) y Ley 25.326 (Argentina).',
   });
 
   return (
     <div className="landing-page">
       <nav className="landing-nav">
         <Link to="/">
-          <img src={logoFull} alt="SiCoDiEt" className="landing-logo" />
+          <img src={logoFull} alt="Sicodiet" className="landing-logo" />
         </Link>
         <Link to="/login" className="btn btn-outline-secondary btn-sm">Ingresar</Link>
       </nav>
@@ -29,13 +29,13 @@ export default function PrivacyPolicy() {
 
         <Section title="1. Responsable del tratamiento">
           <p>
-            SiCoDiEt es el responsable del tratamiento de los datos personales recabados a través de esta aplicación.
+            Sicodiet es el responsable del tratamiento de los datos personales recabados a través de esta aplicación.
             Podés contactarnos en <a href="mailto:sicodietapp@gmail.com">sicodietapp@gmail.com</a>.
           </p>
         </Section>
 
         <Section title="2. Datos que recopilamos">
-          <p>Al registrarte en SiCoDiEt recopilamos únicamente los datos necesarios para prestarte el servicio:</p>
+          <p>Al registrarte en Sicodiet recopilamos únicamente los datos necesarios para prestarte el servicio:</p>
           <ul>
             <li><strong>Cédula de identidad</strong> — identificador único de usuario.</li>
             <li><strong>Nombre completo</strong> — para identificarte dentro del sistema.</li>
@@ -45,7 +45,7 @@ export default function PrivacyPolicy() {
           </ul>
           <p>No recopilamos ni almacenamos datos de tarjetas de crédito ni instrumentos de pago. Cuando se implemente
           el cobro de suscripciones, el procesamiento de pagos será delegado a proveedores certificados PCI DSS
-          (como Stripe o MercadoPago). SiCoDiEt únicamente recibirá un identificador de suscripción, nunca datos sensibles de la tarjeta.</p>
+          (como Stripe o MercadoPago). Sicodiet únicamente recibirá un identificador de suscripción, nunca datos sensibles de la tarjeta.</p>
         </Section>
 
         <Section title="3. Finalidad del tratamiento">

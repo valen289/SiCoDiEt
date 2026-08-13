@@ -1,5 +1,5 @@
 # ==========================================
-# SiCoDiEt - Dockerfile de producción
+# Sicodiet - Dockerfile de producción
 # ==========================================
 
 FROM node:20-alpine AS frontend-builder
