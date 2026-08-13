@@ -8,7 +8,7 @@ const COLUMNAS_PERMITIDAS = new Set([
   // insumos
   'stock_actual', 'precio_por_kg', 'stock_minimo', 'capacidad_maxima',
   'dias_restantes', 'consumo_promedio_diario', 'dias_restantes_origen',
-  'unidad', 'tipo_insumo', 'categoria',
+  'unidad', 'peso_unidad', 'tipo_insumo', 'categoria',
   // lotes
   'cantidad_animales', 'etapa_lactancia', 'objetivo_productivo', 'descripcion',
   // dietas

@@ -1,5 +1,6 @@
 const pool = require('../config/database');
 const { sendStockCriticoEmail } = require('./email');
+const { kgAUnidadNativa } = require('./conversionUnidades');
 
 async function obtenerDestinatariosAlerta(tamboId, executor) {
   const [usuarios] = await executor(
@@ -117,8 +118,11 @@ async function calcularDiasRestantes(stockActual, consumoEstimado) {
 async function calcularEstadoActual(insumo, executor = (sql, params) => pool.query(sql, params)) {
   const stockActual = parseFloat(insumo.stock_actual);
   const { consumo, origen } = await calcularConsumoConOrigen(insumo.id, executor);
-  const diasRestantes = await calcularDiasRestantes(stockActual, consumo);
-  return { dias_restantes: diasRestantes, consumo_promedio_diario: consumo, dias_restantes_origen: origen };
+  // consumo viene en kg (la dieta se formula en kg); se convierte a la unidad nativa
+  // del insumo (ej. fardos) para poder compararlo contra el stock fisico.
+  const consumoNativo = kgAUnidadNativa(consumo, insumo);
+  const diasRestantes = await calcularDiasRestantes(stockActual, consumoNativo);
+  return { dias_restantes: diasRestantes, consumo_promedio_diario: consumoNativo, dias_restantes_origen: origen };
 }
 
 function getNivelAlerta(diasRestantes) {
@@ -141,7 +145,8 @@ async function verificarYGenerarAlertas(insumoId, connection) {
     const insumo = insumos[0];
     const stockActual = parseFloat(insumo.stock_actual);
 
-    const { consumo: consumoPromedioDiario, origen } = await calcularConsumoConOrigen(insumoId, executor);
+    const { consumo, origen } = await calcularConsumoConOrigen(insumoId, executor);
+    const consumoPromedioDiario = kgAUnidadNativa(consumo, insumo);
 
     const diasRestantes = await calcularDiasRestantes(stockActual, consumoPromedioDiario);
 

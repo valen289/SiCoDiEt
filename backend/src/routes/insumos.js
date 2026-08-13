@@ -6,6 +6,7 @@ const { body, validationResult } = require('express-validator');
 const { verificarYGenerarAlertas, getNivelAlerta, calcularEstadoActual } = require('../utils/alertas');
 const { logActividad } = require('../utils/actividad');
 const { buildUpdateSet } = require('../utils/queryBuilder');
+const { kgAUnidadNativa, unidadNativaAKg } = require('../utils/conversionUnidades');
 
 router.use(authenticateToken);
 
@@ -36,10 +37,11 @@ router.get('/', async (req, res) => {
       insumos.map(async (insumo) => ({
         ...insumo,
         ...(await calcularEstadoActual(insumo)),
-        // kg de materia seca disponible = stock fisico x %MS. Solo se calcula si el
-        // insumo ya tiene %MS cargado en parametros nutricionales; si no, no se fuerza.
+        // kg de materia seca disponible = stock en kg x %MS. Si el insumo se lleva en una
+        // unidad fisica distinta de kg (ej. fardos), primero hay que pasar el stock a kg.
+        // Solo se calcula si el insumo ya tiene %MS cargado en parametros nutricionales.
         kg_materia_seca_disponible: insumo.materia_seca_porcentaje
-          ? parseFloat(insumo.stock_actual) * (parseFloat(insumo.materia_seca_porcentaje) / 100)
+          ? unidadNativaAKg(parseFloat(insumo.stock_actual), insumo) * (parseFloat(insumo.materia_seca_porcentaje) / 100)
           : null,
       }))
     );
@@ -94,6 +96,7 @@ router.post('/', duenoEncargado, [
   body('tipo_insumo').notEmpty().withMessage('Tipo requerido'),
   body('categoria').optional(),
   body('unidad').notEmpty().withMessage('Unidad requerida'),
+  body('peso_unidad').optional({ checkFalsy: true }).isFloat({ min: 0.001 }).withMessage('Peso por unidad debe ser mayor a 0'),
   body('capacidad_maxima').isFloat({ min: 0 }).withMessage('Capacidad maxima debe ser mayor a 0'),
   body('stock_minimo').isFloat({ min: 0 }).withMessage('Stock minimo debe ser mayor o igual a 0')
 ], async (req, res) => {
@@ -103,11 +106,11 @@ router.post('/', duenoEncargado, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { nombre, tipo_insumo, categoria, unidad, capacidad_maxima, stock_actual = 0, stock_minimo } = req.body;
+    const { nombre, tipo_insumo, categoria, unidad, peso_unidad, capacidad_maxima, stock_actual = 0, stock_minimo } = req.body;
 
     const [result] = await pool.query(
-      'INSERT INTO insumos (tambo_id, nombre, tipo_insumo, categoria, unidad, capacidad_maxima, stock_actual, stock_minimo) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [req.user.tambo_id, nombre, tipo_insumo, categoria || null, unidad, capacidad_maxima, stock_actual, stock_minimo]
+      'INSERT INTO insumos (tambo_id, nombre, tipo_insumo, categoria, unidad, peso_unidad, capacidad_maxima, stock_actual, stock_minimo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [req.user.tambo_id, nombre, tipo_insumo, categoria || null, unidad, peso_unidad || null, capacidad_maxima, stock_actual, stock_minimo]
     );
 
     await verificarYGenerarAlertas(result.insertId);
@@ -134,6 +137,7 @@ router.put('/:id', duenoEncargado, [
   body('tipo_insumo').optional().notEmpty(),
   body('categoria').optional(),
   body('unidad').optional().notEmpty(),
+  body('peso_unidad').optional({ nullable: true, checkFalsy: true }).isFloat({ min: 0.001 }).withMessage('Peso por unidad debe ser mayor a 0'),
   body('capacidad_maxima').optional().isFloat({ min: 0 }),
   body('stock_minimo').optional().isFloat({ min: 0 })
 ], async (req, res) => {
@@ -143,8 +147,12 @@ router.put('/:id', duenoEncargado, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { nombre, tipo_insumo, categoria, unidad, capacidad_maxima, stock_minimo } = req.body;
-    const { setClause, values, hasUpdates } = buildUpdateSet({ nombre, tipo_insumo, categoria, unidad, capacidad_maxima, stock_minimo });
+    const { nombre, tipo_insumo, categoria, unidad, peso_unidad, capacidad_maxima, stock_minimo } = req.body;
+    const { setClause, values, hasUpdates } = buildUpdateSet({
+      nombre, tipo_insumo, categoria, unidad,
+      peso_unidad: peso_unidad !== undefined ? (peso_unidad || null) : undefined,
+      capacidad_maxima, stock_minimo,
+    });
 
     if (!hasUpdates) {
       return res.status(400).json({ error: 'No hay datos para actualizar' });
@@ -318,7 +326,7 @@ router.post('/consumo-diario', async (req, res) => {
 
         // Leer stock actual con lock
         const [insumoData] = await connection.query(
-          `SELECT stock_actual, nombre FROM insumos WHERE id = ? AND tambo_id = ? FOR UPDATE`,
+          `SELECT stock_actual, nombre, unidad, peso_unidad FROM insumos WHERE id = ? AND tambo_id = ? FOR UPDATE`,
           [insumoId, req.user.tambo_id]
         );
         if (insumoData.length === 0) {
@@ -326,13 +334,18 @@ router.post('/consumo-diario', async (req, res) => {
           return res.status(404).json({ error: `Insumo ID ${insumoId} no encontrado` });
         }
 
+        // La dieta formula en kg, pero el stock puede llevarse en otra unidad fisica
+        // (ej. fardos). diferencia esta en kg: se convierte a la unidad nativa del
+        // insumo antes de tocar el stock, para no descuadrar el inventario fisico.
+        const diferenciaNativa = kgAUnidadNativa(diferencia, insumoData[0]);
+
         const stockAnterior = parseFloat(insumoData[0].stock_actual);
-        const nuevoStock = stockAnterior - diferencia; // diferencia negativa = devuelve stock
+        const nuevoStock = stockAnterior - diferenciaNativa; // diferencia negativa = devuelve stock
 
         if (nuevoStock < 0) {
           await connection.rollback();
           return res.status(400).json({
-            error: `Stock insuficiente para "${insumoData[0].nombre}". Disponible: ${stockAnterior.toFixed(2)} kg, adicional requerido: ${diferencia.toFixed(2)} kg`
+            error: `Stock insuficiente para "${insumoData[0].nombre}". Disponible: ${stockAnterior.toFixed(2)} ${insumoData[0].unidad}, adicional requerido: ${diferenciaNativa.toFixed(2)} ${insumoData[0].unidad}`
           });
         }
 
@@ -373,7 +386,7 @@ router.post('/consumo-diario', async (req, res) => {
           `INSERT INTO movimientos_stock
            (tambo_id, insumo_id, lote_id, usuario_id, tipo, cantidad, stock_anterior, stock_posterior, observaciones, turno, fecha, hora)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURTIME())`,
-          [req.user.tambo_id, insumoId, lote_id, usuarioId, tipo, Math.abs(diferencia), stockAnterior, nuevoStock, obsMovimiento, turnoValido, fechaConsumo]
+          [req.user.tambo_id, insumoId, lote_id, usuarioId, tipo, Math.abs(diferenciaNativa), stockAnterior, nuevoStock, obsMovimiento, turnoValido, fechaConsumo]
         );
 
         await verificarYGenerarAlertas(insumoId, connection);
@@ -404,12 +417,13 @@ router.get('/resumen-diario', async (req, res) => {
 
     const [consumos] = await pool.query(
       `SELECT c.insumo_id, i.nombre as insumo_nombre, i.stock_actual, i.stock_minimo, i.capacidad_maxima,
+              i.unidad, i.peso_unidad,
               SUM(c.cantidad_kg) as consumo_total,
               COUNT(DISTINCT c.lote_id) as lotes_consumieron
        FROM consumo_diario_lote c
        JOIN insumos i ON c.insumo_id = i.id
        WHERE c.fecha = ? AND i.tambo_id = ?
-       GROUP BY c.insumo_id, i.nombre, i.stock_actual, i.stock_minimo, i.capacidad_maxima`,
+       GROUP BY c.insumo_id, i.nombre, i.stock_actual, i.stock_minimo, i.capacidad_maxima, i.unidad, i.peso_unidad`,
       [fecha, req.user.tambo_id]
     );
 
@@ -429,7 +443,10 @@ router.get('/resumen-diario', async (req, res) => {
       consumo_total_dia: consumoTotalDia,
       lotes_registrados: registros,
       insumos_consumidos: consumos.map(c => {
-        const diasRestantes = parseFloat(c.consumo_total) > 0 ? Math.floor(parseFloat(c.stock_actual) / parseFloat(c.consumo_total)) : 999;
+        // consumo_total viene en kg (dieta); se convierte a la unidad nativa del insumo
+        // (ej. fardos) para poder compararlo contra el stock fisico disponible.
+        const consumoTotalNativo = kgAUnidadNativa(parseFloat(c.consumo_total), c);
+        const diasRestantes = consumoTotalNativo > 0 ? Math.floor(parseFloat(c.stock_actual) / consumoTotalNativo) : 999;
         const nivelAlerta = getNivelAlerta(diasRestantes);
         return {
           ...c,

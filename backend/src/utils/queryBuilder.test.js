@@ -23,7 +23,7 @@ test('buildUpdateSet devuelve hasUpdates=false sin campos validos', () => {
 });
 
 test('buildUpdateSet preserva el orden de las claves en el SET', () => {
-  const { setClause, values } = buildUpdateSet({ a: 1, b: 2, c: 3 });
-  assert.equal(setClause, 'a = ?, b = ?, c = ?');
-  assert.deepEqual(values, [1, 2, 3]);
+  const { setClause, values } = buildUpdateSet({ nombre: 'a', email: 'b', telefono: 'c' });
+  assert.equal(setClause, 'nombre = ?, email = ?, telefono = ?');
+  assert.deepEqual(values, ['a', 'b', 'c']);
 });

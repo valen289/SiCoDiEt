@@ -25,6 +25,19 @@ const tiposContenedor = [
   { value: 'pastura', label: 'Pastura' },
 ];
 
+// Capacidad tipica de silo-bolsa por diametro (fuente: tabla del fabricante Pacifil).
+// kgPorMetro es el punto medio del rango — varia segun el cultivo ensilado, el
+// productor lo puede ajustar despues de elegir el diametro.
+const DIAMETROS_BOLSON = [
+  { pies: 5,  kgPorMetro: 1150, rango: '1,0 a 1,3 ton/m' },
+  { pies: 6,  kgPorMetro: 1600, rango: '1,4 a 1,8 ton/m' },
+  { pies: 8,  kgPorMetro: 2550, rango: '2,4 a 2,7 ton/m' },
+  { pies: 9,  kgPorMetro: 3100, rango: '2,9 a 3,3 ton/m' },
+  { pies: 10, kgPorMetro: 3900, rango: '3,7 a 4,1 ton/m' },
+  { pies: 12, kgPorMetro: 5650, rango: '5,4 a 5,9 ton/m' },
+  { pies: 14, kgPorMetro: 7950, rango: '7,8 a 8,1 ton/m' },
+];
+
 export default function Silos() {
   const { success, error, confirm } = useAlert();
   const { tipo: tipoFromUrl } = useParams();
@@ -69,7 +82,7 @@ export default function Silos() {
   const [showHistorial, setShowHistorial] = useState(false);
   const [editingInsumo, setEditingInsumo] = useState(null);
   const [form, setForm] = useState({
-    nombre: '', categoria: '', tipo_insumo: 'silo', unidad: 'kg',
+    nombre: '', categoria: '', tipo_insumo: 'silo', unidad: 'kg', peso_unidad: '',
     capacidad_maxima: '', stock_actual: '', stock_minimo: '', precio_por_kg: ''
   });
   const [cargaForm, setCargaForm] = useState({ cantidad: '', comprobante: '', observaciones: '' });
@@ -96,11 +109,17 @@ export default function Silos() {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { loadInsumos(); }, [loadInsumos]);
 
+  const unidadEsKg = (unidad) => (unidad || '').trim().toLowerCase().startsWith('kg');
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const { precio_por_kg: _precio, ...formData } = form;
+    const pesoUnidad = unidadEsKg(formData.unidad) || formData.peso_unidad === ''
+      ? null
+      : parseFloat(String(formData.peso_unidad).replace(',', '.'));
     const payload = {
       ...formData,
+      peso_unidad: pesoUnidad,
       capacidad_maxima: parseInt(formData.capacidad_maxima, 10),
       stock_actual: formData.stock_actual === '' ? 0 : parseInt(formData.stock_actual, 10),
       stock_minimo: parseInt(formData.stock_minimo, 10),
@@ -177,6 +196,7 @@ export default function Silos() {
       categoria: insumo.categoria || selectedTipo,
       tipo_insumo: insumo.tipo_insumo,
       unidad: insumo.unidad,
+      peso_unidad: insumo.peso_unidad !== null && insumo.peso_unidad !== undefined ? String(insumo.peso_unidad) : '',
       capacidad_maxima: parseIntegerValue(insumo.capacidad_maxima),
       stock_actual: parseIntegerValue(insumo.stock_actual),
       stock_minimo: parseIntegerValue(insumo.stock_minimo),
@@ -268,7 +288,7 @@ export default function Silos() {
           </button>
           <button className="silos__btn silos__btn--primary" onClick={() => {
             setEditingInsumo(null);
-            setForm({ nombre: '', categoria: selectedTipo || 'reserva_forrajera', tipo_insumo: 'silo', unidad: 'kg', capacidad_maxima: '', stock_actual: '', stock_minimo: '' });
+            setForm({ nombre: '', categoria: selectedTipo || 'reserva_forrajera', tipo_insumo: 'silo', unidad: 'kg', peso_unidad: '', capacidad_maxima: '', stock_actual: '', stock_minimo: '' });
             setShowModal(true);
           }}>
             <Plus size={16} aria-hidden="true" /> <span>Cargar Insumo</span>
@@ -325,7 +345,10 @@ export default function Silos() {
                       </span>
                       <span className="stock-unit">{insumo.unidad}</span>
                     </div>
-                    <span className="stock-disponible">Disponible</span>
+                    <span className="stock-disponible">
+                      Disponible
+                      {insumo.peso_unidad ? ` (~${formatNumber(parseFloat(insumo.stock_actual) * parseFloat(insumo.peso_unidad), { minimumFractionDigits: 0, maximumFractionDigits: 0 })} kg)` : ''}
+                    </span>
                   </div>
 
                   {/* Barra de progreso con % */}
@@ -416,25 +439,101 @@ export default function Silos() {
                 </div>
                 <div className="mb-3">
                   <label className="form-label">Contenedor físico</label>
-                  <select className="form-select" value={form.tipo_insumo} onChange={e => setForm(prev => ({...prev, tipo_insumo: e.target.value}))} required>
+                  <select
+                    className="form-select"
+                    value={form.tipo_insumo}
+                    onChange={e => {
+                      const tipo = e.target.value;
+                      setForm(prev => ({...prev, tipo_insumo: tipo, ...(tipo === 'bolson' ? { unidad: 'metros' } : {})}));
+                    }}
+                    required
+                  >
                     <option value="">Seleccionar contenedor...</option>
                     {tiposContenedor.map(t => (
                       <option key={t.value} value={t.value}>{t.label}</option>
                     ))}
                   </select>
                 </div>
-                <div className="mb-3">
-                  <label className="form-label">Unidad</label>
-                  <input type="text" className="form-control" value={form.unidad} onChange={e => setForm(prev => ({...prev, unidad: e.target.value}))} required />
-                </div>
+
+                {form.tipo_insumo === 'bolson' ? (
+                  <>
+                    <div className="mb-3">
+                      <label className="form-label">Diámetro del bolsón</label>
+                      <select
+                        className="form-select"
+                        defaultValue=""
+                        onChange={e => {
+                          const diametro = DIAMETROS_BOLSON.find(d => String(d.pies) === e.target.value);
+                          if (diametro) setForm(prev => ({...prev, peso_unidad: String(diametro.kgPorMetro)}));
+                        }}
+                      >
+                        <option value="">No sé / prefiero ingresarlo yo</option>
+                        {DIAMETROS_BOLSON.map(d => (
+                          <option key={d.pies} value={d.pies}>{d.pies} pies (~{d.rango})</option>
+                        ))}
+                      </select>
+                      <div className="form-text">
+                        Según el diámetro de tu bolsón, esto autocompleta un valor sugerido de kg por metro (tabla del fabricante). Varía según el cultivo ensilado — ajustalo abajo si sabés el dato real.
+                      </div>
+                    </div>
+                    <div className="mb-3">
+                      <label className="form-label">Kg por metro</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        className="form-control"
+                        placeholder="Ej: 3100"
+                        value={form.peso_unidad}
+                        onChange={e => setForm(prev => ({...prev, peso_unidad: e.target.value}))}
+                        required
+                      />
+                      <div className="form-text">
+                        Cuánto pesa en kg cada metro de este bolsón. Se usa para convertir el consumo (siempre en kg) a metros al descontar del stock.
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="mb-3">
+                      <label className="form-label">Unidad</label>
+                      <input type="text" className="form-control" value={form.unidad} onChange={e => setForm(prev => ({...prev, unidad: e.target.value}))} required />
+                    </div>
+                    {!unidadEsKg(form.unidad) && (
+                      <div className="mb-3">
+                        <label className="form-label">Peso por unidad (kg)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          className="form-control"
+                          placeholder="Ej: 25 (fardo)"
+                          value={form.peso_unidad}
+                          onChange={e => setForm(prev => ({...prev, peso_unidad: e.target.value}))}
+                        />
+                        <div className="form-text">
+                          Cuánto pesa en kg cada {form.unidad || 'unidad'}. Se usa para convertir el consumo (siempre en kg) a {form.unidad || 'unidades'} físicas al descontar del stock.
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+
                 <div className="row g-3">
                   <div className="col-md-4">
-                    <label className="form-label">Capacidad Máxima</label>
+                    <label className="form-label">
+                      {form.tipo_insumo === 'bolson' ? 'Largo total del bolsón (metros)' : 'Capacidad Máxima'}
+                    </label>
                     <input type="number" step="1" min="0" className="form-control" value={form.capacidad_maxima} onChange={e => setForm(prev => ({...prev, capacidad_maxima: e.target.value}))} required />
                   </div>
                   <div className="col-md-4">
-                    <label className="form-label">Stock Actual</label>
+                    <label className="form-label">
+                      {form.tipo_insumo === 'bolson' ? 'Metros restantes' : 'Stock Actual'}
+                    </label>
                     <input type="number" step="1" min="0" className="form-control" value={form.stock_actual} onChange={e => setForm(prev => ({...prev, stock_actual: e.target.value}))} />
+                    {form.tipo_insumo === 'bolson' && (
+                      <div className="form-text">Medilo caminando el bolsón.</div>
+                    )}
                   </div>
                   <div className="col-md-4">
                     <label className="form-label">Stock Mínimo</label>
