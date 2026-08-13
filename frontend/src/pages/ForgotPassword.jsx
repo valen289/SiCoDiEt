@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../services/api';
 import { Mail, ArrowLeft, CheckCircle } from 'lucide-react';
 import Footer from '../components/Footer';
+import logoFull from '../assets/logo-full.svg';
 import '../styles/login.css';
 
 export default function ForgotPassword() {
@@ -38,7 +39,7 @@ export default function ForgotPassword() {
       <div className="login-wrapper">
         <div className="login-card">
           <div className="login-header">
-            <h1 className="login-logo">SiCoDiEt</h1>
+            <img src={logoFull} alt="SiCoDiEt" className="login-logo" />
             <p className="login-subtitle">Recuperar contraseña</p>
           </div>
 

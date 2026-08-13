@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import Footer from '../components/Footer';
 import { useSEO } from '../hooks/useSEO';
+import logoFull from '../assets/logo-full.svg';
 import '../styles/landing.css';
 
 export default function PrivacyPolicy() {
@@ -12,7 +13,9 @@ export default function PrivacyPolicy() {
   return (
     <div className="landing-page">
       <nav className="landing-nav">
-        <Link to="/" className="landing-logo">SiCoDiEt</Link>
+        <Link to="/">
+          <img src={logoFull} alt="SiCoDiEt" className="landing-logo" />
+        </Link>
         <Link to="/login" className="btn btn-outline-secondary btn-sm">Ingresar</Link>
       </nav>
 

@@ -5,6 +5,7 @@ import { Lock, Eye, EyeOff, CheckCircle, ArrowLeft } from 'lucide-react';
 import Footer from '../components/Footer';
 import PasswordRulesHint from '../components/PasswordRulesHint';
 import { passwordStrength } from '../utils/passwordPolicy';
+import logoFull from '../assets/logo-full.svg';
 import '../styles/login.css';
 
 export default function ResetPassword() {
@@ -79,7 +80,7 @@ export default function ResetPassword() {
       <div className="login-wrapper">
         <div className="login-card">
           <div className="login-header">
-            <h1 className="login-logo">SiCoDiEt</h1>
+            <img src={logoFull} alt="SiCoDiEt" className="login-logo" />
             <p className="login-subtitle">Crear nueva contraseña</p>
           </div>
 

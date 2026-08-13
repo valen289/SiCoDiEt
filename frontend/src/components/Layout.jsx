@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../context/AlertContext';
+import logoFull from '../assets/logo-full.svg';
 import {
   LogOut, Menu, X, User, Plus, Trash2,
   LayoutDashboard, Database, Package, FlaskConical, Tag,
@@ -272,7 +273,7 @@ export default function Layout() {
             <button className="menu-toggle" onClick={() => setDrawerOpen(true)} aria-label="Menu">
               <Menu size={22} />
             </button>
-            <h1 className="header-logo">SiCoDiEt</h1>
+            <img src={logoFull} alt="SiCoDiEt" className="header-logo" />
           </div>
           <div className="header-right">
             <div className="user-info" onClick={handleUserClick} role="button" tabIndex={0} aria-label="Ir a perfil">

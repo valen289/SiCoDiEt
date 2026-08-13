@@ -6,6 +6,7 @@ import {
 import Footer from '../components/Footer';
 import { useSEO } from '../hooks/useSEO';
 import heroBg from '../assets/imagen landing.png';
+import logoFull from '../assets/logo-full.svg';
 import '../styles/landing.css';
 
 const features = [
@@ -67,7 +68,7 @@ export default function Landing() {
   return (
     <div className="landing-page">
       <nav className="landing-nav">
-        <span className="landing-logo">SiCoDiEt</span>
+        <img src={logoFull} alt="SiCoDiEt" className="landing-logo" />
         <Link to="/login" className="btn btn-outline-secondary btn-sm">Ingresar</Link>
       </nav>
 

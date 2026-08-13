@@ -7,6 +7,7 @@ import Footer from '../components/Footer';
 import PhoneInputField from '../components/PhoneInputField';
 import PasswordRulesHint from '../components/PasswordRulesHint';
 import { passwordStrength } from '../utils/passwordPolicy';
+import logoFull from '../assets/logo-full.svg';
 import '../styles/login.css';
 
 function validateCedula(cedula) {
@@ -127,7 +128,7 @@ export default function Register() {
       <div className="login-wrapper">
         <div className="login-card register-card">
           <div className="login-header">
-            <h1 className="login-logo">SiCoDiEt</h1>
+            <img src={logoFull} alt="SiCoDiEt" className="login-logo" />
             <p className="login-subtitle">Crear nueva cuenta</p>
           </div>
 

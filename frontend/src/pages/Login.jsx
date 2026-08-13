@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Lock, User, Key, Eye, EyeOff } from 'lucide-react';
 import Footer from '../components/Footer';
+import logoFull from '../assets/logo-full.svg';
 import '../styles/login.css';
 
 function validateCedula(cedula) {
@@ -97,7 +98,7 @@ export default function Login() {
       <div className="login-wrapper">
         <div className="login-card">
           <div className="login-header">
-            <h1 className="login-logo">SiCoDiEt</h1>
+            <img src={logoFull} alt="SiCoDiEt" className="login-logo" />
             <p className="login-subtitle">Inicia sesión para acceder al sistema</p>
           </div>
 

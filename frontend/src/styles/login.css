@@ -35,10 +35,10 @@
 }
 
 .login-logo {
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: var(--primary);
-  margin: 0 0 0.25rem;
+  height: 40px;
+  width: auto;
+  margin: 0 auto 0.5rem;
+  display: block;
 }
 
 .login-subtitle {
@@ -259,7 +259,7 @@
   }
 
   .login-logo {
-    font-size: 1.5rem;
+    height: 34px;
   }
 
   .form-row {
@@ -278,7 +278,7 @@
   }
 
   .login-logo {
-    font-size: 1.35rem;
+    height: 30px;
   }
 
   .login-subtitle {
