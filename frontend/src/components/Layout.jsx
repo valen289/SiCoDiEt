@@ -7,13 +7,14 @@ import {
   LogOut, Menu, X, User, Plus, Trash2,
   LayoutDashboard, Database, Package, FlaskConical, Tag,
   ClipboardList, Calculator, Bell, History, DollarSign,
-  ShoppingCart, Activity, UserCog, Users,
+  ShoppingCart, Activity, UserCog, Users, LayoutGrid,
 } from 'lucide-react';
 import '../styles/layout.css';
 
 /* ─── Iconos del sidebar (lucide-react, sin dependencias externas) ─────────── */
 const NAV_ICONS = {
   dashboard:   LayoutDashboard,
+  todos:       LayoutGrid,
   silo:        Database,
   fardo:       Package,
   sales:       FlaskConical,
@@ -36,6 +37,7 @@ function NavIcon({ iconKey, size = 17 }) {
 }
 
 const categorias = [
+  { value: 'todos',             label: 'Todos',              iconKey: 'todos'  },
   { value: 'reserva_forrajera', label: 'Reserva Forrajera', iconKey: 'fardo'  },
   { value: 'concentrado',       label: 'Concentrados',       iconKey: 'silo'   },
   { value: 'sales',             label: 'Sales Minerales',    iconKey: 'sales'  },

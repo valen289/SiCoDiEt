@@ -1,4 +1,5 @@
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from 'recharts';
+import { fmt } from '../utils/formatters';
 
 export default function ConsumoSemanalChart({ data }) {
   return (
@@ -6,9 +7,18 @@ export default function ConsumoSemanalChart({ data }) {
       <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
         <CartesianGrid vertical={false} stroke="var(--divider)" />
         <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: 'var(--text-light)' }} />
-        <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: 'var(--text-light)' }} width={32} />
+        <YAxis
+          tickLine={false}
+          axisLine={false}
+          tick={{ fontSize: 11, fill: 'var(--text-light)' }}
+          width={44}
+          domain={[0, 'dataMax']}
+          tickCount={5}
+          allowDecimals={false}
+          tickFormatter={(v) => fmt(v)}
+        />
         <Tooltip
-          formatter={(value) => [`${Number(value).toFixed(1)} kg`, 'Consumo']}
+          formatter={(value) => [`${fmt(value, 1)} kg`, 'Consumo']}
           contentStyle={{ borderRadius: 8, border: '1px solid var(--border)', fontSize: 12 }}
           cursor={{ fill: 'var(--bg)' }}
         />

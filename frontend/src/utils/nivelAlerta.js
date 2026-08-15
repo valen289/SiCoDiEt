@@ -6,7 +6,7 @@ export function getNivelAlerta(diasRestantes) {
   if (diasRestantes <= 5) return { nivel: 'critico', color: '#dc3545', label: 'CRITICO', bgClass: 'bg-danger' };
   if (diasRestantes <= 7) return { nivel: 'precaucion', color: '#ffc107', label: 'PRECAUCION', bgClass: 'bg-warning text-dark' };
   if (diasRestantes <= 20) return { nivel: 'normal', color: '#28a745', label: 'NORMAL', bgClass: 'bg-success' };
-  return { nivel: 'holgado', color: '#17a2b8', label: 'HOLGADO', bgClass: 'bg-info' };
+  return { nivel: 'holgado', color: '#17a2b8', label: 'ÓPTIMO', bgClass: 'bg-info' };
 }
 
 export function getStockClass(porcentaje) {

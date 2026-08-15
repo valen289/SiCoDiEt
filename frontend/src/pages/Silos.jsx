@@ -58,14 +58,17 @@ export default function Silos() {
   const { success, error, confirm } = useAlert();
   const { tipo: tipoFromUrl } = useParams();
   const [generandoPdf, setGenerandoPdf] = useState(false);
-  const selectedTipo = tipoFromUrl || 'reserva_forrajera';
+  const selectedTipo = tipoFromUrl || 'todos';
+  const esVistaTodos = selectedTipo === 'todos';
 
   const customCats = (() => {
     try { return JSON.parse(localStorage.getItem('sicodiet-custom-food-types') || '[]'); }
     catch { return []; }
   })();
   const todasLasCategorias = [...categoriasBase, ...customCats.map(c => ({ value: c.value, label: c.label }))];
-  const categoriaActual = todasLasCategorias.find(c => c.value === selectedTipo) || categoriasBase[0];
+  const categoriaActual = esVistaTodos
+    ? { value: 'todos', label: 'Todos los insumos' }
+    : (todasLasCategorias.find(c => c.value === selectedTipo) || categoriasBase[0]);
 
   const seoTitle = `${categoriaActual.label} - Gestión de Stock | SiCoDiET`;
   const seoDescription = `Control de stock de ${categoriaActual.label.toLowerCase()} para establecimiento lechero. Monitorea niveles, registra consumos diarios y optimiza la alimentación bovina con SiCoDiET.`;
@@ -112,7 +115,7 @@ export default function Silos() {
 
   const loadInsumos = useCallback(async () => {
     try {
-      const params = selectedTipo ? { categoria: selectedTipo } : {};
+      const params = selectedTipo && selectedTipo !== 'todos' ? { categoria: selectedTipo } : {};
       const insumosRes = await api.get('/insumos', { params });
       const insumosData = insumosRes.data.insumos || [];
       setInsumos(insumosData);
@@ -212,7 +215,7 @@ export default function Silos() {
     setEditingInsumo(insumo);
     setForm({
       nombre: insumo.nombre,
-      categoria: insumo.categoria || selectedTipo,
+      categoria: insumo.categoria || (esVistaTodos ? 'reserva_forrajera' : selectedTipo),
       tipo_insumo: insumo.tipo_insumo,
       unidad: insumo.unidad,
       peso_unidad: insumo.peso_unidad !== null && insumo.peso_unidad !== undefined ? String(insumo.peso_unidad) : '',
@@ -280,7 +283,7 @@ export default function Silos() {
 
   const NIVEL_LABEL_DISPLAY = {
     critico: 'Crítico', precaucion: 'Precaución', normal: 'Normal',
-    holgado: 'Holgado', sin_datos: 'Sin datos',
+    holgado: 'Óptimo', sin_datos: 'Sin datos',
   };
 
   const parseIntegerValue = (value) => {
@@ -321,7 +324,7 @@ export default function Silos() {
           </button>
           <button className="silos__btn silos__btn--primary" onClick={() => {
             setEditingInsumo(null);
-            setForm({ nombre: '', categoria: selectedTipo || 'reserva_forrajera', tipo_insumo: 'silo', unidad: 'kg', peso_unidad: '', capacidad_maxima: '', stock_actual: '', stock_minimo: '' });
+            setForm({ nombre: '', categoria: esVistaTodos ? 'reserva_forrajera' : selectedTipo, tipo_insumo: 'silo', unidad: 'kg', peso_unidad: '', capacidad_maxima: '', stock_actual: '', stock_minimo: '' });
             setShowModal(true);
           }}>
             <Plus size={16} aria-hidden="true" /> <span>Cargar Insumo</span>

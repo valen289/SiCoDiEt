@@ -295,7 +295,7 @@ export default function Dashboard() {
             <div className="dashboard-card dashboard-card--donut">
               <div className="dashboard-section-header">
                 <h2 className="dashboard-section-title">Stock por categoría</h2>
-                <button className="section-link" onClick={() => navigate('/silos')}>Ver detalle</button>
+                <button className="section-link" onClick={() => navigate('/silos/todos')}>Ver detalle</button>
               </div>
               {stockPorCategoria.length > 0 ? (
                 <div className="donut-layout">
@@ -345,7 +345,7 @@ export default function Dashboard() {
                           <span className="silo-hero-stat-label">Capacidad total</span>
                           <strong>{fmt(insumoPrincipal.capacidad_maxima)} {insumoPrincipal.unidad}</strong>
                         </div>
-                        <button className="section-link" onClick={() => navigate('/silos')}>Ver detalle →</button>
+                        <button className="section-link" onClick={() => navigate(`/silos/${insumoPrincipal.categoria || 'reserva_forrajera'}`)}>Ver detalle →</button>
                       </div>
                       <div className="silo-hero-visual">
                         <SiloIllustration porcentaje={porcentaje} stockClass={stockClass} />
@@ -375,7 +375,7 @@ export default function Dashboard() {
             <div className="dashboard-section">
               <div className="dashboard-section-header">
                 <h2 className="dashboard-section-title">Estado de silos</h2>
-                <button className="section-link" onClick={() => navigate('/silos')}>Ver todos</button>
+                <button className="section-link" onClick={() => navigate('/silos/todos')}>Ver todos</button>
               </div>
               <div className="silo-grid">
                 {insumosGrilla.map(insumo => {
@@ -383,7 +383,7 @@ export default function Dashboard() {
                   const stockClass = getStockClass(porcentaje);
                   const nivel = getNivelAlerta(parseInt(insumo.dias_restantes) || 0);
                   return (
-                    <div key={insumo.id} className="silo-mini-card" onClick={() => navigate('/silos')}>
+                    <div key={insumo.id} className="silo-mini-card" onClick={() => navigate(`/silos/${insumo.categoria || 'reserva_forrajera'}`)}>
                       <div className="silo-mini-header">
                         <span className="silo-mini-nombre">{insumo.nombre}</span>
                         <span className={`silo-hero-badge silo-hero-badge--${nivel.nivel}`}>{nivel.label}</span>
