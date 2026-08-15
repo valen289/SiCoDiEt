@@ -1,97 +1,81 @@
-/* ===== SICODIET - SiloIllustration (silo grande, usado en el modal de detalle
-   de Silos.jsx y en el widget "Silo principal" / grilla "Estado de silos" del
-   Dashboard) ===== */
+/* ===== SICODIET - SiloIllustration (silo renderizado desde un modelo 3D real,
+   usado en el modal de detalle de Silos.jsx y en el widget "Silo principal" /
+   grilla "Estado de silos" del Dashboard) ===== */
 
-.silo-illustration__body-highlight {
-  fill: none;
-  stroke: #fff;
-  stroke-width: 5;
-  stroke-linecap: round;
-  opacity: 0.4;
-  filter: blur(3px);
+.silo-illustration {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  width: 100%;
 }
 
-.silo-illustration__legs {
-  fill: #a4abb2;
-  filter: drop-shadow(0 1px 0.5px rgba(0, 0, 0, 0.2));
+.silo-illustration__image-wrap {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  aspect-ratio: 900 / 1200;
+  isolation: isolate; /* contiene el mix-blend-mode al wrap, no se filtra al resto de la pagina */
 }
 
-.silo-illustration__legs-brace {
-  stroke: #a4abb2;
-  stroke-width: 2;
-  stroke-linecap: round;
+.silo-illustration__shell {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
 }
 
-.silo-illustration__finial {
-  stroke: #7b8288;
-  stroke-width: 2;
+.silo-illustration__fill {
+  position: absolute;
+  mix-blend-mode: multiply;
+  transition: top 0.4s ease, height 0.4s ease;
+  border-radius: 1px;
+  box-shadow: inset 0 3px 5px rgba(255, 255, 255, 0.4);
 }
 
-.silo-illustration__finial-cap {
-  fill: #7b8288;
+.silo-illustration__fill.stock-low  { background: linear-gradient(180deg, color-mix(in srgb, var(--stock-low) 70%, white), var(--stock-low)); }
+.silo-illustration__fill.stock-mid  { background: linear-gradient(180deg, color-mix(in srgb, var(--stock-mid) 70%, white), var(--stock-mid)); }
+.silo-illustration__fill.stock-high { background: linear-gradient(180deg, color-mix(in srgb, var(--stock-high) 70%, white), var(--stock-high)); }
+
+/* ─── Escala de porcentaje ────────────────────────────────────────────────── */
+
+.silo-illustration__scale {
+  position: relative;
+  flex: 0 0 34px;
+  display: none;
 }
 
-.silo-illustration__roof-highlight {
-  fill: #fff;
-  opacity: 0.35;
+.silo-illustration--with-scale .silo-illustration__scale {
+  display: block;
 }
 
-.silo-illustration__roof-seam {
-  fill: none;
-  stroke: #6b7278;
-  stroke-width: 1.5;
-  opacity: 0.4;
-  filter: blur(0.5px);
-}
-
-.silo-illustration__outline--stroke {
-  fill: none;
-  stroke: #7c838a;
-  stroke-width: 2;
-}
-
-.silo-illustration__seams {
-  stroke: #7c838a;
-  stroke-width: 1;
-  opacity: 0.45;
-}
-
-.silo-illustration__panels {
-  stroke: #fff;
-  stroke-width: 1;
-  opacity: 0.4;
-}
-
-.silo-illustration__fill-stop-light.stock-low   { stop-color: color-mix(in srgb, var(--stock-low) 55%, white); }
-.silo-illustration__fill-stop-light.stock-mid   { stop-color: color-mix(in srgb, var(--stock-mid) 55%, white); }
-.silo-illustration__fill-stop-light.stock-high  { stop-color: color-mix(in srgb, var(--stock-high) 55%, white); }
-
-.silo-illustration__fill-stop-dark.stock-low   { stop-color: color-mix(in srgb, var(--stock-low) 80%, black); }
-.silo-illustration__fill-stop-dark.stock-mid   { stop-color: color-mix(in srgb, var(--stock-mid) 80%, black); }
-.silo-illustration__fill-stop-dark.stock-high  { stop-color: color-mix(in srgb, var(--stock-high) 80%, black); }
-
-.silo-illustration__fill-top.stock-low   { fill: color-mix(in srgb, var(--stock-low) 60%, white); }
-.silo-illustration__fill-top.stock-mid   { fill: color-mix(in srgb, var(--stock-mid) 60%, white); }
-.silo-illustration__fill-top.stock-high  { fill: color-mix(in srgb, var(--stock-high) 60%, white); }
-
-.silo-illustration__ladder {
-  stroke: #7b8288;
-  stroke-width: 1.75;
-  filter: drop-shadow(0.75px 1px 0.5px rgba(0, 0, 0, 0.25));
-}
-
-.silo-illustration__platform {
-  fill: #9199a1;
-  stroke: none;
-}
-
-.silo-illustration__scale line {
-  stroke: var(--text-light);
-  stroke-width: 1;
+.silo-illustration__scale-line {
+  position: absolute;
+  left: 2px;
+  width: 1px;
+  background: var(--text-light);
   opacity: 0.6;
 }
 
-.silo-illustration__scale text {
+.silo-illustration__scale-tick {
+  position: absolute;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  transform: translateY(-50%);
+}
+
+.silo-illustration__scale-tick-mark {
+  width: 6px;
+  height: 1px;
+  background: var(--text-light);
+  opacity: 0.6;
+}
+
+.silo-illustration__scale-tick-label {
   font-size: 9px;
-  fill: var(--text-light);
+  color: var(--text-light);
+  white-space: nowrap;
 }

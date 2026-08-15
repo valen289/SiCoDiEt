@@ -1,184 +1,56 @@
-import { useId } from 'react';
 import '../styles/silo-illustration.css';
+import siloImg from '../assets/silo.png';
 
-// Ilustración más detallada de un silo (techo cónico, cuerpo con costuras,
-// escalera lateral y patas), usada en el modal de detalle de Silos.jsx y en
-// el widget "Silo principal" / grilla "Estado de silos" del Dashboard.
-// SiloGauge.jsx sigue siendo el ícono chico usado en las tarjetas de Silos.
-const BODY_LEFT = 40;
-const BODY_RIGHT = 160;
-const BODY_TOP = 82;
-const BODY_BOTTOM = 250;
-const BODY_HEIGHT = BODY_BOTTOM - BODY_TOP;
-
-const BODY_PATH = `M${BODY_LEFT} ${BODY_TOP} Q100 70 ${BODY_RIGHT} ${BODY_TOP} L${BODY_RIGHT} ${BODY_BOTTOM} Q100 262 ${BODY_LEFT} ${BODY_BOTTOM} Z`;
+// Silo renderizado a partir de un modelo 3D real (glb generado con trimesh,
+// ver frontend/__scratch_render/ en el historial del proyecto) y exportado a
+// PNG con fondo transparente. El relleno de grano se "pinta" encima de la
+// franja cilíndrica del cuerpo (mismo criterio que cualquier grafico de
+// tanque/termometro: no es fisicamente realista ver el nivel a traves de
+// metal solido, pero es la convencion estandar de estos indicadores) usando
+// mix-blend-mode: multiply para que las costillas/aros de la foto se seleccion
+// vean a traves del color en vez de taparse.
+//
+// Coordenadas medidas a mano sobre silo.png (900x1200px): la franja del
+// cuerpo cilindrico ocupa x:[158,723] (17.6%-80.3% del ancho) e
+// y:[390,1035] (32.5%-86.3% del alto).
+const BODY_LEFT_PCT = 17.6;
+const BODY_RIGHT_PCT = 80.3;
+const BODY_TOP_PCT = 32.5;
+const BODY_BOTTOM_PCT = 86.3;
+const BODY_WIDTH_PCT = BODY_RIGHT_PCT - BODY_LEFT_PCT;
+const BODY_HEIGHT_PCT = BODY_BOTTOM_PCT - BODY_TOP_PCT;
 
 const SCALE_TICKS = [100, 75, 50, 25, 0];
 
 export default function SiloIllustration({ porcentaje, stockClass, showScale = true }) {
-  const clipId = useId();
   const pct = Math.max(0, Math.min(100, Number(porcentaje) || 0));
-  const fillHeight = (BODY_HEIGHT * pct) / 100;
-  const fillY = BODY_BOTTOM - fillHeight;
+  const fillHeightPct = (BODY_HEIGHT_PCT * pct) / 100;
+  const fillTopPct = BODY_BOTTOM_PCT - fillHeightPct;
 
   return (
-    <svg
-      className="silo-illustration"
-      viewBox={`0 0 ${showScale ? 240 : 200} 300`}
-      role="img"
-      aria-label={`Nivel de stock: ${pct}%`}
-    >
-      <defs>
-        <clipPath id={clipId}>
-          <path d={BODY_PATH} />
-        </clipPath>
-        <linearGradient id={`${clipId}-metal`} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#9aa1a8" />
-          <stop offset="12%" stopColor="#bcc2c7" />
-          <stop offset="32%" stopColor="#f4f5f6" />
-          <stop offset="50%" stopColor="#dde1e4" />
-          <stop offset="70%" stopColor="#eef0f1" />
-          <stop offset="88%" stopColor="#c1c6cb" />
-          <stop offset="100%" stopColor="#8f959c" />
-        </linearGradient>
-        <linearGradient id={`${clipId}-roof`} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#868d94" />
-          <stop offset="35%" stopColor="#d7dadd" />
-          <stop offset="55%" stopColor="#eef0f1" />
-          <stop offset="100%" stopColor="#767d84" />
-        </linearGradient>
-        <linearGradient id={`${clipId}-fill`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" className={`silo-illustration__fill-stop-light ${stockClass}`} />
-          <stop offset="100%" className={`silo-illustration__fill-stop-dark ${stockClass}`} />
-        </linearGradient>
-        <radialGradient id={`${clipId}-shadow`} cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#000" stopOpacity="0.22" />
-          <stop offset="70%" stopColor="#000" stopOpacity="0.1" />
-          <stop offset="100%" stopColor="#000" stopOpacity="0" />
-        </radialGradient>
-        {/* Textura sutil de metal cepillado: ruido fino estirado verticalmente */}
-        <filter id={`${clipId}-brushed`} x="-5%" y="-5%" width="110%" height="110%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.9 0.02" numOctaves="2" seed="7" result="noise" />
-          <feColorMatrix in="noise" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.05 0" />
-        </filter>
-        {/* Textura de grano: puntitos finos sobre el relleno */}
-        <filter id={`${clipId}-grain`} x="-5%" y="-5%" width="110%" height="110%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="3" result="noise" />
-          <feColorMatrix in="noise" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.12 0" />
-        </filter>
-      </defs>
-
-      {/* Sombra en el piso */}
-      <ellipse fill={`url(#${clipId}-shadow)`} cx="100" cy="288" rx="76" ry="13" />
-
-      {/* Patas */}
-      <g className="silo-illustration__legs">
-        <path d="M58 246 L44 282 L54 282 L66 248 Z" />
-        <path d="M142 246 L156 282 L146 282 L134 248 Z" />
-        <path d="M100 250 L94 284 L106 284 L100 250 Z" />
-        <line className="silo-illustration__legs-brace" x1="46" y1="270" x2="98" y2="266" />
-        <line className="silo-illustration__legs-brace" x1="154" y1="270" x2="102" y2="266" />
-      </g>
-
-      {/* Techo cónico */}
-      <path
-        className="silo-illustration__roof"
-        d={`M${BODY_LEFT - 3} ${BODY_TOP + 2} Q100 14 ${BODY_RIGHT + 3} ${BODY_TOP + 2} Q100 60 ${BODY_LEFT - 3} ${BODY_TOP + 2} Z`}
-        fill={`url(#${clipId}-roof)`}
-      />
-      <path
-        className="silo-illustration__roof-highlight"
-        d="M70 62 Q100 24 100 20 Q100 24 96 60 Q83 63 70 62 Z"
-      />
-      <line className="silo-illustration__finial" x1="100" y1="14" x2="100" y2="30" />
-      <circle className="silo-illustration__finial-cap" cx="100" cy="13" r="3" />
-      {/* Sombra de la costura techo/cuerpo */}
-      <path className="silo-illustration__roof-seam" d={`M${BODY_LEFT} ${BODY_TOP + 1} Q100 71 ${BODY_RIGHT} ${BODY_TOP + 1}`} />
-
-      {/* Cuerpo metálico */}
-      <path d={BODY_PATH} fill={`url(#${clipId}-metal)`} />
-      <path d={BODY_PATH} fill="#fff" filter={`url(#${clipId}-brushed)`} clipPath={`url(#${clipId})`} />
-      {/* Brillo especular vertical, sugiere la curvatura del cilindro */}
-      <path
-        className="silo-illustration__body-highlight"
-        d={`M114 ${BODY_TOP + 6} Q118 ${(BODY_TOP + BODY_BOTTOM) / 2} 114 ${BODY_BOTTOM - 6}`}
-        clipPath={`url(#${clipId})`}
-      />
-
-      {/* Relleno de grano */}
-      <rect
-        x={BODY_LEFT}
-        y={fillY}
-        width={BODY_RIGHT - BODY_LEFT}
-        height={fillHeight}
-        fill={`url(#${clipId}-fill)`}
-        clipPath={`url(#${clipId})`}
-      />
-      {fillHeight > 2 && (
-        <rect
-          x={BODY_LEFT}
-          y={fillY}
-          width={BODY_RIGHT - BODY_LEFT}
-          height={fillHeight}
-          fill="#000"
-          filter={`url(#${clipId}-grain)`}
-          clipPath={`url(#${clipId})`}
+    <div className={`silo-illustration ${showScale ? 'silo-illustration--with-scale' : ''}`} role="img" aria-label={`Nivel de stock: ${pct}%`}>
+      <div className="silo-illustration__image-wrap">
+        <img className="silo-illustration__shell" src={siloImg} alt="" />
+        <div
+          className={`silo-illustration__fill ${stockClass}`}
+          style={{ top: `${fillTopPct}%`, height: `${fillHeightPct}%`, left: `${BODY_LEFT_PCT}%`, width: `${BODY_WIDTH_PCT}%` }}
         />
-      )}
-      {fillHeight > 2 && (
-        <ellipse
-          className={`silo-illustration__fill-top ${stockClass}`}
-          cx="100"
-          cy={fillY}
-          rx={(BODY_RIGHT - BODY_LEFT) / 2 - 2}
-          ry="7"
-          clipPath={`url(#${clipId})`}
-        />
-      )}
+      </div>
 
-      {/* Costuras horizontales del cuerpo */}
-      <g className="silo-illustration__seams">
-        <line x1={BODY_LEFT + 3} y1="126" x2={BODY_RIGHT - 3} y2="126" />
-        <line x1={BODY_LEFT + 3} y1="168" x2={BODY_RIGHT - 3} y2="168" />
-        <line x1={BODY_LEFT + 3} y1="210" x2={BODY_RIGHT - 3} y2="210" />
-      </g>
-      {/* Costuras verticales sutiles (paneles) */}
-      <g className="silo-illustration__panels" clipPath={`url(#${clipId})`}>
-        <line x1="70" y1={BODY_TOP} x2="70" y2={BODY_BOTTOM} />
-        <line x1="100" y1={BODY_TOP} x2="100" y2={BODY_BOTTOM} />
-        <line x1="130" y1={BODY_TOP} x2="130" y2={BODY_BOTTOM} />
-      </g>
-
-      {/* Contorno del cuerpo */}
-      <path d={BODY_PATH} className="silo-illustration__outline--stroke" />
-
-      {/* Escalera lateral */}
-      <g className="silo-illustration__ladder">
-        <line x1="164" y1="94" x2="164" y2="245" />
-        <line x1="174" y1="94" x2="174" y2="245" />
-        {Array.from({ length: 10 }).map((_, i) => {
-          const y = 100 + i * 15;
-          return <line key={y} x1="164" y1={y} x2="174" y2={y} />;
-        })}
-        {/* Plataforma de acceso */}
-        <rect x="160" y="106" width="20" height="5" rx="1" className="silo-illustration__platform" />
-      </g>
-
-      {/* Escala de porcentaje */}
       {showScale && (
-        <g className="silo-illustration__scale">
-          <line x1="200" y1={BODY_TOP} x2="200" y2={BODY_BOTTOM} />
+        <div className="silo-illustration__scale">
+          <span className="silo-illustration__scale-line" style={{ top: `${BODY_TOP_PCT}%`, bottom: `${100 - BODY_BOTTOM_PCT}%` }} />
           {SCALE_TICKS.map(tick => {
-            const y = BODY_BOTTOM - (BODY_HEIGHT * tick) / 100;
+            const y = BODY_BOTTOM_PCT - (BODY_HEIGHT_PCT * tick) / 100;
             return (
-              <g key={tick}>
-                <line x1="196" y1={y} x2="204" y2={y} />
-                <text x="209" y={y} dy="0.32em">{tick}%</text>
-              </g>
+              <span key={tick} className="silo-illustration__scale-tick" style={{ top: `${y}%` }}>
+                <span className="silo-illustration__scale-tick-mark" />
+                <span className="silo-illustration__scale-tick-label">{tick}%</span>
+              </span>
             );
           })}
-        </g>
+        </div>
       )}
-    </svg>
+    </div>
   );
 }
