@@ -51,10 +51,25 @@ export default function SiloIllustration({ porcentaje, stockClass, showScale = t
           <stop offset="0%" className={`silo-illustration__fill-stop-light ${stockClass}`} />
           <stop offset="100%" className={`silo-illustration__fill-stop-dark ${stockClass}`} />
         </linearGradient>
+        <radialGradient id={`${clipId}-shadow`} cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#000" stopOpacity="0.22" />
+          <stop offset="70%" stopColor="#000" stopOpacity="0.1" />
+          <stop offset="100%" stopColor="#000" stopOpacity="0" />
+        </radialGradient>
+        {/* Textura sutil de metal cepillado: ruido fino estirado verticalmente */}
+        <filter id={`${clipId}-brushed`} x="-5%" y="-5%" width="110%" height="110%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.9 0.02" numOctaves="2" seed="7" result="noise" />
+          <feColorMatrix in="noise" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.05 0" />
+        </filter>
+        {/* Textura de grano: puntitos finos sobre el relleno */}
+        <filter id={`${clipId}-grain`} x="-5%" y="-5%" width="110%" height="110%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="3" result="noise" />
+          <feColorMatrix in="noise" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.12 0" />
+        </filter>
       </defs>
 
       {/* Sombra en el piso */}
-      <ellipse className="silo-illustration__shadow" cx="100" cy="286" rx="70" ry="9" />
+      <ellipse fill={`url(#${clipId}-shadow)`} cx="100" cy="288" rx="76" ry="13" />
 
       {/* Patas */}
       <g className="silo-illustration__legs">
@@ -77,9 +92,18 @@ export default function SiloIllustration({ porcentaje, stockClass, showScale = t
       />
       <line className="silo-illustration__finial" x1="100" y1="14" x2="100" y2="30" />
       <circle className="silo-illustration__finial-cap" cx="100" cy="13" r="3" />
+      {/* Sombra de la costura techo/cuerpo */}
+      <path className="silo-illustration__roof-seam" d={`M${BODY_LEFT} ${BODY_TOP + 1} Q100 71 ${BODY_RIGHT} ${BODY_TOP + 1}`} />
 
       {/* Cuerpo metálico */}
       <path d={BODY_PATH} fill={`url(#${clipId}-metal)`} />
+      <path d={BODY_PATH} fill="#fff" filter={`url(#${clipId}-brushed)`} clipPath={`url(#${clipId})`} />
+      {/* Brillo especular vertical, sugiere la curvatura del cilindro */}
+      <path
+        className="silo-illustration__body-highlight"
+        d={`M114 ${BODY_TOP + 6} Q118 ${(BODY_TOP + BODY_BOTTOM) / 2} 114 ${BODY_BOTTOM - 6}`}
+        clipPath={`url(#${clipId})`}
+      />
 
       {/* Relleno de grano */}
       <rect
@@ -90,6 +114,17 @@ export default function SiloIllustration({ porcentaje, stockClass, showScale = t
         fill={`url(#${clipId}-fill)`}
         clipPath={`url(#${clipId})`}
       />
+      {fillHeight > 2 && (
+        <rect
+          x={BODY_LEFT}
+          y={fillY}
+          width={BODY_RIGHT - BODY_LEFT}
+          height={fillHeight}
+          fill="#000"
+          filter={`url(#${clipId}-grain)`}
+          clipPath={`url(#${clipId})`}
+        />
+      )}
       {fillHeight > 2 && (
         <ellipse
           className={`silo-illustration__fill-top ${stockClass}`}

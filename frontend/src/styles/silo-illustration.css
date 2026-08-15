@@ -2,13 +2,18 @@
    de Silos.jsx y en el widget "Silo principal" / grilla "Estado de silos" del
    Dashboard) ===== */
 
-.silo-illustration__shadow {
-  fill: #000;
-  opacity: 0.1;
+.silo-illustration__body-highlight {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 5;
+  stroke-linecap: round;
+  opacity: 0.4;
+  filter: blur(3px);
 }
 
 .silo-illustration__legs {
   fill: #a4abb2;
+  filter: drop-shadow(0 1px 0.5px rgba(0, 0, 0, 0.2));
 }
 
 .silo-illustration__legs-brace {
@@ -29,6 +34,14 @@
 .silo-illustration__roof-highlight {
   fill: #fff;
   opacity: 0.35;
+}
+
+.silo-illustration__roof-seam {
+  fill: none;
+  stroke: #6b7278;
+  stroke-width: 1.5;
+  opacity: 0.4;
+  filter: blur(0.5px);
 }
 
 .silo-illustration__outline--stroke {
@@ -64,6 +77,7 @@
 .silo-illustration__ladder {
   stroke: #7b8288;
   stroke-width: 1.75;
+  filter: drop-shadow(0.75px 1px 0.5px rgba(0, 0, 0, 0.25));
 }
 
 .silo-illustration__platform {
