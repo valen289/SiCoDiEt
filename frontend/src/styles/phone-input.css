@@ -1,7 +1,9 @@
 :root {
   --PhoneInput-color--focus: var(--primary);
   --PhoneInputCountrySelectArrow-color--focus: var(--primary);
+  --PhoneInputCountryFlag-borderColor: var(--border);
   --PhoneInputCountryFlag-borderColor--focus: var(--primary);
+  --PhoneInputCountryFlag-height: 1.2em;
 }
 
 .phone-input-field {
@@ -13,6 +15,12 @@
 
 .phone-input-field .PhoneInputCountry {
   margin-right: 0.25rem;
+  align-items: center;
+}
+
+.phone-input-field .PhoneInputCountryIcon {
+  border-radius: 0.25rem;
+  overflow: hidden;
 }
 
 .phone-input-field__number {
