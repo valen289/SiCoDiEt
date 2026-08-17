@@ -279,7 +279,11 @@ export default function Layout() {
           </div>
           <div className="header-right">
             <div className="user-info" onClick={handleUserClick} role="button" tabIndex={0} aria-label="Ir a perfil">
-              <User size={16} />
+              {user?.foto ? (
+                <img src={user.foto} alt="" className="user-avatar-photo" />
+              ) : (
+                <User size={16} />
+              )}
               <div className="user-details">
                 <span className="user-name">{user?.nombre}</span>
                 <span className="user-role">{ROL_LABELS[user?.rol] || user?.rol}</span>
@@ -323,7 +327,11 @@ export default function Layout() {
           </button>
         </div>
         <div className="drawer-user">
-          <User size={20} />
+          {user?.foto ? (
+            <img src={user.foto} alt="" className="drawer-avatar-photo" />
+          ) : (
+            <User size={20} />
+          )}
           <div>
             <span className="drawer-user-name">{user?.nombre}</span>
             <span className="drawer-user-role">{ROL_LABELS[user?.rol] || user?.rol}</span>

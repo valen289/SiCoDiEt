@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../context/AlertContext';
 import api from '../services/api';
-import { Mail, Phone, Lock, Save, UserCog, Building2, LockKeyhole } from 'lucide-react';
+import { Mail, Phone, Lock, Save, UserCog, Building2, LockKeyhole, Camera, Eye, Upload, Trash2 } from 'lucide-react';
 import PasswordRulesHint from '../components/PasswordRulesHint';
 import { passwordStrength } from '../utils/passwordPolicy';
+import { resizeImageToDataUrl } from '../utils/resizeImage';
 import '../styles/profile.css';
 
 const ROL_LABELS = {
@@ -15,13 +16,18 @@ const ROL_LABELS = {
 
 const TELEFONO_REGEX = /^[0-9+\- ]{8,20}$/;
 
-function ProfileAvatar({ nombre, rol }) {
+function ProfileAvatar({ nombre, rol, foto }) {
   const initials = (nombre || '?')
     .split(' ')
     .slice(0, 2)
     .map(p => p[0])
     .join('')
     .toUpperCase();
+
+  if (foto) {
+    return <img src={foto} alt="Foto de perfil" className="profile-avatar profile-avatar--photo" />;
+  }
+
   return (
     <div className={`profile-avatar profile-avatar--${rol || 'trabajador'}`}>
       {initials}
@@ -31,7 +37,7 @@ function ProfileAvatar({ nombre, rol }) {
 
 export default function Profile() {
   const { user, updateUser } = useAuth();
-  const { success, error } = useAlert();
+  const { success, error, confirm } = useAlert();
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({
     nombre: user?.nombre || '',
@@ -43,6 +49,11 @@ export default function Profile() {
   });
   const [formErrors, setFormErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [photoMenuOpen, setPhotoMenuOpen] = useState(false);
+  const [viewingPhoto, setViewingPhoto] = useState(false);
+  const [photoLoading, setPhotoLoading] = useState(false);
+  const uploadInputRef = useRef(null);
+  const captureInputRef = useRef(null);
 
   useEffect(() => {
     document.title = 'Mi Perfil - Sicodiet';
@@ -50,6 +61,48 @@ export default function Profile() {
       document.title = 'Sicodiet';
     };
   }, []);
+
+  const handlePhotoFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    setPhotoMenuOpen(false);
+    setPhotoLoading(true);
+    try {
+      const dataUrl = await resizeImageToDataUrl(file);
+      const res = await api.put('/auth/profile', { foto: dataUrl });
+      updateUser(res.data.user);
+      success('Foto de perfil actualizada');
+    } catch (err) {
+      error(err.response?.data?.error || 'Error al subir la foto');
+    } finally {
+      setPhotoLoading(false);
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    setPhotoMenuOpen(false);
+    const confirmed = await confirm({
+      title: 'Quitar foto de perfil',
+      message: '¿Estás seguro que deseas quitar tu foto de perfil?',
+      type: 'warning',
+      confirmText: 'Sí, quitar',
+      cancelText: 'Cancelar',
+    });
+    if (!confirmed) return;
+
+    setPhotoLoading(true);
+    try {
+      const res = await api.put('/auth/profile', { foto: null });
+      updateUser(res.data.user);
+      success('Foto de perfil eliminada');
+    } catch (err) {
+      error(err.response?.data?.error || 'Error al quitar la foto');
+    } finally {
+      setPhotoLoading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -120,7 +173,83 @@ export default function Profile() {
     <div className="profile-page">
       <div className="profile-container">
         <div className="profile-header">
-          <ProfileAvatar nombre={user?.nombre} rol={user?.rol} />
+          <div className="profile-avatar-wrapper">
+            <button
+              type="button"
+              className="profile-avatar-button"
+              onClick={() => setPhotoMenuOpen(true)}
+              disabled={photoLoading}
+              aria-label="Cambiar foto de perfil"
+            >
+              <ProfileAvatar nombre={user?.nombre} rol={user?.rol} foto={user?.foto} />
+              <span className="profile-avatar-camera-badge">
+                <Camera size={14} />
+              </span>
+            </button>
+
+            {photoMenuOpen && (
+              <>
+                <div className="profile-photo-menu-overlay" onClick={() => setPhotoMenuOpen(false)} />
+                <div className="profile-photo-menu">
+                  <button
+                    type="button"
+                    className="profile-photo-menu__item"
+                    disabled={!user?.foto}
+                    onClick={() => { setPhotoMenuOpen(false); setViewingPhoto(true); }}
+                  >
+                    <Eye size={16} /> Ver foto
+                  </button>
+                  <button
+                    type="button"
+                    className="profile-photo-menu__item"
+                    onClick={() => captureInputRef.current?.click()}
+                  >
+                    <Camera size={16} /> Tomar foto
+                  </button>
+                  <button
+                    type="button"
+                    className="profile-photo-menu__item"
+                    onClick={() => uploadInputRef.current?.click()}
+                  >
+                    <Upload size={16} /> Subir foto
+                  </button>
+                  <button
+                    type="button"
+                    className="profile-photo-menu__item profile-photo-menu__item--danger"
+                    disabled={!user?.foto}
+                    onClick={handleRemovePhoto}
+                  >
+                    <Trash2 size={16} /> Quitar foto
+                  </button>
+                </div>
+              </>
+            )}
+
+            <input
+              ref={captureInputRef}
+              type="file"
+              accept="image/*"
+              capture="user"
+              hidden
+              onChange={handlePhotoFile}
+            />
+            <input
+              ref={uploadInputRef}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={handlePhotoFile}
+            />
+          </div>
+
+          {viewingPhoto && user?.foto && (
+            <div className="modal-overlay" onClick={() => setViewingPhoto(false)}>
+              <div className="modal-content profile-photo-preview" onClick={(e) => e.stopPropagation()}>
+                <img src={user.foto} alt="Foto de perfil" />
+              </div>
+            </div>
+          )}
+
           <div className="profile-info">
             <h1 className="profile-name">{user?.nombre}</h1>
             <div className="profile-meta">

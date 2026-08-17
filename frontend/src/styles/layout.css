@@ -86,6 +86,14 @@
   flex-shrink: 0;
 }
 
+.user-avatar-photo {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
 .user-details {
   display: flex;
   flex-direction: column;
@@ -392,6 +400,14 @@
 
 .drawer-user svg {
   color: var(--primary);
+  flex-shrink: 0;
+}
+
+.drawer-avatar-photo {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
   flex-shrink: 0;
 }
 

@@ -37,6 +37,109 @@
 .profile-avatar--dueno      { background: #7c3aed; }
 .profile-avatar--encargado  { background: #2563eb; }
 .profile-avatar--trabajador { background: var(--primary); }
+.profile-avatar--photo      { object-fit: cover; }
+
+.profile-avatar-wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.profile-avatar-button {
+  position: relative;
+  display: block;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: 50%;
+}
+
+.profile-avatar-button:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.profile-avatar-camera-badge {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--white);
+  box-shadow: var(--shadow);
+}
+
+.profile-photo-menu-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1049;
+  background: transparent;
+}
+
+.profile-photo-menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  z-index: 1050;
+  background: var(--white);
+  border-radius: 0.5rem;
+  box-shadow: var(--shadow-lg);
+  min-width: 180px;
+  padding: 0.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.profile-photo-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: none;
+  background: none;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.profile-photo-menu__item:hover:not(:disabled) {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.profile-photo-menu__item:disabled {
+  color: var(--text-light);
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.profile-photo-menu__item--danger:hover:not(:disabled) {
+  background: rgba(211, 93, 78, 0.1);
+  color: var(--danger);
+}
+
+.profile-photo-preview {
+  max-width: 360px;
+  padding: 0.75rem;
+  display: flex;
+}
+
+.profile-photo-preview img {
+  width: 100%;
+  border-radius: 0.375rem;
+  display: block;
+}
 
 .profile-info {
   flex: 1;

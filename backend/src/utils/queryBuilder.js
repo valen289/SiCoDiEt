@@ -4,7 +4,7 @@
 const COLUMNAS_PERMITIDAS = new Set([
   // usuarios
   'nombre', 'email', 'telefono', 'password', 'rol', 'activo', 'ultimo_acceso',
-  'intentos_fallidos', 'bloqueado_hasta',
+  'intentos_fallidos', 'bloqueado_hasta', 'foto',
   // insumos
   'stock_actual', 'precio_por_kg', 'stock_minimo', 'capacidad_maxima',
   'dias_restantes', 'consumo_promedio_diario', 'dias_restantes_origen',

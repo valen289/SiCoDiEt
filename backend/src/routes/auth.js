@@ -281,7 +281,7 @@ async function emitirSesion(res, user) {
 router.get('/me', require('../middleware/auth').authenticateToken, async (req, res) => {
   try {
     const [users] = await pool.query(
-      `SELECT u.id, u.cedula, u.nombre, u.email, u.telefono, u.rol, u.tambo_id, t.nombre AS tambo_nombre
+      `SELECT u.id, u.cedula, u.nombre, u.email, u.telefono, u.foto, u.rol, u.tambo_id, t.nombre AS tambo_nombre
        FROM usuarios u
        JOIN tambos t ON u.tambo_id = t.id
        WHERE u.id = ?`,
@@ -304,7 +304,17 @@ router.put('/profile', require('../middleware/auth').authenticateToken, [
   body('email').optional().isEmail().withMessage('Email invalido'),
   body('telefono').optional({ checkFalsy: true }).matches(/^[0-9+\- ]{8,20}$/).withMessage('Telefono invalido'),
   body('password').optional().matches(PASSWORD_REGEX).withMessage('Password debe tener minimo 8 caracteres, mayuscula, minuscula, numero y caracter especial'),
-  body('currentPassword').optional().notEmpty().withMessage('Contraseña actual requerida')
+  body('currentPassword').optional().notEmpty().withMessage('Contraseña actual requerida'),
+  body('foto').optional({ nullable: true }).custom((value) => {
+    if (value === null) return true;
+    if (typeof value !== 'string' || !/^data:image\/(jpeg|jpg|png|webp);base64,/.test(value)) {
+      throw new Error('Foto invalida');
+    }
+    if (value.length > 2_000_000) {
+      throw new Error('Foto demasiado grande');
+    }
+    return true;
+  })
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -312,7 +322,7 @@ router.put('/profile', require('../middleware/auth').authenticateToken, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { nombre, email, telefono, password, currentPassword } = req.body;
+    const { nombre, email, telefono, password, currentPassword, foto } = req.body;
 
     let hashedPassword;
     if (password) {
@@ -332,6 +342,7 @@ router.put('/profile', require('../middleware/auth').authenticateToken, [
       nombre,
       email: email !== undefined ? (email || null) : undefined,
       telefono: telefono !== undefined ? (telefono || null) : undefined,
+      foto,
     });
 
     if (!hasUpdates) {
@@ -341,7 +352,7 @@ router.put('/profile', require('../middleware/auth').authenticateToken, [
     await pool.query(`UPDATE usuarios SET ${setClause} WHERE id = ?`, [...values, req.user.id]);
 
     const [users] = await pool.query(
-      `SELECT u.id, u.cedula, u.nombre, u.email, u.telefono, u.rol, u.tambo_id, t.nombre AS tambo_nombre
+      `SELECT u.id, u.cedula, u.nombre, u.email, u.telefono, u.foto, u.rol, u.tambo_id, t.nombre AS tambo_nombre
        FROM usuarios u
        JOIN tambos t ON u.tambo_id = t.id
        WHERE u.id = ?`,
