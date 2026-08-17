@@ -12,7 +12,6 @@ CREATE TABLE IF NOT EXISTS tambos (
     activo         BOOLEAN DEFAULT TRUE,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     logo           MEDIUMTEXT NULL DEFAULT NULL,
-    moneda         VARCHAR(3) NOT NULL DEFAULT 'UYU',
     zona_horaria   VARCHAR(50) NOT NULL DEFAULT 'America/Montevideo'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

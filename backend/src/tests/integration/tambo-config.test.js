@@ -1,5 +1,5 @@
 // Cubre la ruta nueva GET/PUT /api/tambo: lectura abierta a todo el tambo, edicion
-// solo para dueno, y las whitelists de moneda/zona horaria/tamano de logo.
+// solo para dueno, y las whitelists de zona horaria/tamano de logo.
 const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const request = require('supertest');
@@ -31,7 +31,6 @@ test('GET /api/tambo es visible para un encargado (config de cuenta, no solo del
     .set('Authorization', `Bearer ${tokenEncargado}`);
 
   assert.equal(res.status, 200);
-  assert.equal(res.body.tambo.moneda, 'UYU');
   assert.equal(res.body.tambo.zona_horaria, 'America/Montevideo');
 });
 
@@ -41,39 +40,26 @@ test('PUT /api/tambo como encargado es rechazado con 403', async (t) => {
   const res = await request(app)
     .put('/api/tambo')
     .set('Authorization', `Bearer ${tokenEncargado}`)
-    .send({ moneda: 'ARS' });
+    .send({ zona_horaria: 'America/Argentina/Buenos_Aires' });
 
   assert.equal(res.status, 403);
 });
 
-test('PUT /api/tambo como dueno actualiza nombre, moneda y zona horaria', async (t) => {
+test('PUT /api/tambo como dueno actualiza nombre y zona horaria', async (t) => {
   if (!ctx.available) return t.skip('DB de test no disponible');
 
   const res = await request(app)
     .put('/api/tambo')
     .set('Authorization', `Bearer ${tokenDueno}`)
-    .send({ nombre: 'Tambo Config Editado', moneda: 'ARS', zona_horaria: 'America/Argentina/Buenos_Aires' });
+    .send({ nombre: 'Tambo Config Editado', zona_horaria: 'America/Argentina/Buenos_Aires' });
 
   assert.equal(res.status, 200);
   assert.equal(res.body.tambo.nombre, 'Tambo Config Editado');
-  assert.equal(res.body.tambo.moneda, 'ARS');
   assert.equal(res.body.tambo.zona_horaria, 'America/Argentina/Buenos_Aires');
 
-  const [[fila]] = await pool.query('SELECT nombre, moneda, zona_horaria FROM tambos WHERE id = ?', [tamboId]);
+  const [[fila]] = await pool.query('SELECT nombre, zona_horaria FROM tambos WHERE id = ?', [tamboId]);
   assert.equal(fila.nombre, 'Tambo Config Editado');
-  assert.equal(fila.moneda, 'ARS');
   assert.equal(fila.zona_horaria, 'America/Argentina/Buenos_Aires');
-});
-
-test('PUT /api/tambo con moneda fuera de la whitelist es rechazado con 400', async (t) => {
-  if (!ctx.available) return t.skip('DB de test no disponible');
-
-  const res = await request(app)
-    .put('/api/tambo')
-    .set('Authorization', `Bearer ${tokenDueno}`)
-    .send({ moneda: 'EUR' });
-
-  assert.equal(res.status, 400);
 });
 
 test('PUT /api/tambo con zona horaria fuera de la whitelist es rechazado con 400', async (t) => {

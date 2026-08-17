@@ -111,7 +111,7 @@ router.post('/login', [
     const [users] = await pool.query(
       `SELECT u.id, u.cedula, u.nombre, u.email, u.telefono, u.rol, u.password, u.tambo_id,
               u.intentos_fallidos, u.bloqueado_hasta, u.token_version,
-              t.nombre AS tambo_nombre, t.moneda AS tambo_moneda, t.zona_horaria AS tambo_zona_horaria, t.logo AS tambo_logo
+              t.nombre AS tambo_nombre, t.zona_horaria AS tambo_zona_horaria, t.logo AS tambo_logo
        FROM usuarios u
        JOIN tambos t ON u.tambo_id = t.id
        WHERE u.cedula = ? AND u.activo = TRUE`,
@@ -209,7 +209,7 @@ router.post('/verify-2fa', [
     const [users] = await pool.query(
       `SELECT u.id, u.cedula, u.nombre, u.email, u.telefono, u.rol, u.tambo_id, u.token_version,
               u.two_factor_code_hash, u.two_factor_code_expires,
-              t.nombre AS tambo_nombre, t.moneda AS tambo_moneda, t.zona_horaria AS tambo_zona_horaria, t.logo AS tambo_logo
+              t.nombre AS tambo_nombre, t.zona_horaria AS tambo_zona_horaria, t.logo AS tambo_logo
        FROM usuarios u
        JOIN tambos t ON u.tambo_id = t.id
        WHERE u.id = ? AND u.activo = TRUE`,
@@ -276,7 +276,6 @@ async function emitirSesion(res, user) {
       rol: user.rol,
       tambo_id: user.tambo_id,
       tambo_nombre: user.tambo_nombre,
-      tambo_moneda: user.tambo_moneda,
       tambo_zona_horaria: user.tambo_zona_horaria,
       tambo_logo: user.tambo_logo
     }
@@ -287,7 +286,7 @@ router.get('/me', require('../middleware/auth').authenticateToken, async (req, r
   try {
     const [users] = await pool.query(
       `SELECT u.id, u.cedula, u.nombre, u.email, u.telefono, u.foto, u.rol, u.tambo_id,
-              t.nombre AS tambo_nombre, t.moneda AS tambo_moneda, t.zona_horaria AS tambo_zona_horaria, t.logo AS tambo_logo
+              t.nombre AS tambo_nombre, t.zona_horaria AS tambo_zona_horaria, t.logo AS tambo_logo
        FROM usuarios u
        JOIN tambos t ON u.tambo_id = t.id
        WHERE u.id = ?`,
@@ -359,7 +358,7 @@ router.put('/profile', require('../middleware/auth').authenticateToken, [
 
     const [users] = await pool.query(
       `SELECT u.id, u.cedula, u.nombre, u.email, u.telefono, u.foto, u.rol, u.tambo_id,
-              t.nombre AS tambo_nombre, t.moneda AS tambo_moneda, t.zona_horaria AS tambo_zona_horaria, t.logo AS tambo_logo
+              t.nombre AS tambo_nombre, t.zona_horaria AS tambo_zona_horaria, t.logo AS tambo_logo
        FROM usuarios u
        JOIN tambos t ON u.tambo_id = t.id
        WHERE u.id = ?`,

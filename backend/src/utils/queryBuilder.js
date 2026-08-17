@@ -16,7 +16,7 @@ const COLUMNAS_PERMITIDAS = new Set([
   // compras / proveedores
   'precio_unitario', 'cantidad', 'total', 'contacto',
   // tambos
-  'moneda', 'zona_horaria', 'logo',
+  'zona_horaria', 'logo',
 ]);
 
 // Construye el SET de un UPDATE dinamico a partir de un objeto { columna: valor }.

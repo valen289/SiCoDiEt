@@ -2,15 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../context/AlertContext';
 import api from '../services/api';
-import { Building2, Save, Upload, DollarSign, Clock } from 'lucide-react';
+import { Building2, Save, Upload, Clock } from 'lucide-react';
 import { resizeImageToDataUrl } from '../utils/resizeImage';
 import '../styles/profile.css';
-
-const MONEDAS = [
-  { value: 'UYU', label: 'Peso uruguayo (UYU)' },
-  { value: 'ARS', label: 'Peso argentino (ARS)' },
-  { value: 'USD', label: 'Dólar estadounidense (USD)' },
-];
 
 const ZONAS_HORARIAS = [
   { value: 'America/Montevideo', label: 'Montevideo (UY)' },
@@ -24,7 +18,6 @@ export default function Configuracion() {
   const { success, error } = useAlert();
   const [form, setForm] = useState({
     nombre: user?.tambo_nombre || '',
-    moneda: user?.tambo_moneda || 'UYU',
     zona_horaria: user?.tambo_zona_horaria || 'America/Montevideo',
   });
   const [logoPreview, setLogoPreview] = useState(user?.tambo_logo || null);
@@ -50,7 +43,6 @@ export default function Configuracion() {
       const res = await api.put('/tambo', { logo: dataUrl });
       updateUser({
         tambo_nombre: res.data.tambo.nombre,
-        tambo_moneda: res.data.tambo.moneda,
         tambo_zona_horaria: res.data.tambo.zona_horaria,
         tambo_logo: res.data.tambo.logo,
       });
@@ -69,12 +61,10 @@ export default function Configuracion() {
     try {
       const res = await api.put('/tambo', {
         nombre: form.nombre,
-        moneda: form.moneda,
         zona_horaria: form.zona_horaria,
       });
       updateUser({
         tambo_nombre: res.data.tambo.nombre,
-        tambo_moneda: res.data.tambo.moneda,
         tambo_zona_horaria: res.data.tambo.zona_horaria,
         tambo_logo: res.data.tambo.logo,
       });
@@ -133,18 +123,6 @@ export default function Configuracion() {
               onChange={(e) => setForm({ ...form, nombre: e.target.value })}
               required
             />
-          </div>
-          <div className="form-group">
-            <label className="form-label">
-              <DollarSign size={16} /> Moneda
-            </label>
-            <select
-              className="form-control"
-              value={form.moneda}
-              onChange={(e) => setForm({ ...form, moneda: e.target.value })}
-            >
-              {MONEDAS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-            </select>
           </div>
           <div className="form-group">
             <label className="form-label">

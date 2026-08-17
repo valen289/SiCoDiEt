@@ -278,10 +278,11 @@ Backend:
 Frontend — sección en la página de perfil o página `/configuracion`:
 - Nombre del establecimiento (editable).
 - Logo (upload con preview).
-- Moneda local (select: UYU / ARS / USD) — afecta cómo se muestran los costos en toda la app.
 - Zona horaria (select) — para que los timestamps de consumos sean correctos independientemente del servidor.
 
-La moneda y zona horaria son datos que afectan la experiencia de todos los usuarios del tambo, no solo del dueño que las configura.
+**Descartado:** selector de moneda local (UYU/ARS/USD). Un selector que solo cambia el símbolo mostrado sin convertir los montos reales es engañoso — el sistema sigue todo internamente en USD. Si en algún momento se justifica multi-moneda real, requiere tasas de conversión, no solo un `<select>`.
+
+La zona horaria es un dato que afecta la experiencia de todos los usuarios del tambo, no solo del dueño que la configura.
 
 ---
 

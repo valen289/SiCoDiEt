@@ -10,7 +10,6 @@ router.use(authenticateToken);
 
 const soloDueno = authorizeRoles('dueno');
 
-const MONEDAS_VALIDAS = ['UYU', 'ARS', 'USD'];
 const ZONAS_VALIDAS = [
   'America/Montevideo',
   'America/Argentina/Buenos_Aires',
@@ -21,7 +20,7 @@ const ZONAS_VALIDAS = [
 router.get('/', async (req, res) => {
   try {
     const [[tambo]] = await pool.query(
-      'SELECT nombre, logo, moneda, zona_horaria FROM tambos WHERE id = ?',
+      'SELECT nombre, logo, zona_horaria FROM tambos WHERE id = ?',
       [req.user.tambo_id]
     );
     res.json({ tambo });
@@ -33,7 +32,6 @@ router.get('/', async (req, res) => {
 
 router.put('/', soloDueno, [
   body('nombre').optional().notEmpty().withMessage('El nombre no puede estar vacio'),
-  body('moneda').optional().isIn(MONEDAS_VALIDAS).withMessage('Moneda invalida'),
   body('zona_horaria').optional().isIn(ZONAS_VALIDAS).withMessage('Zona horaria invalida'),
   body('logo').optional({ nullable: true }).custom((value) => {
     if (value === null) return true;
@@ -52,8 +50,8 @@ router.put('/', soloDueno, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { nombre, moneda, zona_horaria, logo } = req.body;
-    const { setClause, values, hasUpdates } = buildUpdateSet({ nombre, moneda, zona_horaria, logo });
+    const { nombre, zona_horaria, logo } = req.body;
+    const { setClause, values, hasUpdates } = buildUpdateSet({ nombre, zona_horaria, logo });
 
     if (!hasUpdates) {
       return res.status(400).json({ error: 'No hay datos para actualizar' });
@@ -62,7 +60,7 @@ router.put('/', soloDueno, [
     await pool.query(`UPDATE tambos SET ${setClause} WHERE id = ?`, [...values, req.user.tambo_id]);
 
     const [[tambo]] = await pool.query(
-      'SELECT nombre, logo, moneda, zona_horaria FROM tambos WHERE id = ?',
+      'SELECT nombre, logo, zona_horaria FROM tambos WHERE id = ?',
       [req.user.tambo_id]
     );
 
