@@ -1,0 +1,1 @@
+import{St as a,a as n,o as e,s as o}from"./vendor-BpFuEDLL.js";var t=a();function l({value:a,onChange:l,defaultCountry:r="UY",...s}){return(0,t.jsx)(o,{international:!0,countryCallingCodeEditable:!1,defaultCountry:r,labels:n,flags:e,value:a,onChange:l,className:"form-control phone-input-field",numberInputProps:{className:"phone-input-field__number"},...s})}export{l as t};

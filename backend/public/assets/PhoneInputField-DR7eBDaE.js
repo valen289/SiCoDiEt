@@ -1,1 +1,0 @@
-import{a,bt as n,o as e,s as o}from"./vendor-BexYBYZC.js";var t=n();function l({value:n,onChange:l,defaultCountry:r="UY",...s}){return(0,t.jsx)(o,{international:!0,countryCallingCodeEditable:!1,defaultCountry:r,labels:a,flags:e,value:n,onChange:l,className:"form-control phone-input-field",numberInputProps:{className:"phone-input-field__number"},...s})}export{l as t};
