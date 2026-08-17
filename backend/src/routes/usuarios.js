@@ -8,6 +8,7 @@ const { body, validationResult } = require('express-validator');
 const { logActividad } = require('../utils/actividad');
 const { buildUpdateSet } = require('../utils/queryBuilder');
 const { PASSWORD_REGEX } = require('../utils/passwordPolicy');
+const { sendInvitationEmail } = require('../utils/email');
 
 router.use(authenticateToken);
 
@@ -24,6 +25,25 @@ router.get('/', soloDueno, async (req, res) => {
   } catch (error) {
     console.error('Error obteniendo usuarios:', error);
     res.status(500).json({ error: 'Error al obtener usuarios' });
+  }
+});
+
+// Debe quedar antes de '/:id' -- si no, "GET /invitaciones" seria capturado
+// como si "invitaciones" fuera un id de usuario.
+router.get('/invitaciones', soloDueno, async (req, res) => {
+  try {
+    const [invitaciones] = await pool.query(
+      `SELECT id, email, rol, fecha_creacion, fecha_expiracion,
+              (fecha_expiracion < NOW()) AS expirada
+       FROM invitaciones
+       WHERE tambo_id = ? AND usado = 0
+       ORDER BY fecha_creacion DESC`,
+      [req.user.tambo_id]
+    );
+    res.json({ invitaciones: invitaciones.map(i => ({ ...i, expirada: !!i.expirada })) });
+  } catch (error) {
+    console.error('Error listando invitaciones:', error);
+    res.status(500).json({ error: 'Error al listar invitaciones' });
   }
 });
 
@@ -174,25 +194,69 @@ router.delete('/:id', soloDueno, async (req, res) => {
   }
 });
 
-// Crear token de invitación (solo dueño)
-router.post('/invitacion', soloDueno, async (req, res) => {
+// Crear token de invitación (solo dueño). Si se indica email, además se envía el
+// link por correo (Brevo) -- el link/QR se sigue devolviendo siempre como respaldo,
+// por si el email no llega o el dueño prefiere compartirlo a mano.
+router.post('/invitacion', soloDueno, [
+  body('email').optional({ checkFalsy: true }).isEmail().withMessage('Email inválido'),
+  body('rol').optional().isIn(['trabajador', 'encargado']).withMessage('Rol inválido'),
+], async (req, res) => {
   try {
-    const { rol = 'trabajador' } = req.body;
-    if (!['trabajador', 'encargado'].includes(rol)) {
-      return res.status(400).json({ error: 'Rol inválido' });
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
     }
+
+    const { rol = 'trabajador', email } = req.body;
     const token = crypto.randomBytes(32).toString('hex');
-    const expiracion = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const expiracion = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
     await pool.query(
-      'INSERT INTO invitaciones (tambo_id, token, rol, creado_por, fecha_expiracion) VALUES (?, ?, ?, ?, ?)',
-      [req.user.tambo_id, token, rol, req.user.id, expiracion]
+      'INSERT INTO invitaciones (tambo_id, token, rol, creado_por, fecha_expiracion, email) VALUES (?, ?, ?, ?, ?, ?)',
+      [req.user.tambo_id, token, rol, req.user.id, expiracion, email || null]
     );
 
-    res.json({ token, expira: expiracion.toISOString() });
+    let emailEnviado = false;
+    if (email) {
+      const baseUrl = (process.env.FRONTEND_URL || 'http://localhost:3001').split(',')[0].trim();
+      const link = `${baseUrl}/register?token=${token}`;
+      try {
+        await sendInvitationEmail(email, link, rol);
+        emailEnviado = true;
+      } catch (emailErr) {
+        console.error('Error enviando email de invitación:', emailErr);
+      }
+    }
+
+    res.json({ token, expira: expiracion.toISOString(), emailEnviado });
   } catch (error) {
     console.error('Error creando invitación:', error);
     res.status(500).json({ error: 'Error al crear invitación' });
+  }
+});
+
+// Revocar una invitación pendiente (solo dueño)
+router.delete('/invitaciones/:id', soloDueno, async (req, res) => {
+  try {
+    const [result] = await pool.query(
+      'DELETE FROM invitaciones WHERE id = ? AND tambo_id = ? AND usado = 0',
+      [req.params.id, req.user.tambo_id]
+    );
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Invitación no encontrada o ya utilizada' });
+    }
+
+    await logActividad(pool, {
+      usuario_id: req.user.id,
+      tambo_id: req.user.tambo_id,
+      accion: 'invitacion_revocada',
+      descripcion: 'Revocó una invitación pendiente',
+    });
+
+    res.json({ message: 'Invitación revocada' });
+  } catch (error) {
+    console.error('Error revocando invitación:', error);
+    res.status(500).json({ error: 'Error al revocar invitación' });
   }
 });
 

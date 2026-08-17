@@ -1,7 +1,7 @@
 // Calculo de costos y aporte nutricional de los ingredientes de una dieta.
 // cantidad_kg de cada ingrediente viene expresada por vaca/dia (ver formulario de Dietas),
 // asi que costoTotal resultante ya es el costo por vaca/dia, no el costo total del lote.
-async function calcularCostosIngredientes(ingredientes, executor) {
+async function calcularCostosIngredientes(ingredientes, executor, tamboId) {
   let costoTotal = 0;
   let materiaSecaTotal = 0;
   let energiaTotal = 0;
@@ -14,6 +14,11 @@ async function calcularCostosIngredientes(ingredientes, executor) {
     const insumoId = parseInt(ing.insumo_id);
     const cantidadKg = parseFloat(ing.cantidad_kg) || 0;
     if (!insumoId || cantidadKg <= 0) continue;
+
+    // El insumo debe pertenecer al mismo tambo del usuario -- si no, se descarta
+    // igual que un insumo_id invalido, para no filtrar ni persistir datos de otro tenant.
+    const [insumoPropio] = await executor('SELECT id FROM insumos WHERE id = ? AND tambo_id = ?', [insumoId, tamboId]);
+    if (insumoPropio.length === 0) continue;
 
     const [params] = await executor('SELECT * FROM parametros_nutricionales WHERE insumo_id = ?', [insumoId]);
     const [costos] = await executor('SELECT precio_por_kg FROM costos_ingredientes WHERE insumo_id = ?', [insumoId]);

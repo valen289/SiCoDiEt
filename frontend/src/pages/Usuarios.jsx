@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 import { useAlert } from '../context/AlertContext';
 import { useSEO } from '../hooks/useSEO';
-import { Users, Plus, Edit2, UserCheck, UserX, Lock, Save, X, Mail, Phone, Hash, Link2, Copy, QrCode } from 'lucide-react';
+import { Users, Plus, Edit2, UserCheck, UserX, Lock, Save, X, Mail, Phone, Hash, Copy, QrCode, Eye, EyeOff, Clock, Ban, Send } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import PhoneInputField from '../components/PhoneInputField';
 import PasswordRulesHint from '../components/PasswordRulesHint';
@@ -28,13 +28,19 @@ export default function Usuarios() {
     cedula: '', nombre: '', email: '', telefono: '', password: '', rol: 'trabajador'
   });
   const [passwordForm, setPasswordForm] = useState({ password: '', confirmPassword: '' });
+  const [verPassword, setVerPassword] = useState(false);
   const [filter, setFilter] = useState('todos');
 
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteRol, setInviteRol] = useState('trabajador');
+  const [inviteEmail, setInviteEmail] = useState('');
   const [inviteResult, setInviteResult] = useState(null);
   const [inviteLoading, setInviteLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  const [invitaciones, setInvitaciones] = useState([]);
+  const [showInvitaciones, setShowInvitaciones] = useState(false);
+  const [loadingInvitaciones, setLoadingInvitaciones] = useState(false);
 
   const loadUsuarios = useCallback(async () => {
     try {
@@ -112,6 +118,7 @@ export default function Usuarios() {
   const handleChangePassword = (usuario) => {
     setEditingUser(usuario);
     setPasswordForm({ password: '', confirmPassword: '' });
+    setVerPassword(false);
     setShowPasswordModal(true);
   };
 
@@ -138,12 +145,14 @@ export default function Usuarios() {
   const handleCreateInvite = async () => {
     setInviteLoading(true);
     try {
-      const res = await api.post('/usuarios/invitacion', { rol: inviteRol });
+      const res = await api.post('/usuarios/invitacion', { rol: inviteRol, email: inviteEmail || undefined });
       const baseUrl = import.meta.env.VITE_APP_URL || window.location.origin;
       const link = `${baseUrl}/register?token=${res.data.token}`;
-      setInviteResult({ link, expira: res.data.expira });
+      setInviteResult({ link, expira: res.data.expira, emailEnviado: res.data.emailEnviado, email: inviteEmail });
+      if (res.data.emailEnviado) success(`Invitación enviada a ${inviteEmail}`);
+      loadInvitaciones();
     } catch (err) {
-      error(err.response?.data?.error || 'Error al crear invitación');
+      error(err.response?.data?.error || err.response?.data?.errors?.[0]?.msg || 'Error al crear invitación');
     } finally {
       setInviteLoading(false);
     }
@@ -160,7 +169,40 @@ export default function Usuarios() {
     setShowInviteModal(false);
     setInviteResult(null);
     setInviteRol('trabajador');
+    setInviteEmail('');
     setCopied(false);
+  };
+
+  const loadInvitaciones = useCallback(async () => {
+    try {
+      setLoadingInvitaciones(true);
+      const res = await api.get('/usuarios/invitaciones');
+      setInvitaciones(res.data.invitaciones || []);
+    } catch (err) {
+      console.error('Error cargando invitaciones:', err);
+    } finally {
+      setLoadingInvitaciones(false);
+    }
+  }, []);
+
+  useEffect(() => { loadInvitaciones(); }, [loadInvitaciones]);
+
+  const handleRevocarInvitacion = async (invitacion) => {
+    const confirmed = await confirm({
+      title: 'Revocar invitación',
+      message: `¿Revocar la invitación${invitacion.email ? ` a "${invitacion.email}"` : ''} (${ROL_CONFIG[invitacion.rol]?.label || invitacion.rol})?`,
+      type: 'warning',
+      confirmText: 'Sí, revocar',
+      cancelText: 'Cancelar',
+    });
+    if (!confirmed) return;
+    try {
+      await api.delete(`/usuarios/invitaciones/${invitacion.id}`);
+      success('Invitación revocada');
+      loadInvitaciones();
+    } catch (err) {
+      error(err.response?.data?.error || 'Error al revocar invitación');
+    }
   };
 
   const getRolBadge = (rol) => {
@@ -207,6 +249,12 @@ export default function Usuarios() {
         </div>
         <div className="d-flex gap-2">
           <button
+            className="btn btn-outline-secondary d-flex align-items-center gap-2"
+            onClick={() => setShowInvitaciones(v => !v)}
+          >
+            <Clock size={18} /> Invitaciones {invitaciones.length > 0 && `(${invitaciones.length})`}
+          </button>
+          <button
             className="btn btn-outline-success d-flex align-items-center gap-2"
             onClick={() => setShowInviteModal(true)}
           >
@@ -239,6 +287,66 @@ export default function Usuarios() {
           {filteredUsuarios.length} usuario{filteredUsuarios.length !== 1 ? 's' : ''}
         </span>
       </div>
+
+      {showInvitaciones && (
+        <div className="card mb-4">
+          <div className="card-header bg-white d-flex justify-content-between align-items-center">
+            <h6 className="mb-0 d-flex align-items-center gap-2"><Clock size={16} />Invitaciones pendientes</h6>
+            <button className="btn btn-sm btn-light" onClick={() => setShowInvitaciones(false)}>
+              <X size={16} />
+            </button>
+          </div>
+          <div className="card-body">
+            {loadingInvitaciones ? (
+              <div className="text-center py-3">
+                <div className="spinner-border spinner-border-sm text-success" role="status" />
+              </div>
+            ) : invitaciones.length === 0 ? (
+              <p className="text-muted text-center py-2 mb-0">No hay invitaciones pendientes</p>
+            ) : (
+              <div className="table-responsive">
+                <table className="table table-sm table-bordered mb-0">
+                  <thead className="table-light">
+                    <tr>
+                      <th>Email</th>
+                      <th>Rol</th>
+                      <th>Creada</th>
+                      <th>Expira</th>
+                      <th>Estado</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {invitaciones.map(inv => (
+                      <tr key={inv.id}>
+                        <td>{inv.email || <span className="text-muted">Sin email (solo link/QR)</span>}</td>
+                        <td>{getRolBadge(inv.rol)}</td>
+                        <td className="text-muted small">{new Date(inv.fecha_creacion).toLocaleDateString('es-AR')}</td>
+                        <td className="text-muted small">{new Date(inv.fecha_expiracion).toLocaleDateString('es-AR')}</td>
+                        <td>
+                          {inv.expirada
+                            ? <span className="badge badge-secondary">Vencida</span>
+                            : <span className="badge badge-success">Pendiente</span>
+                          }
+                        </td>
+                        <td>
+                          <button
+                            className="btn btn-sm btn-outline-danger d-flex align-items-center gap-1"
+                            onClick={() => handleRevocarInvitacion(inv)}
+                            title="Revocar"
+                          >
+                            <Ban size={13} /> Revocar
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="usuarios-grid">
         {filteredUsuarios.map(usuario => (
@@ -409,8 +517,19 @@ export default function Usuarios() {
               {!inviteResult ? (
                 <>
                   <p className="text-muted small mb-3">
-                    Generá un link de invitación. El operario escanea el QR o abre el link y se registra directamente en tu establecimiento.
+                    Generá un link de invitación. Si cargás el email, se lo mandamos directamente;
+                    de todas formas siempre podés compartir el link o el QR a mano.
                   </p>
+                  <div className="mb-3">
+                    <label className="form-label">Email <span className="text-muted">(opcional)</span></label>
+                    <input
+                      type="email"
+                      className="form-control"
+                      placeholder="operario@ejemplo.com"
+                      value={inviteEmail}
+                      onChange={e => setInviteEmail(e.target.value)}
+                    />
+                  </div>
                   <div className="mb-3">
                     <label className="form-label">Rol que tendrá</label>
                     <select
@@ -424,16 +543,25 @@ export default function Usuarios() {
                   </div>
                   <div className="d-flex gap-2 justify-content-end mt-4">
                     <button className="btn btn-secondary" onClick={handleCloseInvite}>Cancelar</button>
-                    <button className="btn btn-success" onClick={handleCreateInvite} disabled={inviteLoading}>
-                      {inviteLoading ? 'Generando...' : 'Generar link'}
+                    <button className="btn btn-success d-flex align-items-center gap-2" onClick={handleCreateInvite} disabled={inviteLoading}>
+                      {inviteEmail ? <Send size={16} /> : <QrCode size={16} />}
+                      {inviteLoading ? 'Generando...' : inviteEmail ? 'Enviar invitación' : 'Generar link'}
                     </button>
                   </div>
                 </>
               ) : (
                 <>
                   <p className="text-muted small mb-3">
-                    Este link expira en <strong>24 horas</strong>. Compartilo o mostrá el QR al operario.
+                    Este link expira en <strong>7 días</strong>. Compartilo o mostrá el QR al operario.
                   </p>
+                  {inviteResult.email && (
+                    <div className={`alert ${inviteResult.emailEnviado ? 'alert-success' : 'alert-warning'} py-2 small`}>
+                      {inviteResult.emailEnviado
+                        ? `Se envió el link por email a ${inviteResult.email}.`
+                        : `No se pudo enviar el email a ${inviteResult.email}. Compartí el link o el QR manualmente.`
+                      }
+                    </div>
+                  )}
                   <div className="text-center mb-3">
                     <div
                       className="d-inline-block p-2"
@@ -477,14 +605,19 @@ export default function Usuarios() {
               <form onSubmit={handlePasswordSubmit}>
                 <div className="mb-3">
                   <label className="form-label">Nueva Contraseña</label>
-                  <input
-                    type="password"
-                    className="form-control"
-                    value={passwordForm.password}
-                    onChange={e => setPasswordForm(prev => ({ ...prev, password: e.target.value }))}
-                    required
-                    autoFocus
-                  />
+                  <div className="input-group">
+                    <input
+                      type={verPassword ? 'text' : 'password'}
+                      className="form-control"
+                      value={passwordForm.password}
+                      onChange={e => setPasswordForm(prev => ({ ...prev, password: e.target.value }))}
+                      required
+                      autoFocus
+                    />
+                    <button type="button" className="btn btn-outline-secondary" onClick={() => setVerPassword(v => !v)}>
+                      {verPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
                   <PasswordRulesHint />
                   {passwordForm.password && (() => {
                     const strength = passwordStrength(passwordForm.password);
@@ -500,13 +633,18 @@ export default function Usuarios() {
                 </div>
                 <div className="mb-3">
                   <label className="form-label">Confirmar Contraseña</label>
-                  <input
-                    type="password"
-                    className="form-control"
-                    value={passwordForm.confirmPassword}
-                    onChange={e => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                    required
-                  />
+                  <div className="input-group">
+                    <input
+                      type={verPassword ? 'text' : 'password'}
+                      className="form-control"
+                      value={passwordForm.confirmPassword}
+                      onChange={e => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                      required
+                    />
+                    <button type="button" className="btn btn-outline-secondary" onClick={() => setVerPassword(v => !v)}>
+                      {verPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
                 </div>
                 <div className="modal-actions d-flex gap-2 justify-content-end">
                   <button type="button" className="btn btn-secondary" onClick={() => setShowPasswordModal(false)}>

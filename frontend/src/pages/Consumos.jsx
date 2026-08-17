@@ -89,6 +89,9 @@ export default function Consumos() {
       const pctAm = parseFloat(ing.porcentaje_am ?? 50);
       const factor = turnoActual === 'AM' ? pctAm / 100 : (100 - pctAm) / 100;
       const kgEsteTurno = parseFloat(ing.kg_por_vaca) * factor;
+      // cantidad_kg_por_animal x cantidad_animales del lote, pre-cargado. cantidad_sugerida
+      // queda fija como referencia para detectar si el trabajador la modificó.
+      const sugerida = parseFloat((kgEsteTurno * (parseInt(vacas) || 0)).toFixed(2));
       return {
         insumo_id: ing.insumo_id,
         insumo_id_original: ing.insumo_id, // para detectar sustituciones
@@ -96,7 +99,8 @@ export default function Consumos() {
         unidad: ing.unidad,
         porcentaje_am: pctAm,
         kg_este_turno_por_vaca: kgEsteTurno,
-        cantidad_total: parseFloat((kgEsteTurno * (parseInt(vacas) || 0)).toFixed(2)),
+        cantidad_total: sugerida,
+        cantidad_sugerida: sugerida,
         es_extra: false, // fila agregada manualmente
       };
     });
@@ -229,8 +233,22 @@ export default function Consumos() {
     setShowConfirm(true);
   };
 
+  // Una fila quedó "sugerida por dieta" solo si nunca se sustituyó el insumo y la
+  // cantidad coincide (con tolerancia por redondeo) con lo que formula la dieta activa.
+  const getOrigenCantidad = (fila) => {
+    if (fila.es_extra) return 'manual';
+    if (fila.insumo_id !== fila.insumo_id_original) return 'manual';
+    if (!fila.cantidad_sugerida || fila.cantidad_sugerida <= 0) return 'manual';
+    return Math.abs(fila.cantidad_total - fila.cantidad_sugerida) < 0.01 ? 'dieta' : 'manual';
+  };
+
+  const getDesviacionPct = (fila) => {
+    if (!fila.cantidad_sugerida || fila.cantidad_sugerida <= 0) return null;
+    return ((fila.cantidad_total - fila.cantidad_sugerida) / fila.cantidad_sugerida) * 100;
+  };
+
   const buildPayload = () => {
-    // Construye mapa de insumo_id → cantidad final
+    // Construye mapa de insumo_id → { cantidad_kg, origen_cantidad } final
     // Si el ingrediente cambió, agrega una entrada en 0 para el original (para que el backend lo revierta)
     const mapa = new Map();
 
@@ -238,16 +256,21 @@ export default function Consumos() {
       // Si el ingrediente de esta fila fue sustituido, zerar el original
       if (fila.insumo_id_original && fila.insumo_id !== fila.insumo_id_original) {
         if (!mapa.has(fila.insumo_id_original)) {
-          mapa.set(fila.insumo_id_original, 0);
+          mapa.set(fila.insumo_id_original, { cantidad_kg: 0, origen_cantidad: 'manual' });
         }
       }
       // Sumar la cantidad del ingrediente actual
-      mapa.set(fila.insumo_id, (mapa.get(fila.insumo_id) || 0) + fila.cantidad_total);
+      const prev = mapa.get(fila.insumo_id) || { cantidad_kg: 0, origen_cantidad: getOrigenCantidad(fila) };
+      mapa.set(fila.insumo_id, {
+        cantidad_kg: prev.cantidad_kg + fila.cantidad_total,
+        origen_cantidad: getOrigenCantidad(fila),
+      });
     }
 
-    return Array.from(mapa.entries()).map(([insumo_id, cantidad_kg]) => ({
+    return Array.from(mapa.entries()).map(([insumo_id, v]) => ({
       insumo_id,
-      cantidad_kg,
+      cantidad_kg: v.cantidad_kg,
+      origen_cantidad: v.origen_cantidad,
     }));
   };
 
@@ -307,6 +330,22 @@ export default function Consumos() {
     () => todosInsumos.filter(i => !idsEnUso.has(i.id)),
     [todosInsumos, idsEnUso]
   );
+  const insumosPorId = useMemo(
+    () => new Map(todosInsumos.map(i => [i.id, i])),
+    [todosInsumos]
+  );
+
+  // La "Cantidad" siempre se registra en kg (así se formula la dieta). Si el insumo
+  // lleva su stock en otra unidad física (ej. fardos), esto devuelve el equivalente
+  // aproximado en esa unidad para que quede claro cuánto va a descontarse del stock.
+  const getEquivalenteNativo = (insumoId, cantidadKg) => {
+    const insumo = insumosPorId.get(insumoId);
+    const pesoUnidad = parseFloat(insumo?.peso_unidad);
+    if (!insumo || (insumo.unidad || '').trim().toLowerCase().startsWith('kg') || !pesoUnidad || pesoUnidad <= 0) {
+      return null;
+    }
+    return { valor: cantidadKg / pesoUnidad, unidad: insumo.unidad };
+  };
 
   const handleReportePdf = async () => {
     setGenerandoPdf(true);
@@ -503,6 +542,24 @@ export default function Consumos() {
                                   {fila.es_extra ? '—' : `${(100 - fila.porcentaje_am).toFixed(0)}%`}
                                 </td>
                                 <td>
+                                  {(() => {
+                                    const equiv = getEquivalenteNativo(fila.insumo_id, fila.cantidad_total);
+                                    return equiv
+                                      ? <div className="fw-bold text-success mb-1">{equiv.valor.toFixed(equiv.valor < 10 ? 2 : 1)} {equiv.unidad}</div>
+                                      : null;
+                                  })()}
+                                  {!fila.es_extra && (() => {
+                                    if (getOrigenCantidad(fila) === 'dieta') {
+                                      return <span className="badge bg-success-subtle text-success border border-success-subtle small mb-1 d-inline-block">Sugerido por dieta</span>;
+                                    }
+                                    const pct = getDesviacionPct(fila);
+                                    if (pct === null || fila.insumo_id !== fila.insumo_id_original) return null;
+                                    return (
+                                      <span className={`badge small mb-1 d-inline-block border ${pct >= 0 ? 'bg-warning-subtle text-warning border-warning-subtle' : 'bg-info-subtle text-info border-info-subtle'}`}>
+                                        {pct > 0 ? '+' : ''}{pct.toFixed(0)}% vs. dieta
+                                      </span>
+                                    );
+                                  })()}
                                   <input
                                     type="number"
                                     className="form-control form-control-sm"
@@ -512,7 +569,7 @@ export default function Consumos() {
                                     onChange={(e) => handleEditCantidad(index, e.target.value)}
                                   />
                                 </td>
-                                <td className="text-center align-middle small">{fila.unidad}</td>
+                                <td className="text-center align-middle small">kg</td>
                                 <td className="text-center align-middle">
                                   {fila.es_extra && (
                                     <button
@@ -646,12 +703,18 @@ export default function Consumos() {
                               {fila.es_extra && <span className="badge bg-info ms-1 small">extra</span>}
                             </td>
                             <td className="text-end fw-bold">
-                              {fila.cantidad_total <= 0
-                                ? <span className="text-muted">0 (sin dar)</span>
-                                : fila.cantidad_total.toFixed(2)
-                              }
+                              {fila.cantidad_total <= 0 ? (
+                                <span className="text-muted">0 (sin dar)</span>
+                              ) : (() => {
+                                const equiv = getEquivalenteNativo(fila.insumo_id, fila.cantidad_total);
+                                return equiv
+                                  ? <>{equiv.valor.toFixed(equiv.valor < 10 ? 2 : 1)} {equiv.unidad}<small className="text-muted d-block fw-normal">({fila.cantidad_total.toFixed(2)} kg)</small></>
+                                  : fila.cantidad_total.toFixed(2);
+                              })()}
                             </td>
-                            <td className="text-center">{fila.unidad}</td>
+                            <td className="text-center">
+                              {getEquivalenteNativo(fila.insumo_id, fila.cantidad_total) ? '' : 'kg'}
+                            </td>
                           </tr>
                         );
                       })}
@@ -718,10 +781,11 @@ export default function Consumos() {
                       <th>Turno</th>
                       <th>Lote</th>
                       <th>Insumo</th>
-                      <th>Cantidad</th>
+                      <th>Cantidad (kg)</th>
                       <th>Animales</th>
                       <th>Kg/Animal</th>
                       <th>Sobra</th>
+                      <th>Origen</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -749,6 +813,14 @@ export default function Consumos() {
                             {sobra !== null
                               ? <span className={`badge bg-${alerta?.color === 'danger' ? 'danger' : alerta?.color === 'warning' ? 'warning text-dark' : 'success'}`}>{sobra}%</span>
                               : <span className="text-muted">—</span>
+                            }
+                          </td>
+                          <td>
+                            {item.origen_cantidad === 'dieta'
+                              ? <span className="badge bg-success-subtle text-success border border-success-subtle small">Dieta</span>
+                              : item.origen_cantidad === 'manual'
+                                ? <span className="badge bg-secondary-subtle text-secondary border small">Manual</span>
+                                : <span className="text-muted">—</span>
                             }
                           </td>
                         </tr>

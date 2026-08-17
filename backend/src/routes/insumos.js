@@ -7,6 +7,7 @@ const { verificarYGenerarAlertas, getNivelAlerta, calcularEstadoActual } = requi
 const { logActividad } = require('../utils/actividad');
 const { buildUpdateSet } = require('../utils/queryBuilder');
 const { kgAUnidadNativa, unidadNativaAKg } = require('../utils/conversionUnidades');
+const { hoyEnZona, horaEnZona } = require('../utils/tzDate');
 
 router.use(authenticateToken);
 
@@ -75,9 +76,9 @@ router.get('/lectura-anterior', async (req, res) => {
 
     const [[row]] = await pool.query(
       `SELECT porcentaje_sobra FROM consumo_diario_lote
-       WHERE lote_id = ? AND fecha = ? AND turno = ? AND porcentaje_sobra IS NOT NULL
+       WHERE lote_id = ? AND fecha = ? AND turno = ? AND porcentaje_sobra IS NOT NULL AND tambo_id = ?
        LIMIT 1`,
-      [lote_id, fechaBusqueda, turnoBusqueda]
+      [lote_id, fechaBusqueda, turnoBusqueda, req.user.tambo_id]
     );
 
     res.json({
@@ -210,24 +211,27 @@ router.post('/:id/cargar', duenoEncargado, [
         });
       }
 
+      const fechaHoy = hoyEnZona(req.user.zona_horaria);
+      const horaAhora = horaEnZona(req.user.zona_horaria);
+
       await connection.query(
         'UPDATE insumos SET stock_actual = ? WHERE id = ?',
         [nuevoStock, insumoId]
       );
 
       await connection.query(
-        'INSERT INTO historial_cargas_alimentos (tipo_alimento, insumo_id, usuario_id, cantidad, comprobante_entrega, fecha, hora, observaciones) VALUES (?, ?, ?, ?, ?, CURDATE(), CURTIME(), ?)',
-        [insumo.tipo_insumo, insumoId, req.user.id, cantidad, comprobante_entrega || null, observaciones || null]
+        'INSERT INTO historial_cargas_alimentos (tipo_alimento, insumo_id, usuario_id, cantidad, comprobante_entrega, fecha, hora, observaciones) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [insumo.tipo_insumo, insumoId, req.user.id, cantidad, comprobante_entrega || null, fechaHoy, horaAhora, observaciones || null]
       );
 
       await connection.query(
-        'INSERT INTO consumo_diario (insumo_id, usuario_id, cantidad, fecha, hora, tipo_movimiento, observaciones) VALUES (?, ?, ?, CURDATE(), CURTIME(), "ingreso", ?)',
-        [insumoId, req.user.id, cantidad, observaciones || null]
+        'INSERT INTO consumo_diario (insumo_id, usuario_id, cantidad, fecha, hora, tipo_movimiento, observaciones) VALUES (?, ?, ?, ?, ?, "ingreso", ?)',
+        [insumoId, req.user.id, cantidad, fechaHoy, horaAhora, observaciones || null]
       );
 
       await connection.query(
-        'INSERT INTO movimientos_stock (insumo_id, usuario_id, tipo, cantidad, stock_anterior, stock_posterior, comprobante_entrega, observaciones, fecha, hora) VALUES (?, ?, "ingreso", ?, ?, ?, ?, ?, CURDATE(), CURTIME())',
-        [insumoId, req.user.id, cantidad, stockAnterior, nuevoStock, comprobante_entrega || null, observaciones || null]
+        'INSERT INTO movimientos_stock (insumo_id, usuario_id, tipo, cantidad, stock_anterior, stock_posterior, comprobante_entrega, observaciones, fecha, hora) VALUES (?, ?, "ingreso", ?, ?, ?, ?, ?, ?, ?)',
+        [insumoId, req.user.id, cantidad, stockAnterior, nuevoStock, comprobante_entrega || null, observaciones || null, fechaHoy, horaAhora]
       );
 
       await verificarYGenerarAlertas(insumoId, connection);
@@ -288,7 +292,7 @@ router.post('/consumo-diario', async (req, res) => {
     const sobraValor = (porcentaje_sobra !== null && porcentaje_sobra !== undefined && porcentaje_sobra !== '')
       ? parseFloat(porcentaje_sobra)
       : null;
-    const fechaConsumo = fecha || new Date().toISOString().split('T')[0];
+    const fechaConsumo = fecha || hoyEnZona(req.user.zona_horaria);
     const usuarioId = req.user?.id;
     const turnoValido = turno === 'PM' ? 'PM' : 'AM';
 
@@ -300,6 +304,12 @@ router.post('/consumo-diario', async (req, res) => {
     await connection.beginTransaction();
 
     try {
+      const [lotes] = await connection.query('SELECT id FROM lotes WHERE id = ? AND tambo_id = ?', [lote_id, req.user.tambo_id]);
+      if (lotes.length === 0) {
+        await connection.rollback();
+        return res.status(404).json({ error: 'Lote no encontrado' });
+      }
+
       await connection.query(
         `INSERT INTO registro_diario_animales (lote_id, fecha, cantidad_animales, usuario_id)
          VALUES (?, ?, ?, ?)
@@ -311,6 +321,7 @@ router.post('/consumo-diario', async (req, res) => {
         const insumoId = parseInt(ing.insumo_id);
         const cantidadNueva = parseFloat(ing.cantidad_kg) || 0;
         const obsIng = ing.observacion || observacion || null;
+        const origenCantidad = ing.origen_cantidad === 'dieta' ? 'dieta' : 'manual';
 
         // Buscar registro previo para (fecha, lote, insumo, turno)
         const [existente] = await connection.query(
@@ -358,16 +369,16 @@ router.post('/consumo-diario', async (req, res) => {
             await connection.query(
               `UPDATE consumo_diario_lote
                SET cantidad_kg = ?, cantidad_animales = ?, kg_por_animal = ?, usuario_id = ?, observaciones = ?,
-                   porcentaje_sobra = COALESCE(?, porcentaje_sobra)
+                   porcentaje_sobra = COALESCE(?, porcentaje_sobra), origen_cantidad = ?
                WHERE id = ?`,
-              [cantidadNueva, cantidad_animales, kgPorAnimal, usuarioId, obsIng, sobraValor, existente[0].id]
+              [cantidadNueva, cantidad_animales, kgPorAnimal, usuarioId, obsIng, sobraValor, origenCantidad, existente[0].id]
             );
           } else {
             await connection.query(
               `INSERT INTO consumo_diario_lote
-               (tambo_id, fecha, lote_id, insumo_id, cantidad_kg, cantidad_animales, kg_por_animal, usuario_id, turno, observaciones, porcentaje_sobra)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-              [req.user.tambo_id, fechaConsumo, lote_id, insumoId, cantidadNueva, cantidad_animales, kgPorAnimal, usuarioId, turnoValido, obsIng, sobraValor]
+               (tambo_id, fecha, lote_id, insumo_id, cantidad_kg, cantidad_animales, kg_por_animal, usuario_id, turno, observaciones, porcentaje_sobra, origen_cantidad)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              [req.user.tambo_id, fechaConsumo, lote_id, insumoId, cantidadNueva, cantidad_animales, kgPorAnimal, usuarioId, turnoValido, obsIng, sobraValor, origenCantidad]
             );
           }
         } else if (existente.length > 0) {
@@ -385,8 +396,8 @@ router.post('/consumo-diario', async (req, res) => {
         await connection.query(
           `INSERT INTO movimientos_stock
            (tambo_id, insumo_id, lote_id, usuario_id, tipo, cantidad, stock_anterior, stock_posterior, observaciones, turno, fecha, hora)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURTIME())`,
-          [req.user.tambo_id, insumoId, lote_id, usuarioId, tipo, Math.abs(diferenciaNativa), stockAnterior, nuevoStock, obsMovimiento, turnoValido, fechaConsumo]
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [req.user.tambo_id, insumoId, lote_id, usuarioId, tipo, Math.abs(diferenciaNativa), stockAnterior, nuevoStock, obsMovimiento, turnoValido, fechaConsumo, horaEnZona(req.user.zona_horaria)]
         );
 
         await verificarYGenerarAlertas(insumoId, connection);
@@ -413,7 +424,7 @@ router.post('/consumo-diario', async (req, res) => {
 
 router.get('/resumen-diario', async (req, res) => {
   try {
-    const fecha = req.query.fecha || new Date().toISOString().split('T')[0];
+    const fecha = req.query.fecha || hoyEnZona(req.user.zona_horaria);
 
     const [consumos] = await pool.query(
       `SELECT c.insumo_id, i.nombre as insumo_nombre, i.stock_actual, i.stock_minimo, i.capacidad_maxima,
@@ -505,7 +516,7 @@ router.get('/historial-consumo', async (req, res) => {
     const { fecha_desde, fecha_hasta, insumo_id, lote_id } = req.query;
     let query = `
       SELECT c.fecha, c.turno, c.lote_id, l.nombre as lote_nombre, c.insumo_id, i.nombre as insumo_nombre,
-             c.cantidad_kg, c.cantidad_animales, c.kg_por_animal, c.porcentaje_sobra
+             c.cantidad_kg, c.cantidad_animales, c.kg_por_animal, c.porcentaje_sobra, c.origen_cantidad
       FROM consumo_diario_lote c
       JOIN lotes l ON c.lote_id = l.id
       JOIN insumos i ON c.insumo_id = i.id
@@ -550,7 +561,7 @@ router.delete('/tipos/:valor', async (req, res) => {
       return res.status(400).json({ error: 'No se pueden eliminar los tipos originales' });
     }
 
-    const [insumos] = await pool.query('SELECT COUNT(*) as count FROM insumos WHERE tipo_insumo = ? AND activo = TRUE', [valor]);
+    const [insumos] = await pool.query('SELECT COUNT(*) as count FROM insumos WHERE tipo_insumo = ? AND activo = TRUE AND tambo_id = ?', [valor, req.user.tambo_id]);
     if (insumos[0].count > 0) {
       return res.status(400).json({ error: `No se puede eliminar el tipo porque tiene ${insumos[0].count} insumos asociados` });
     }

@@ -28,6 +28,8 @@ const actividadesRoutes = require('./routes/actividades');
 const costosRoutes = require('./routes/costos');
 const comprasRoutes = require('./routes/compras');
 const reportesRoutes = require('./routes/reportes');
+const exportarRoutes = require('./routes/exportar');
+const tamboRoutes = require('./routes/tambo');
 
 const app = express();
 
@@ -141,6 +143,8 @@ app.use('/api/actividades', actividadesRoutes);
 app.use('/api/costos', costosRoutes);
 app.use('/api/compras', comprasRoutes);
 app.use('/api/reportes', reportesRoutes);
+app.use('/api/exportar', exportarRoutes);
+app.use('/api/tambo', tamboRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -179,18 +183,26 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3001;
-const initDatabase = require('./scripts/initDb');
 
-initDatabase()
-  .catch(err => console.error('DB init no bloqueante:', err.message))
-  .finally(() => {
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`Servidor corriendo en puerto ${PORT}`);
-      if (!isProduction) {
-        console.log(`Acceso local: http://localhost:${PORT}`);
-        console.log(`Acceso red: http://192.168.1.244:${PORT}`);
-      }
+// Solo levanta el servidor (y corre las migraciones) cuando este archivo se ejecuta
+// directamente (node src/server.js / npm start / npm run dev). Los tests de
+// integración hacen `require('./server')` para obtener la app de Express sin
+// disparar un listen ni una conexión a la DB de producción -- ellos controlan
+// su propia inicialización de base de datos contra una DB de test.
+if (require.main === module) {
+  const initDatabase = require('./scripts/initDb');
+
+  initDatabase()
+    .catch(err => console.error('DB init no bloqueante:', err.message))
+    .finally(() => {
+      app.listen(PORT, '0.0.0.0', () => {
+        console.log(`Servidor corriendo en puerto ${PORT}`);
+        if (!isProduction) {
+          console.log(`Acceso local: http://localhost:${PORT}`);
+          console.log(`Acceso red: http://192.168.1.244:${PORT}`);
+        }
+      });
     });
-  });
+}
 
 module.exports = app;

@@ -51,3 +51,20 @@ export async function compartirReportePdf(endpoint, { params, filename, titulo }
   descargarBlob(file, filename);
   return false;
 }
+
+// Comparte un mensaje de texto plano (ej. la racion del dia para el tambero/tractorista).
+// En movil, navigator.share abre el selector nativo (WhatsApp incluido); en desktop, o si
+// el usuario cancela sin elegir nada, se cae a un link wa.me que abre WhatsApp Web.
+export async function compartirTexto(texto, titulo = '') {
+  if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+    try {
+      await navigator.share({ title: titulo, text: texto });
+      return true;
+    } catch (err) {
+      if (err.name === 'AbortError') return false;
+    }
+  }
+
+  window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank', 'noopener');
+  return false;
+}

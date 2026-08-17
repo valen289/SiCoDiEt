@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
+const { hoyEnZona, restarDiasFecha } = require('../utils/tzDate');
 
 router.use(authenticateToken);
 
@@ -280,29 +281,9 @@ router.get('/historial-insumo', async (req, res) => {
       return res.status(400).json({ error: 'insumo_id es requerido' });
     }
 
-    let fechaInicio;
-    const now = new Date();
-    switch (periodo) {
-      case '7':
-        fechaInicio = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        break;
-      case '30':
-        fechaInicio = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        break;
-      case '90':
-        fechaInicio = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-        break;
-      case '180':
-        fechaInicio = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000);
-        break;
-      case '365':
-        fechaInicio = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
-        break;
-      default:
-        fechaInicio = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    }
-
-    const fechaInicioStr = fechaInicio.toISOString().split('T')[0];
+    const DIAS_POR_PERIODO = { '7': 7, '30': 30, '90': 90, '180': 180, '365': 365 };
+    const hoy = hoyEnZona(req.user.zona_horaria);
+    const fechaInicioStr = restarDiasFecha(hoy, DIAS_POR_PERIODO[periodo] || 30);
 
     const query = `
       SELECT m.*, u.nombre as usuario_nombre
@@ -333,7 +314,7 @@ router.get('/historial-insumo', async (req, res) => {
       resumen: resumen[0],
       periodo: {
         desde: fechaInicioStr,
-        hasta: now.toISOString().split('T')[0],
+        hasta: hoy,
         dias: periodo
       }
     });

@@ -3,9 +3,19 @@ export function safeNum(val, fallback = 0) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+const SIMBOLOS_MONEDA = { UYU: '$U', ARS: '$', USD: 'US$' };
+let monedaActual = 'USD'; // preserva el comportamiento actual hasta que AuthContext haga su fetch
+
+// Se llama desde AuthContext cuando cambia el tambo logueado, para que formatMoney
+// use la moneda configurada por el establecimiento sin tener que pasarla en cada llamado.
+export function setMonedaTambo(codigo) {
+  if (SIMBOLOS_MONEDA[codigo]) monedaActual = codigo;
+}
+
 export function formatMoney(num) {
-  if (num === null || num === undefined) return 'US$ 0,00';
-  return 'US$ ' + new Intl.NumberFormat('es-AR', {
+  const symbol = SIMBOLOS_MONEDA[monedaActual];
+  if (num === null || num === undefined) return `${symbol} 0,00`;
+  return `${symbol} ` + new Intl.NumberFormat('es-AR', {
     minimumFractionDigits: 2, maximumFractionDigits: 2,
   }).format(num);
 }

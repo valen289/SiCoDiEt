@@ -10,7 +10,10 @@ CREATE TABLE IF NOT EXISTS tambos (
     id             INT AUTO_INCREMENT PRIMARY KEY,
     nombre         VARCHAR(150) NOT NULL,
     activo         BOOLEAN DEFAULT TRUE,
-    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    logo           MEDIUMTEXT NULL DEFAULT NULL,
+    moneda         VARCHAR(3) NOT NULL DEFAULT 'UYU',
+    zona_horaria   VARCHAR(50) NOT NULL DEFAULT 'America/Montevideo'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS usuarios (

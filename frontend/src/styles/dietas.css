@@ -655,6 +655,16 @@
   border-color: var(--danger);
 }
 
+.dietas__lista-btn--whatsapp {
+  color: #25D366;
+  border-color: var(--border);
+}
+
+.dietas__lista-btn--whatsapp:hover {
+  background: rgba(37, 211, 102, 0.10);
+  border-color: #25D366;
+}
+
 @media (max-width: 767px) {
   .dietas__lista-grid {
     grid-template-columns: 1fr;

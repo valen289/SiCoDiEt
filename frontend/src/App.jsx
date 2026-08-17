@@ -17,10 +17,12 @@ const Alertas = lazy(() => import('./pages/Alertas'));
 const Historial = lazy(() => import('./pages/Historial'));
 const Usuarios = lazy(() => import('./pages/Usuarios'));
 const Profile = lazy(() => import('./pages/Profile'));
+const Configuracion = lazy(() => import('./pages/Configuracion'));
 const Actividades = lazy(() => import('./pages/Actividades'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Costos = lazy(() => import('./pages/Costos'));
 const Compras = lazy(() => import('./pages/Compras'));
+const Ganado = lazy(() => import('./pages/Ganado'));
 const Landing = lazy(() => import('./pages/Landing'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 
@@ -187,6 +189,13 @@ function AppRoutes() {
         }>
           <Route index element={<Compras />} />
         </Route>
+        <Route path="/ganado" element={
+          <DuenoEncargadoRoute>
+            <Layout />
+          </DuenoEncargadoRoute>
+        }>
+          <Route index element={<Ganado />} />
+        </Route>
 
         {/* Rutas para todos los roles autenticados */}
         <Route path="/consumos" element={
@@ -218,6 +227,15 @@ function AppRoutes() {
           </DuenoRoute>
         }>
           <Route index element={<Usuarios />} />
+        </Route>
+
+        {/* Ruta solo para dueño */}
+        <Route path="/configuracion" element={
+          <DuenoRoute>
+            <Layout />
+          </DuenoRoute>
+        }>
+          <Route index element={<Configuracion />} />
         </Route>
       </Routes>
     </Suspense>

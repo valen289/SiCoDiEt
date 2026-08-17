@@ -6,6 +6,7 @@ import {
   ArrowDownCircle, ArrowUpCircle, Package
 } from 'lucide-react';
 import { formatDate, formatNumber } from '../utils/formatters';
+import ExportModal from '../components/ExportModal';
 import '../styles/historial.css';
 
 const PERIODOS = [
@@ -61,7 +62,7 @@ export default function Historial() {
   const [totales, setTotales] = useState(null);
   const [insumos, setInsumos] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [exporting, setExporting] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   const [periodo, setPeriodo] = useState('30');
   const [fechaInicio, setFechaInicio] = useState('');
@@ -139,36 +140,6 @@ export default function Historial() {
     }
   };
 
-  const handleExport = async () => {
-    setExporting(true);
-    try {
-      const { fechaInicio: fi, fechaFin: ff } = getFechasFromPeriodo();
-      const response = await api.get('/movimientos/export', {
-        params: {
-          fecha_inicio: fi,
-          fecha_fin: ff,
-          tipo: tipoMovimiento || undefined,
-          tipo_insumo: tipoInsumo || undefined,
-          insumo_id: insumoId || undefined,
-        },
-        responseType: 'blob',
-      });
-
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `movimientos_stock_${fi}_${ff}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error('Error exportando:', err);
-    } finally {
-      setExporting(false);
-    }
-  };
-
   const getPeriodoLabel = () => {
     const p = PERIODOS.find(p => p.value === periodo);
     if (periodo === 'custom' && fechaInicio && fechaFin) {
@@ -186,11 +157,20 @@ export default function Historial() {
           </h1>
           <p className="text-muted small mb-0">{getPeriodoLabel()}</p>
         </div>
-        <button className="historial__btn historial__btn--export" onClick={handleExport} disabled={exporting}>
+        <button className="historial__btn historial__btn--export" onClick={() => setShowExportModal(true)}>
           <Download size={16} />
-          {exporting ? 'Exportando...' : 'Exportar CSV'}
+          Exportar
         </button>
       </header>
+
+      <ExportModal
+        show={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        tipoExport="consumos"
+        titulo="Exportar Historial de Movimientos"
+        defaultFechaInicio={getFechasFromPeriodo().fechaInicio}
+        defaultFechaFin={getFechasFromPeriodo().fechaFin}
+      />
 
       {/* Filtros */}
       <div className="historial__filters">

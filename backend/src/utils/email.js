@@ -164,4 +164,49 @@ const sendTwoFactorCodeEmail = async (email, code) => {
   return enviarEmail({ to: email, subject, html });
 };
 
-module.exports = { sendPasswordResetEmail, sendStockCriticoEmail, sendTwoFactorCodeEmail, isEmailConfigured };
+const ROL_LABELS = { encargado: 'Técnico', trabajador: 'Operario' };
+
+const sendInvitationEmail = async (email, link, rol) => {
+  const rolLabel = ROL_LABELS[rol] || rol;
+  const subject = `Invitación a Sicodiet — ${rolLabel}`;
+
+  if (!isEmailConfigured()) {
+    console.log('[email] BREVO_API_KEY no configurada, no se envía email real. Contenido:');
+    console.log(`[email] Para: ${email} | Invitación (${rolLabel}): ${link}`);
+    return null;
+  }
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="background: #2e7d32; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+        <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Sicodiet</h1>
+        <p style="color: rgba(255,255,255,0.8); margin: 8px 0 0; font-size: 14px;">Invitación a un establecimiento</p>
+      </div>
+      <div style="background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; border-top: none;">
+        <h2 style="color: #212529; margin: 0 0 16px; font-size: 20px;">Te invitaron a Sicodiet</h2>
+        <p style="color: #495057; font-size: 14px; line-height: 1.6; margin: 0 0 24px;">
+          Te sumaron a un establecimiento en Sicodiet con el rol de <strong>${rolLabel}</strong>.
+          Hacé clic en el siguiente botón para crear tu cuenta. Este enlace es válido por <strong>7 días</strong>.
+        </p>
+        <div style="text-align: center; margin: 32px 0;">
+          <a href="${link}" style="display: inline-block; background: #2e7d32; color: #ffffff; padding: 12px 32px; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600;">
+            Crear mi cuenta
+          </a>
+        </div>
+        <p style="color: #6c757d; font-size: 13px; line-height: 1.6; margin: 0 0 8px;">
+          O copia y pega este enlace en tu navegador:
+        </p>
+        <p style="color: #2e7d32; font-size: 12px; word-break: break-all; margin: 0; background: #f8f9fa; padding: 8px 12px; border-radius: 4px;">
+          ${link}
+        </p>
+      </div>
+      <div style="background: #f8f9fa; padding: 16px; text-align: center; border-radius: 0 0 8px 8px; border: 1px solid #e0e0e0; border-top: none;">
+        <p style="color: #6c757d; font-size: 12px; margin: 0;">© 2026 Sicodiet. Todos los derechos reservados.</p>
+      </div>
+    </div>
+  `;
+
+  return enviarEmail({ to: email, subject, html });
+};
+
+module.exports = { sendPasswordResetEmail, sendStockCriticoEmail, sendTwoFactorCodeEmail, sendInvitationEmail, isEmailConfigured };

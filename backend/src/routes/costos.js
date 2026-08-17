@@ -2,18 +2,18 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
+const { hoyEnZona, restarDiasFecha } = require('../utils/tzDate');
 
 router.use(authenticateToken);
 
 const duenoEncargado = authorizeRoles('dueno', 'encargado');
 
-function getDateRange(query) {
+function getDateRange(query, zonaHoraria) {
   let { fecha_inicio, fecha_fin } = query;
   if (!fecha_inicio || !fecha_fin) {
-    const now = new Date();
-    const start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    fecha_inicio = start.toISOString().split('T')[0];
-    fecha_fin = now.toISOString().split('T')[0];
+    const hoy = hoyEnZona(zonaHoraria);
+    fecha_inicio = restarDiasFecha(hoy, 30);
+    fecha_fin = hoy;
   }
   return { fecha_inicio, fecha_fin };
 }
@@ -21,7 +21,7 @@ function getDateRange(query) {
 // KPI cards: total período, promedio diario, lote más caro, insumo más caro
 router.get('/resumen', duenoEncargado, async (req, res) => {
   try {
-    const { fecha_inicio, fecha_fin } = getDateRange(req.query);
+    const { fecha_inicio, fecha_fin } = getDateRange(req.query, req.user.zona_horaria);
     const { lote_id } = req.query;
     const tambo_id = req.user.tambo_id;
 
@@ -86,7 +86,7 @@ router.get('/resumen', duenoEncargado, async (req, res) => {
 // Tabla agrupada por lote
 router.get('/por-lote', duenoEncargado, async (req, res) => {
   try {
-    const { fecha_inicio, fecha_fin } = getDateRange(req.query);
+    const { fecha_inicio, fecha_fin } = getDateRange(req.query, req.user.zona_horaria);
     const { lote_id } = req.query;
     const tambo_id = req.user.tambo_id;
 
@@ -127,7 +127,7 @@ router.get('/por-lote', duenoEncargado, async (req, res) => {
 // Tabla día a día
 router.get('/diario', duenoEncargado, async (req, res) => {
   try {
-    const { fecha_inicio, fecha_fin } = getDateRange(req.query);
+    const { fecha_inicio, fecha_fin } = getDateRange(req.query, req.user.zona_horaria);
     const { lote_id } = req.query;
     const tambo_id = req.user.tambo_id;
 

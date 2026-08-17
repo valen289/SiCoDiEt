@@ -50,7 +50,7 @@ router.post('/calcular', authenticateToken, authorizeRoles('dueno', 'encargado')
     const { cantidad_animales: cantAnimales, objetivo_productivo } = lotes[0];
 
     const { costoTotal, materiaSecaTotal, energiaTotal, proteinaTotal, fibraTotal, cantidadTotalKg, detalle } =
-      await calcularCostosIngredientes(ingredientes, (sql, params) => pool.query(sql, params));
+      await calcularCostosIngredientes(ingredientes, (sql, params) => pool.query(sql, params), req.user.tambo_id);
 
     if (cantidadTotalKg <= 0) {
       return res.status(400).json({ error: 'No hay ingredientes validos' });
@@ -303,7 +303,7 @@ router.post('/', authenticateToken, authorizeRoles('dueno', 'encargado'), [
       }
 
       const { costoTotal, materiaSecaTotal, energiaTotal, proteinaTotal, fibraTotal, cantidadTotalKg, detalle } =
-        await calcularCostosIngredientes(ingredientes, (sql, params) => connection.query(sql, params));
+        await calcularCostosIngredientes(ingredientes, (sql, params) => connection.query(sql, params), req.user.tambo_id);
 
       if (cantidadTotalKg <= 0) {
         await connection.rollback();
@@ -414,7 +414,7 @@ router.put('/:id', authenticateToken, authorizeRoles('dueno', 'encargado'), [
       await connection.query('DELETE FROM dieta_ingredientes WHERE dieta_id = ?', [dietaId]);
 
       const { costoTotal, materiaSecaTotal, energiaTotal, proteinaTotal, fibraTotal, cantidadTotalKg, detalle } =
-        await calcularCostosIngredientes(ingredientes, (sql, params) => connection.query(sql, params));
+        await calcularCostosIngredientes(ingredientes, (sql, params) => connection.query(sql, params), req.user.tambo_id);
 
       if (cantidadTotalKg <= 0) {
         await connection.rollback();
@@ -467,12 +467,12 @@ router.put('/:id', authenticateToken, authorizeRoles('dueno', 'encargado'), [
 
 router.delete('/:id', authenticateToken, authorizeRoles('dueno', 'encargado'), async (req, res) => {
   try {
-    const [ingredientes] = await pool.query('SELECT insumo_id FROM dieta_ingredientes WHERE dieta_id = ?', [req.params.id]);
-
     const [result] = await pool.query('UPDATE dietas SET activo = FALSE WHERE id = ? AND tambo_id = ?', [req.params.id, req.user.tambo_id]);
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Dieta no encontrada' });
     }
+
+    const [ingredientes] = await pool.query('SELECT insumo_id FROM dieta_ingredientes WHERE dieta_id = ?', [req.params.id]);
 
     for (const insumoId of new Set(ingredientes.map(i => i.insumo_id))) {
       await verificarYGenerarAlertas(insumoId);

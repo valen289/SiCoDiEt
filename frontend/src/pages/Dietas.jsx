@@ -6,9 +6,10 @@ import { useAlert } from '../context/AlertContext';
 import {
   Calculator, DollarSign, Plus, Edit2, Trash2,
   Save, X, BarChart3, AlertTriangle, ChevronUp, Info,
-  Milk, Leaf, Beef
+  Milk, Leaf, Beef, MessageCircle
 } from 'lucide-react';
 import { safeNum, fmtUSD } from '../utils/formatters';
+import { compartirTexto } from '../utils/reportes';
 import '../styles/dietas.css';
 
 export default function Dietas() {
@@ -268,6 +269,49 @@ export default function Dietas() {
     } catch (error) {
       console.error('Error al eliminar dieta:', error);
       showError(error.response?.data?.error || 'Error al eliminar la dieta');
+    }
+  };
+
+  const handleCompartirWhatsapp = async (dieta) => {
+    try {
+      const { data } = await api.get(`/dietas/${dieta.id}`);
+      const ingredientesData = Array.isArray(data?.ingredientes) ? data.ingredientes : [];
+      const cantAnimales = parseInt(data?.cantidad_animales) || 0;
+
+      const lineas = ingredientesData
+        .filter(ing => safeNum(ing.cantidad_kg) > 0)
+        .map(ing => {
+          const insumo = insumos.find(i => i.id === parseInt(ing.insumo_id));
+          const nombre = insumo?.nombre || 'Insumo';
+          const kgTotal = safeNum(ing.cantidad_kg) * cantAnimales;
+          const pesoUnidad = parseFloat(insumo?.peso_unidad);
+          const esKg = !insumo?.unidad || insumo.unidad.trim().toLowerCase().startsWith('kg');
+
+          if (!esKg && pesoUnidad > 0) {
+            const equivalente = kgTotal / pesoUnidad;
+            return `${nombre}: ${equivalente.toFixed(1)} ${insumo.unidad} (${kgTotal.toFixed(1)} kg)`;
+          }
+          return `${nombre}: ${kgTotal.toFixed(1)} kg`;
+        });
+
+      if (lineas.length === 0) {
+        showError('Esta dieta no tiene ingredientes con cantidad para compartir');
+        return;
+      }
+
+      const nombreLote = data?.lote_nombre || dieta.lote_nombre || '';
+      const mensaje = [
+        `🌾 Ración ${nombreLote} - Sicodiet`,
+        '',
+        ...lineas,
+        '',
+        '¡Buen día! Esta es la ración para hoy.',
+      ].join('\n');
+
+      await compartirTexto(mensaje, `Ración ${nombreLote}`);
+    } catch (error) {
+      console.error('Error al compartir dieta:', error);
+      showError('No se pudo generar el mensaje para compartir');
     }
   };
 
@@ -850,6 +894,9 @@ export default function Dietas() {
                     <div className="dietas__lista-footer">
                       <button className="dietas__lista-btn dietas__lista-btn--edit" onClick={() => handleEdit(dieta)}>
                         <Edit2 size={14} /> Editar
+                      </button>
+                      <button className="dietas__lista-btn dietas__lista-btn--whatsapp" onClick={() => handleCompartirWhatsapp(dieta)}>
+                        <MessageCircle size={14} /> WhatsApp
                       </button>
                       <button className="dietas__lista-btn dietas__lista-btn--delete" onClick={() => handleDelete(dieta.id)}>
                         <Trash2 size={14} /> Eliminar

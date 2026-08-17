@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { compartirReportePdf } from '../utils/reportes';
 import { formatMoney, formatNumber, formatDate } from '../utils/formatters';
+import ExportModal from '../components/ExportModal';
 import '../styles/costos.css';
 
 const PERIODOS = [
@@ -24,7 +25,7 @@ export default function Costos() {
   const [diasData, setDiasData]   = useState([]);
   const [loading, setLoading]     = useState(true);
   const [tabActivo, setTabActivo] = useState('lotes');
-  const [exporting, setExporting] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [generandoPdf, setGenerandoPdf] = useState(false);
 
   const [periodo, setPeriodo]         = useState('30');
@@ -89,39 +90,6 @@ export default function Costos() {
     if (val !== 'custom') { setFechaInicio(''); setFechaFin(''); }
   };
 
-  const handleExport = () => {
-    const { fi, ff } = getFechas();
-    if (!fi || !ff) return;
-    setExporting(true);
-    try {
-      let headers, rows;
-      if (tabActivo === 'lotes') {
-        headers = ['Lote', 'Animales', 'Consumo Total (kg)', 'Costo Total ($)', 'Días c/ Consumo', 'Costo/Animal/Día ($)'];
-        rows = lotesData.map(r => [
-          r.lote_nombre, r.cantidad_animales,
-          formatNumber(r.total_kg), formatNumber(r.costo_total),
-          r.dias_con_consumo, formatNumber(r.costo_animal_dia),
-        ]);
-      } else {
-        headers = ['Fecha', 'Costo Total ($)', 'Consumo Total (kg)', 'Lotes Activos'];
-        rows = diasData.map(r => [
-          formatDate(r.fecha), formatNumber(r.costo_total),
-          formatNumber(r.total_kg), r.lotes_activos,
-        ]);
-      }
-      const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `costos_${fi}_${ff}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } finally {
-      setExporting(false);
-    }
-  };
-
   const handleReportePdf = async () => {
     setGenerandoPdf(true);
     try {
@@ -157,11 +125,11 @@ export default function Costos() {
         <div className="d-flex gap-2">
           <button
             className="costos__btn costos__btn--export"
-            onClick={handleExport}
-            disabled={exporting || loading}
+            onClick={() => setShowExportModal(true)}
+            disabled={loading}
           >
             <Download size={16} />
-            {exporting ? 'Exportando...' : 'Exportar CSV'}
+            Exportar
           </button>
           <button
             className="costos__btn costos__btn--export"
@@ -173,6 +141,16 @@ export default function Costos() {
           </button>
         </div>
       </header>
+
+      <ExportModal
+        show={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        tipoExport="costos"
+        extraParams={{ vista: tabActivo }}
+        titulo="Exportar Costos"
+        defaultFechaInicio={getFechas().fi}
+        defaultFechaFin={getFechas().ff}
+      />
 
       {/* Filtros */}
       <div className="costos__filters">

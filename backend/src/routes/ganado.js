@@ -4,6 +4,7 @@ const pool = require('../config/database');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 const { body, validationResult } = require('express-validator');
 const { logActividad } = require('../utils/actividad');
+const { hoyEnZona } = require('../utils/tzDate');
 
 router.use(authenticateToken);
 
@@ -42,8 +43,8 @@ router.post('/', authorizeRoles('dueno', 'encargado'), [
     const { total_vacas, vacas_lechera = 0, vacas_seco = 0, terneros = 0 } = req.body;
 
     const [result] = await pool.query(
-      'INSERT INTO ganado (tambo_id, total_vacas, vacas_lechera, vacas_seco, terneros, fecha_registro, usuario_id) VALUES (?, ?, ?, ?, ?, CURDATE(), ?)',
-      [req.user.tambo_id, total_vacas, vacas_lechera, vacas_seco, terneros, req.user.id]
+      'INSERT INTO ganado (tambo_id, total_vacas, vacas_lechera, vacas_seco, terneros, fecha_registro, usuario_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [req.user.tambo_id, total_vacas, vacas_lechera, vacas_seco, terneros, hoyEnZona(req.user.zona_horaria), req.user.id]
     );
 
     await logActividad(pool, {

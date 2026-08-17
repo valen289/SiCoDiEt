@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../context/AlertContext';
 import { useSEO } from '../hooks/useSEO';
 import { Beef, Plus, History, Calendar, Users, TrendingUp, X, Save } from 'lucide-react';
+import GanadoEvolucionChart from '../components/GanadoEvolucionChart';
 import '../styles/ganado.css';
 
 export default function Ganado() {
@@ -21,6 +22,10 @@ export default function Ganado() {
 
   const canRegister = user?.rol === 'dueno' || user?.rol === 'encargado';
 
+  // El historial llega mas reciente primero (para la tabla); el grafico necesita
+  // orden cronologico ascendente.
+  const historialAsc = useMemo(() => [...historial].reverse(), [historial]);
+
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
@@ -28,7 +33,7 @@ export default function Ganado() {
         api.get('/ganado'),
         api.get('/ganado/historial')
       ]);
-      setUltimoRegistro(ultimoRes.data || null);
+      setUltimoRegistro(ultimoRes.data?.ganado || null);
       setHistorial(historialRes.data?.historial || historialRes.data || []);
     } catch (err) {
       console.error('Error cargando datos de ganado:', err);
@@ -171,34 +176,26 @@ export default function Ganado() {
             </span>
           </div>
           <div className="card-body">
-            <div className="ganado-stats row g-3">
-              <div className="col-md-3 col-6">
-                <div className="stat-card stat-total">
-                  <div className="stat-icon"><Users size={24} /></div>
-                  <div className="stat-value">{ultimoRegistro.total_vacas}</div>
-                  <div className="stat-label">Total Vacas</div>
-                </div>
+            <div className="ganado-stats">
+              <div className="stat-card stat-total">
+                <div className="stat-icon"><Users size={24} /></div>
+                <div className="stat-value">{ultimoRegistro.total_vacas}</div>
+                <div className="stat-label">Total Vacas</div>
               </div>
-              <div className="col-md-3 col-6">
-                <div className="stat-card stat-lechera">
-                  <div className="stat-icon"><TrendingUp size={24} /></div>
-                  <div className="stat-value">{ultimoRegistro.vacas_lechera}</div>
-                  <div className="stat-label">Vacas Lecheras</div>
-                </div>
+              <div className="stat-card stat-lechera">
+                <div className="stat-icon"><TrendingUp size={24} /></div>
+                <div className="stat-value">{ultimoRegistro.vacas_lechera}</div>
+                <div className="stat-label">Vacas Lecheras</div>
               </div>
-              <div className="col-md-3 col-6">
-                <div className="stat-card stat-seco">
-                  <div className="stat-icon"><Beef size={24} /></div>
-                  <div className="stat-value">{ultimoRegistro.vacas_seco}</div>
-                  <div className="stat-label">Vacas Secas</div>
-                </div>
+              <div className="stat-card stat-seco">
+                <div className="stat-icon"><Beef size={24} /></div>
+                <div className="stat-value">{ultimoRegistro.vacas_seco}</div>
+                <div className="stat-label">Vacas Secas</div>
               </div>
-              <div className="col-md-3 col-6">
-                <div className="stat-card stat-terneros">
-                  <div className="stat-icon"><Beef size={24} /></div>
-                  <div className="stat-value">{ultimoRegistro.terneros}</div>
-                  <div className="stat-label">Terneros</div>
-                </div>
+              <div className="stat-card stat-terneros">
+                <div className="stat-icon"><Beef size={24} /></div>
+                <div className="stat-value">{ultimoRegistro.terneros}</div>
+                <div className="stat-label">Terneros</div>
               </div>
             </div>
 
@@ -233,6 +230,20 @@ export default function Ganado() {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Evolución de vacas lecheras */}
+      {historialAsc.length > 1 && (
+        <div className="card mb-4">
+          <div className="card-header bg-white">
+            <h5 className="mb-0 d-flex align-items-center gap-2">
+              <TrendingUp size={18} /> Evolución del Rodeo
+            </h5>
+          </div>
+          <div className="card-body">
+            <GanadoEvolucionChart data={historialAsc} />
           </div>
         </div>
       )}

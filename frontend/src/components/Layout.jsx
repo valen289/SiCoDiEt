@@ -7,7 +7,7 @@ import {
   LogOut, Menu, X, User, Plus, Trash2,
   LayoutDashboard, Database, Package, FlaskConical, Tag,
   ClipboardList, Calculator, Bell, History, DollarSign,
-  ShoppingCart, Activity, UserCog, Users, LayoutGrid,
+  ShoppingCart, Activity, UserCog, Users, LayoutGrid, Beef, Settings,
 } from 'lucide-react';
 import '../styles/layout.css';
 
@@ -20,6 +20,7 @@ const NAV_ICONS = {
   sales:       FlaskConical,
   bolson:      Package,
   lotes:       Tag,
+  ganado:      Beef,
   consumos:    ClipboardList,
   dietas:      Calculator,
   alertas:     Bell,
@@ -29,6 +30,7 @@ const NAV_ICONS = {
   actividades: Activity,
   perfil:      UserCog,
   usuarios:    Users,
+  configuracion: Settings,
 };
 
 function NavIcon({ iconKey, size = 17 }) {
@@ -45,6 +47,7 @@ const categorias = [
 
 const operacionesItems = [
   { path: '/lotes',    iconKey: 'lotes',    label: 'Lotes'    },
+  { path: '/ganado',   iconKey: 'ganado',   label: 'Ganado'   },
   { path: '/consumos', iconKey: 'consumos', label: 'Consumos' },
   { path: '/compras',  iconKey: 'compras',  label: 'Compras'  },
   { path: '/dietas',   iconKey: 'dietas',   label: 'Dietas'   },
@@ -199,6 +202,16 @@ function SidebarContent({
               label="Usuarios"
               onClick={() => onNavClick('/usuarios')}
               isActive={isActivePath('/usuarios')}
+            />
+          )}
+          {isDueno && (
+            <NavItem
+              mobile={mobile}
+              path="/configuracion"
+              iconKey="configuracion"
+              label="Configuración"
+              onClick={() => onNavClick('/configuracion')}
+              isActive={isActivePath('/configuracion')}
             />
           )}
         </nav>

@@ -5,6 +5,7 @@ const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 const { body, validationResult } = require('express-validator');
 const { verificarYGenerarAlertas } = require('../utils/alertas');
 const { logActividad } = require('../utils/actividad');
+const { hoyEnZona, horaEnZona } = require('../utils/tzDate');
 
 router.use(authenticateToken);
 
@@ -60,8 +61,14 @@ router.post('/', [
     try {
       await connection.beginTransaction();
 
-      const [insumos] = await connection.query('SELECT * FROM insumos WHERE id = ? FOR UPDATE', [insumo_id]);
-      
+      const [lotes] = await connection.query('SELECT id FROM lotes WHERE id = ? AND tambo_id = ?', [lote_id, req.user.tambo_id]);
+      if (lotes.length === 0) {
+        await connection.rollback();
+        return res.status(404).json({ error: 'Lote no encontrado' });
+      }
+
+      const [insumos] = await connection.query('SELECT * FROM insumos WHERE id = ? AND tambo_id = ? FOR UPDATE', [insumo_id, req.user.tambo_id]);
+
       if (insumos.length === 0) {
         await connection.rollback();
         return res.status(404).json({ error: 'Insumo no encontrado' });
@@ -83,27 +90,29 @@ router.post('/', [
       );
 
       const stockAnterior = parseFloat(insumo.stock_actual);
+      const fechaHoy = hoyEnZona(req.user.zona_horaria);
+      const horaAhora = horaEnZona(req.user.zona_horaria);
 
       await connection.query(
-        'INSERT INTO consumos (tambo_id, lote_id, insumo_id, usuario_id, cantidad, fecha, hora, observaciones) VALUES (?, ?, ?, ?, ?, CURDATE(), CURTIME(), ?)',
-        [req.user.tambo_id, lote_id, insumo_id, req.user.id, cantidad, observaciones || null]
+        'INSERT INTO consumos (tambo_id, lote_id, insumo_id, usuario_id, cantidad, fecha, hora, observaciones) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [req.user.tambo_id, lote_id, insumo_id, req.user.id, cantidad, fechaHoy, horaAhora, observaciones || null]
       );
 
       await connection.query(
-        'INSERT INTO consumo_diario (tambo_id, insumo_id, usuario_id, cantidad, fecha, hora, tipo_movimiento, observaciones) VALUES (?, ?, ?, ?, CURDATE(), CURTIME(), "consumo", ?)',
-        [req.user.tambo_id, insumo_id, req.user.id, cantidad, observaciones || null]
+        'INSERT INTO consumo_diario (tambo_id, insumo_id, usuario_id, cantidad, fecha, hora, tipo_movimiento, observaciones) VALUES (?, ?, ?, ?, ?, ?, "consumo", ?)',
+        [req.user.tambo_id, insumo_id, req.user.id, cantidad, fechaHoy, horaAhora, observaciones || null]
       );
 
       await connection.query(
-        'INSERT INTO movimientos_stock (tambo_id, insumo_id, lote_id, usuario_id, tipo, cantidad, stock_anterior, stock_posterior, observaciones, fecha, hora) VALUES (?, ?, ?, ?, "consumo", ?, ?, ?, ?, CURDATE(), CURTIME())',
-        [req.user.tambo_id, insumo_id, lote_id, req.user.id, cantidad, stockAnterior, nuevoStock, observaciones || null]
+        'INSERT INTO movimientos_stock (tambo_id, insumo_id, lote_id, usuario_id, tipo, cantidad, stock_anterior, stock_posterior, observaciones, fecha, hora) VALUES (?, ?, ?, ?, "consumo", ?, ?, ?, ?, ?, ?)',
+        [req.user.tambo_id, insumo_id, lote_id, req.user.id, cantidad, stockAnterior, nuevoStock, observaciones || null, fechaHoy, horaAhora]
       );
 
       await verificarYGenerarAlertas(insumo_id, connection);
 
       await connection.commit();
 
-      const [[lote]] = await pool.query('SELECT nombre FROM lotes WHERE id = ?', [lote_id]);
+      const [[lote]] = await pool.query('SELECT nombre FROM lotes WHERE id = ? AND tambo_id = ?', [lote_id, req.user.tambo_id]);
       await logActividad(pool, {
         usuario_id: req.user.id,
         tambo_id: req.user.tambo_id,

@@ -3,15 +3,17 @@ const router = express.Router();
 const pool = require('../config/database');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
 const { generarReportePdf, tabla } = require('../utils/pdf');
+const { hoyEnZona } = require('../utils/tzDate');
 
 router.use(authenticateToken);
 router.use(authorizeRoles('dueno', 'encargado'));
 
-// Devuelve { inicio, fin, label } para el mes YYYY-MM dado, o el mes actual si no se especifica.
-function rangoDelMes(mesParam) {
-  const hoy = new Date();
-  let anio = hoy.getFullYear();
-  let mes = hoy.getMonth() + 1;
+// Devuelve { inicio, fin, label } para el mes YYYY-MM dado, o el mes actual (en la zona
+// horaria del tambo) si no se especifica.
+function rangoDelMes(mesParam, zonaHoraria) {
+  const [anioStr, mesStr] = hoyEnZona(zonaHoraria).split('-');
+  let anio = Number(anioStr);
+  let mes = Number(mesStr);
 
   if (mesParam && /^\d{4}-\d{2}$/.test(mesParam)) {
     [anio, mes] = mesParam.split('-').map(Number);
@@ -35,7 +37,7 @@ function enviarPdf(res, filename, buffer) {
 router.get('/consumo-mensual', async (req, res) => {
   try {
     const tambo_id = req.user.tambo_id;
-    const { inicio, fin, label } = rangoDelMes(req.query.mes);
+    const { inicio, fin, label } = rangoDelMes(req.query.mes, req.user.zona_horaria);
 
     const [rows] = await pool.query(`
       SELECT l.nombre AS lote_nombre, i.nombre AS insumo_nombre, i.unidad,
@@ -78,7 +80,7 @@ router.get('/consumo-mensual', async (req, res) => {
 router.get('/costos-mensual', async (req, res) => {
   try {
     const tambo_id = req.user.tambo_id;
-    const { inicio, fin, label } = rangoDelMes(req.query.mes);
+    const { inicio, fin, label } = rangoDelMes(req.query.mes, req.user.zona_horaria);
 
     const [lotesRows] = await pool.query(`
       SELECT
@@ -131,7 +133,7 @@ router.get('/costos-mensual', async (req, res) => {
 router.get('/compras', async (req, res) => {
   try {
     const tambo_id = req.user.tambo_id;
-    const { inicio, fin, label } = rangoDelMes(req.query.mes);
+    const { inicio, fin, label } = rangoDelMes(req.query.mes, req.user.zona_horaria);
 
     const [rows] = await pool.query(`
       SELECT c.fecha, p.nombre AS proveedor_nombre, i.nombre AS insumo_nombre,
@@ -210,7 +212,7 @@ router.get('/stock', async (req, res) => {
       content,
     });
 
-    enviarPdf(res, `stock-${new Date().toISOString().slice(0, 10)}.pdf`, buffer);
+    enviarPdf(res, `stock-${hoyEnZona(req.user.zona_horaria)}.pdf`, buffer);
   } catch (error) {
     console.error('Error generando reporte de stock:', error);
     res.status(500).json({ error: 'Error al generar el reporte' });

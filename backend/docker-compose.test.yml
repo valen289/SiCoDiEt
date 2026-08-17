@@ -1,0 +1,33 @@
+
+# DB de test aislada para los tests de integración (backend/src/tests/integration/).
+# No comparte datos con el docker-compose.yml de la raíz (puerto y nombre de DB distintos).
+#
+# Uso (desde backend/) -- usar los scripts de npm, no `docker compose` directo:
+#   npm run test:integration:db:up
+#   npm run test:integration
+#   npm run test:integration:db:down    (para resetear todo)
+#
+# Nota: los scripts de npm pasan --env-file docker-compose.test.env (vacío) a propósito.
+# Sin eso, Docker Compose intenta leer backend/.env por default para interpolar
+# variables, y ese archivo tiene un EMAIL_FROM con "<...>" que rompe su parser.
+#
+# Si esta DB no está levantada, los tests de integración se saltean solos (no fallan) --
+# ver backend/src/tests/integration/helpers/setup.js.
+services:
+  db-test:
+    image: mysql:8.0
+    container_name: sicodiet-db-test
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      - MYSQL_ROOT_PASSWORD=testroot
+      - MYSQL_DATABASE=gestion_tambo_test
+    ports:
+      - "3307:3306"
+    tmpfs:
+      - /var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 20s

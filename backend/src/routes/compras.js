@@ -6,6 +6,7 @@ const { body, validationResult } = require('express-validator');
 const { verificarYGenerarAlertas } = require('../utils/alertas');
 const { logActividad } = require('../utils/actividad');
 const { buildUpdateSet } = require('../utils/queryBuilder');
+const { hoyEnZona, horaEnZona, restarDiasFecha } = require('../utils/tzDate');
 
 router.use(authenticateToken);
 
@@ -83,9 +84,9 @@ router.get('/', duenoEncargado, async (req, res) => {
     const tambo_id = req.user.tambo_id;
 
     // Defaults: últimos 30 días
-    const now = new Date();
-    const fi = fecha_inicio || new Date(now.getTime() - 30 * 86400000).toISOString().split('T')[0];
-    const ff = fecha_fin || now.toISOString().split('T')[0];
+    const hoy = hoyEnZona(req.user.zona_horaria);
+    const fi = fecha_inicio || restarDiasFecha(hoy, 30);
+    const ff = fecha_fin || hoy;
 
     let where = 'c.tambo_id = ? AND c.fecha BETWEEN ? AND ?';
     const params = [tambo_id, fi, ff];
@@ -231,30 +232,32 @@ router.post('/', duenoEncargado, [
         [nuevoStock, insumo_id]
       );
 
+      const horaAhora = horaEnZona(req.user.zona_horaria);
+
       // Registrar en historial_cargas_alimentos (compatibilidad)
       const TIPOS_VALIDOS_HISTORIAL = ['silo', 'bolson', 'fardo', 'sales', 'pastura'];
       const tipoHistorial = TIPOS_VALIDOS_HISTORIAL.includes(insumo.tipo_insumo) ? insumo.tipo_insumo : 'silo';
       await connection.query(
         `INSERT INTO historial_cargas_alimentos
            (tipo_alimento, insumo_id, usuario_id, cantidad, comprobante_entrega, fecha, hora, observaciones)
-         VALUES (?, ?, ?, ?, ?, ?, CURTIME(), ?)`,
-        [tipoHistorial, insumo_id, req.user.id, cantidad, numero_factura || null, fecha, observaciones || null]
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [tipoHistorial, insumo_id, req.user.id, cantidad, numero_factura || null, fecha, horaAhora, observaciones || null]
       );
 
       // Registrar en consumo_diario (compatibilidad)
       await connection.query(
         `INSERT INTO consumo_diario
            (insumo_id, usuario_id, cantidad, fecha, hora, tipo_movimiento, observaciones)
-         VALUES (?, ?, ?, ?, CURTIME(), 'ingreso', ?)`,
-        [insumo_id, req.user.id, cantidad, fecha, observaciones || null]
+         VALUES (?, ?, ?, ?, ?, 'ingreso', ?)`,
+        [insumo_id, req.user.id, cantidad, fecha, horaAhora, observaciones || null]
       );
 
       // Registrar en movimientos_stock
       const [movResult] = await connection.query(
         `INSERT INTO movimientos_stock
            (tambo_id, insumo_id, usuario_id, tipo, cantidad, stock_anterior, stock_posterior, comprobante_entrega, observaciones, fecha, hora)
-         VALUES (?, ?, ?, 'ingreso', ?, ?, ?, ?, ?, ?, CURTIME())`,
-        [req.user.tambo_id, insumo_id, req.user.id, cantidad, stockAnterior, nuevoStock, numero_factura || null, observaciones || null, fecha]
+         VALUES (?, ?, ?, 'ingreso', ?, ?, ?, ?, ?, ?, ?)`,
+        [req.user.tambo_id, insumo_id, req.user.id, cantidad, stockAnterior, nuevoStock, numero_factura || null, observaciones || null, fecha, horaAhora]
       );
 
       // Vincular movimiento a la compra

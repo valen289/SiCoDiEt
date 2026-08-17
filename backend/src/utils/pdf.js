@@ -13,14 +13,17 @@ const fonts = {
 pdfMake.setFonts(fonts);
 pdfMake.setUrlAccessPolicy(() => false);
 
-async function obtenerNombreTambo(tamboId) {
-  const [[tambo]] = await pool.query('SELECT nombre FROM tambos WHERE id = ?', [tamboId]);
-  return tambo?.nombre || 'Establecimiento';
+async function obtenerDatosTambo(tamboId) {
+  const [[tambo]] = await pool.query('SELECT nombre, zona_horaria FROM tambos WHERE id = ?', [tamboId]);
+  return {
+    nombre: tambo?.nombre || 'Establecimiento',
+    zonaHoraria: tambo?.zona_horaria || 'America/Montevideo',
+  };
 }
 
 // Arma el encabezado comun a todos los reportes: nombre del tambo, titulo del reporte,
-// periodo (si aplica) y fecha de generacion.
-function buildHeader({ tamboNombre, titulo, periodo }) {
+// periodo (si aplica) y fecha de generacion (en la zona horaria del tambo).
+function buildHeader({ tamboNombre, zonaHoraria, titulo, periodo }) {
   return [
     { text: 'Sicodiet', style: 'marca' },
     { text: tamboNombre, style: 'tambo' },
@@ -28,7 +31,7 @@ function buildHeader({ tamboNombre, titulo, periodo }) {
     {
       text: [
         periodo ? `Periodo: ${periodo}  -  ` : '',
-        `Generado: ${new Date().toLocaleString('es-UY', { dateStyle: 'short', timeStyle: 'short' })}`,
+        `Generado: ${new Date().toLocaleString('es-UY', { dateStyle: 'short', timeStyle: 'short', timeZone: zonaHoraria })}`,
       ].join(''),
       style: 'meta',
     },
@@ -47,12 +50,12 @@ const styles = {
 // Genera el buffer del PDF a partir de un encabezado + el contenido propio de cada reporte
 // (tablas, totales, etc.). Cada ruta de reportes.js solo tiene que armar `content`.
 async function generarReportePdf({ tamboId, titulo, periodo, content }) {
-  const tamboNombre = await obtenerNombreTambo(tamboId);
+  const { nombre: tamboNombre, zonaHoraria } = await obtenerDatosTambo(tamboId);
 
   const docDefinition = {
     defaultStyle: { font: 'Helvetica', fontSize: 9 },
     pageMargins: [40, 40, 40, 40],
-    content: [...buildHeader({ tamboNombre, titulo, periodo }), ...content],
+    content: [...buildHeader({ tamboNombre, zonaHoraria, titulo, periodo }), ...content],
     styles,
   };
 

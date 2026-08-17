@@ -9,6 +9,7 @@ import {
 import { compartirReportePdf } from '../utils/reportes';
 import { formatMoney, formatNumber, formatDate } from '../utils/formatters';
 import PhoneInputField from '../components/PhoneInputField';
+import ExportModal from '../components/ExportModal';
 import '../styles/compras.css';
 
 const PERIODOS = [
@@ -41,6 +42,7 @@ export default function Compras() {
   const [resumen, setResumen]         = useState(null);
   const [loading, setLoading]         = useState(true);
   const [generandoPdf, setGenerandoPdf] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   // Filtros
   const [periodo, setPeriodo]               = useState('30');
@@ -193,31 +195,6 @@ export default function Compras() {
     }
   };
 
-  /* ── Export ── */
-
-  const handleExport = () => {
-    const { fi, ff } = getFechas();
-    const headers = ['Fecha', 'Proveedor', 'Insumo', 'Cantidad', 'Unidad', 'Precio Unit.', 'Total', 'Factura'];
-    const rows = compras.map(c => [
-      formatDate(c.fecha),
-      c.proveedor_nombre || '',
-      c.insumo_nombre,
-      formatNumber(c.cantidad),
-      c.insumo_unidad,
-      formatNumber(c.precio_unitario),
-      formatNumber(c.monto_total),
-      c.numero_factura || '',
-    ]);
-    const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `compras_${fi}_${ff}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
   const handleReportePdf = async () => {
     setGenerandoPdf(true);
     try {
@@ -257,8 +234,8 @@ export default function Compras() {
           <button className="compras__btn compras__btn--secondary" onClick={openProvModal}>
             <Users size={15} /> Proveedores
           </button>
-          <button className="compras__btn compras__btn--export" onClick={handleExport} disabled={loading}>
-            <Download size={15} /> Exportar CSV
+          <button className="compras__btn compras__btn--export" onClick={() => setShowExportModal(true)} disabled={loading}>
+            <Download size={15} /> Exportar
           </button>
           <button className="compras__btn compras__btn--export" onClick={handleReportePdf} disabled={generandoPdf || loading}>
             <FileText size={15} /> {generandoPdf ? 'Generando...' : 'Reporte PDF'}
@@ -268,6 +245,15 @@ export default function Compras() {
           </button>
         </div>
       </header>
+
+      <ExportModal
+        show={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        tipoExport="compras"
+        titulo="Exportar Compras"
+        defaultFechaInicio={getFechas().fi}
+        defaultFechaFin={getFechas().ff}
+      />
 
       {/* Filtros */}
       <div className="compras__filters">
