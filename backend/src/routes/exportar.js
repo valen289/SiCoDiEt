@@ -2,10 +2,12 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
+const tamboLimiter = require('../middleware/tamboLimiter');
 const { enviarExport } = require('../utils/exportBuilder');
 const { hoyEnZona, restarDiasFecha } = require('../utils/tzDate');
 
 router.use(authenticateToken);
+router.use(tamboLimiter);
 router.use(authorizeRoles('dueno', 'encargado'));
 
 function getDateRange(query, zonaHoraria) {

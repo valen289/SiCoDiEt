@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
+const tamboLimiter = require('../middleware/tamboLimiter');
 const { body, validationResult } = require('express-validator');
 const { verificarYGenerarAlertas, getNivelAlerta, calcularEstadoActual } = require('../utils/alertas');
 const { logActividad } = require('../utils/actividad');
@@ -10,6 +11,7 @@ const { kgAUnidadNativa, unidadNativaAKg } = require('../utils/conversionUnidade
 const { hoyEnZona, horaEnZona } = require('../utils/tzDate');
 
 router.use(authenticateToken);
+router.use(tamboLimiter);
 
 const duenoEncargado = authorizeRoles('dueno', 'encargado');
 

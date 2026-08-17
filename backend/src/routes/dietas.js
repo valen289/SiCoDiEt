@@ -2,11 +2,12 @@ const express = require('express');
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
+const tamboLimiter = require('../middleware/tamboLimiter');
 const pool = require('../config/database');
 const { verificarYGenerarAlertas } = require('../utils/alertas');
 const { calcularCostosIngredientes, calcularResumenEconomico } = require('../utils/dietasCalculos');
 
-router.get('/', authenticateToken, authorizeRoles('dueno', 'encargado'), async (req, res) => {
+router.get('/', authenticateToken, tamboLimiter, authorizeRoles('dueno', 'encargado'), async (req, res) => {
   try {
     const [dietas] = await pool.query(`
       SELECT d.*, l.nombre as lote_nombre, l.cantidad_animales, l.tipo_animal, l.objetivo_productivo
@@ -22,7 +23,7 @@ router.get('/', authenticateToken, authorizeRoles('dueno', 'encargado'), async (
   }
 });
 
-router.post('/calcular', authenticateToken, authorizeRoles('dueno', 'encargado'), [
+router.post('/calcular', authenticateToken, tamboLimiter, authorizeRoles('dueno', 'encargado'), [
   body('ingredientes').isArray({ min: 1 }).withMessage('Debe incluir al menos un ingrediente'),
   body('lote_id').isInt().withMessage('El lote es requerido'),
   body('produccion_leche_esperada').optional().isFloat({ min: 0 }).withMessage('Produccion de leche invalida'),
@@ -121,7 +122,7 @@ router.post('/calcular', authenticateToken, authorizeRoles('dueno', 'encargado')
   }
 });
 
-router.get('/costos', authenticateToken, authorizeRoles('dueno', 'encargado'), async (req, res) => {
+router.get('/costos', authenticateToken, tamboLimiter, authorizeRoles('dueno', 'encargado'), async (req, res) => {
   try {
     const [costos] = await pool.query(`
       SELECT ci.*, i.nombre as insumo_nombre, i.tipo_insumo
@@ -137,7 +138,7 @@ router.get('/costos', authenticateToken, authorizeRoles('dueno', 'encargado'), a
   }
 });
 
-router.put('/costos/:insumoId', authenticateToken, authorizeRoles('dueno', 'encargado'), [
+router.put('/costos/:insumoId', authenticateToken, tamboLimiter, authorizeRoles('dueno', 'encargado'), [
   body('precio_por_kg').isFloat({ min: 0 }).withMessage('Precio invalido'),
 ], async (req, res) => {
   try {
@@ -166,7 +167,7 @@ router.put('/costos/:insumoId', authenticateToken, authorizeRoles('dueno', 'enca
   }
 });
 
-router.get('/parametros/:insumoId', authenticateToken, authorizeRoles('dueno', 'encargado'), async (req, res) => {
+router.get('/parametros/:insumoId', authenticateToken, tamboLimiter, authorizeRoles('dueno', 'encargado'), async (req, res) => {
   try {
     const [insumos] = await pool.query('SELECT id FROM insumos WHERE id = ? AND tambo_id = ?', [req.params.insumoId, req.user.tambo_id]);
     if (insumos.length === 0) {
@@ -184,7 +185,7 @@ router.get('/parametros/:insumoId', authenticateToken, authorizeRoles('dueno', '
   }
 });
 
-router.put('/parametros/:insumoId', authenticateToken, authorizeRoles('dueno', 'encargado'), [
+router.put('/parametros/:insumoId', authenticateToken, tamboLimiter, authorizeRoles('dueno', 'encargado'), [
   body('materia_seca_porcentaje').isFloat({ min: 0, max: 100 }).withMessage('Materia seca invalida'),
   body('energia_mcal_por_kg').isFloat({ min: 0 }).withMessage('Energia invalida'),
   body('proteina_porcentaje').isFloat({ min: 0, max: 100 }).withMessage('Proteina invalida'),
@@ -216,7 +217,7 @@ router.put('/parametros/:insumoId', authenticateToken, authorizeRoles('dueno', '
   }
 });
 
-router.get('/:id', authenticateToken, authorizeRoles('dueno', 'encargado'), async (req, res) => {
+router.get('/:id', authenticateToken, tamboLimiter, authorizeRoles('dueno', 'encargado'), async (req, res) => {
   try {
     const dietaId = parseInt(req.params.id);
     if (!dietaId) {
@@ -261,7 +262,7 @@ router.get('/:id', authenticateToken, authorizeRoles('dueno', 'encargado'), asyn
   }
 });
 
-router.post('/', authenticateToken, authorizeRoles('dueno', 'encargado'), [
+router.post('/', authenticateToken, tamboLimiter, authorizeRoles('dueno', 'encargado'), [
   body('nombre').notEmpty().withMessage('El nombre es requerido'),
   body('lote_id').isInt().withMessage('El lote es requerido'),
   body('ingredientes').isArray({ min: 1 }).withMessage('Debe incluir al menos un ingrediente'),
@@ -357,7 +358,7 @@ router.post('/', authenticateToken, authorizeRoles('dueno', 'encargado'), [
   }
 });
 
-router.put('/:id', authenticateToken, authorizeRoles('dueno', 'encargado'), [
+router.put('/:id', authenticateToken, tamboLimiter, authorizeRoles('dueno', 'encargado'), [
   body('nombre').notEmpty().withMessage('El nombre es requerido'),
   body('lote_id').isInt().withMessage('El lote es requerido'),
   body('ingredientes').isArray({ min: 1 }).withMessage('Debe incluir al menos un ingrediente'),
@@ -465,7 +466,7 @@ router.put('/:id', authenticateToken, authorizeRoles('dueno', 'encargado'), [
   }
 });
 
-router.delete('/:id', authenticateToken, authorizeRoles('dueno', 'encargado'), async (req, res) => {
+router.delete('/:id', authenticateToken, tamboLimiter, authorizeRoles('dueno', 'encargado'), async (req, res) => {
   try {
     const [result] = await pool.query('UPDATE dietas SET activo = FALSE WHERE id = ? AND tambo_id = ?', [req.params.id, req.user.tambo_id]);
     if (result.affectedRows === 0) {

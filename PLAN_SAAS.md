@@ -350,23 +350,31 @@ Documentación: un `/api/v1/docs` con Swagger o simplemente un markdown en el re
 
 ## Orden de implementación sugerido
 
-| # | Feature | Fase | Bloqueado por | Impacto |
-|---|---------|------|---------------|---------|
-| 1 | Auditoría de aislamiento (0.2) | 0 | — | Seguridad |
-| 2 | Rate limiting por tambo (0.3) | 0 | — | Confiabilidad |
-| 3 | Módulo Ganado frontend (1.1) | 1 | — | Completitud del producto |
-| 4 | UI de invitaciones (1.4) | 1 | — | Onboarding de equipo |
-| 5 | Pre-carga dieta en consumos (1.3) | 1 | — | UX core |
-| 6 | Exportación de datos (1.2) | 1 | — | Valor para usuario |
-| 7 | Tests de integración (1.5) | 1 | — | Confianza al iterar |
-| 8 | Billing / planes (0.1) | 0 | 1,2 completados | **Monetización** |
-| 9 | UI perfil de tambo (2.4) | 2 | — | Profesionalismo |
-| 10 | Push notifications (2.2) | 2 | — | Retención |
-| 11 | PWA + offline (2.1) | 2 | — | Field usability |
-| 12 | Reporte semanal (2.3) | 2 | — | Engagement pasivo |
-| 13 | Panel admin interno (3.1) | 3 | Billing | Operación a escala |
-| 14 | Sentry APM (3.2) | 3 | +5 tambos activos | Monitoreo |
-| 15 | API pública (3.3) | 3 | — | Integraciones |
+**Última verificación de estado: 2026-08-17.** Varios ítems de Fase 1 resultaron ser trabajo previo que ya existía en el working tree sin commitear (se detectó y commiteó junto con la auditoría de aislamiento) — el estado de abajo es el real, verificado contra el código, no una suposición.
+
+**Decisión del 2026-08-17: billing (0.1) se deja para el final a propósito.** El criterio es completar todo el producto (incluida Fase 3 donde no dependa de billing) antes de encarar monetización — no por bloqueo técnico, sino por preferencia explícita: primero dejar todo completo, recién ahí "hacer los planes".
+
+| # | Feature | Fase | Estado | Bloqueado por | Impacto |
+|---|---------|------|--------|---------------|---------|
+| 1 | Auditoría de aislamiento (0.2) | 0 | ✅ Hecho | — | Seguridad |
+| 2 | Módulo Ganado frontend (1.1) | 1 | ✅ Hecho | — | Completitud del producto |
+| 3 | UI de invitaciones (1.4) | 1 | ✅ Hecho | — | Onboarding de equipo |
+| 4 | Pre-carga dieta en consumos (1.3) | 1 | ✅ Hecho | — | UX core |
+| 5 | Exportación de datos (1.2) | 1 | ✅ Hecho | — | Valor para usuario |
+| 6 | Tests de integración (1.5) | 1 | ✅ Hecho | — | Confianza al iterar |
+| 7 | UI perfil de tambo (2.4) | 2 | ✅ Hecho* | — | Profesionalismo |
+| 8 | Rate limiting por tambo (0.3) | 0 | ✅ Hecho | — | Confiabilidad |
+| 9 | PWA + offline (2.1) | 2 | ❌ Pendiente | — | Field usability |
+| 10 | Push notifications (2.2) | 2 | ❌ Pendiente | — | Retención |
+| 11 | Reporte semanal (2.3) | 2 | ❌ Pendiente | — | Engagement pasivo |
+| 12 | API pública (3.3) | 3 | ❌ Pendiente | — | Integraciones |
+| 13 | Sentry APM (3.2) | 3 | ❌ Pendiente | +5 tambos activos (criterio de negocio, no de orden) | Monitoreo |
+| 14 | Billing / planes (0.1) | 0 | ❌ Pendiente — **a propósito, al final** | — | **Monetización** |
+| 15 | Panel admin interno (3.1) | 3 | ❌ Pendiente | Billing (#14) | Operación a escala |
+
+\* Perfil de tambo se implementó sin el selector de moneda (ver "Descartado" más arriba) — nombre, logo y zona horaria sí, con propagación real a las queries de negocio (`CURDATE()`/`CURTIME()`/`NOW()` del servidor reemplazados por la hora del tambo).
+
+**Lo próximo:** #9 (PWA + offline), #10 (push notifications) o #11 (reporte semanal) — sin bloqueos entre sí, por orden de preferencia de negocio.
 
 ---
 

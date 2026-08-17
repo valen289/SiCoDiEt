@@ -3,10 +3,12 @@ const router = express.Router();
 const pool = require('../config/database');
 const { body, validationResult } = require('express-validator');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
+const tamboLimiter = require('../middleware/tamboLimiter');
 const { buildUpdateSet } = require('../utils/queryBuilder');
 const { logActividad } = require('../utils/actividad');
 
 router.use(authenticateToken);
+router.use(tamboLimiter);
 
 const soloDueno = authorizeRoles('dueno');
 

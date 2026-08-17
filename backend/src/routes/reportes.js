@@ -2,10 +2,12 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
+const tamboLimiter = require('../middleware/tamboLimiter');
 const { generarReportePdf, tabla } = require('../utils/pdf');
 const { hoyEnZona } = require('../utils/tzDate');
 
 router.use(authenticateToken);
+router.use(tamboLimiter);
 router.use(authorizeRoles('dueno', 'encargado'));
 
 // Devuelve { inicio, fin, label } para el mes YYYY-MM dado, o el mes actual (en la zona

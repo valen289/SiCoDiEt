@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const pool = require('../config/database');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
+const tamboLimiter = require('../middleware/tamboLimiter');
 const { body, validationResult } = require('express-validator');
 const { logActividad } = require('../utils/actividad');
 const { buildUpdateSet } = require('../utils/queryBuilder');
@@ -11,6 +12,7 @@ const { PASSWORD_REGEX } = require('../utils/passwordPolicy');
 const { sendInvitationEmail } = require('../utils/email');
 
 router.use(authenticateToken);
+router.use(tamboLimiter);
 
 // Solo el Dueño gestiona usuarios
 const soloDueno = authorizeRoles('dueno');

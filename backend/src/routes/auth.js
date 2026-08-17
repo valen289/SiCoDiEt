@@ -8,6 +8,7 @@ const { body, validationResult } = require('express-validator');
 const { buildUpdateSet } = require('../utils/queryBuilder');
 const { PASSWORD_REGEX } = require('../utils/passwordPolicy');
 const { sendTwoFactorCodeEmail } = require('../utils/email');
+const tamboLimiter = require('../middleware/tamboLimiter');
 
 const TWO_FACTOR_CODE_EXPIRY_MINUTES = 10;
 
@@ -282,7 +283,7 @@ async function emitirSesion(res, user) {
   });
 }
 
-router.get('/me', require('../middleware/auth').authenticateToken, async (req, res) => {
+router.get('/me', require('../middleware/auth').authenticateToken, tamboLimiter, async (req, res) => {
   try {
     const [users] = await pool.query(
       `SELECT u.id, u.cedula, u.nombre, u.email, u.telefono, u.foto, u.rol, u.tambo_id,
@@ -304,7 +305,7 @@ router.get('/me', require('../middleware/auth').authenticateToken, async (req, r
   }
 });
 
-router.put('/profile', require('../middleware/auth').authenticateToken, [
+router.put('/profile', require('../middleware/auth').authenticateToken, tamboLimiter, [
   body('nombre').optional().notEmpty().withMessage('Nombre no puede estar vacio'),
   body('email').optional().isEmail().withMessage('Email invalido'),
   body('telefono').optional({ checkFalsy: true }).matches(/^[0-9+\- ]{8,20}$/).withMessage('Telefono invalido'),

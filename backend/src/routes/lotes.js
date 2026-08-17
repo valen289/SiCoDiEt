@@ -2,11 +2,13 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/database');
 const { authenticateToken, authorizeRoles } = require('../middleware/auth');
+const tamboLimiter = require('../middleware/tamboLimiter');
 const { body, validationResult } = require('express-validator');
 const { logActividad } = require('../utils/actividad');
 const { buildUpdateSet } = require('../utils/queryBuilder');
 
 router.use(authenticateToken);
+router.use(tamboLimiter);
 
 const duenoEncargado = authorizeRoles('dueno', 'encargado');
 
