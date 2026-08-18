@@ -12,20 +12,31 @@ jobs:
       - name: Instalar cliente de MySQL
         run: sudo apt-get update && sudo apt-get install -y mysql-client
 
-      - name: Exportar base de datos
+      - name: Exportar y cifrar base de datos
         env:
           DB_HOST: ${{ secrets.DB_HOST }}
           DB_PORT: ${{ secrets.DB_PORT }}
           DB_USER: ${{ secrets.DB_USER }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           DB_NAME: ${{ secrets.DB_NAME }}
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
         run: |
+          if [ -z "$BACKUP_ENCRYPTION_KEY" ]; then
+            echo "Falta el secret BACKUP_ENCRYPTION_KEY en el repo. No se puede cifrar el backup." >&2
+            exit 1
+          fi
           mysqldump -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" -p"$DB_PASSWORD" \
             --single-transaction --routines "$DB_NAME" > "backup-$(date +%F).sql"
+          # El repo es público: un artifact de Actions es descargable por cualquier
+          # cuenta de GitHub aunque no sea colaborador. Se cifra el dump antes de
+          # subirlo para que ese acceso público no implique acceso a los datos.
+          gpg --batch --yes --passphrase "$BACKUP_ENCRYPTION_KEY" --symmetric --cipher-algo AES256 \
+            -o "backup-$(date +%F).sql.gpg" "backup-$(date +%F).sql"
+          rm "backup-$(date +%F).sql"
 
-      - name: Subir backup como artifact
+      - name: Subir backup cifrado como artifact
         uses: actions/upload-artifact@v4
         with:
           name: db-backup-${{ github.run_id }}
-          path: backup-*.sql
+          path: backup-*.sql.gpg
           retention-days: 30

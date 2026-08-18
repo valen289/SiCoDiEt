@@ -357,7 +357,7 @@ Documentación: un `/api/v1/docs` con Swagger o simplemente un markdown en el re
 | # | Feature | Fase | Estado | Bloqueado por | Impacto |
 |---|---------|------|--------|---------------|---------|
 | 1 | Auditoría de aislamiento (0.2) | 0 | ✅ Hecho | — | Seguridad |
-| 2 | Módulo Ganado frontend (1.1) | 1 | ✅ Hecho | — | Completitud del producto |
+| 2 | Módulo Ganado frontend (1.1) | 1 | 🗑️ Eliminado a pedido | — | (se sacó de la app; tabla `ganado` queda intacta en la base) |
 | 3 | UI de invitaciones (1.4) | 1 | ✅ Hecho | — | Onboarding de equipo |
 | 4 | Pre-carga dieta en consumos (1.3) | 1 | ✅ Hecho | — | UX core |
 | 5 | Exportación de datos (1.2) | 1 | ✅ Hecho | — | Valor para usuario |
@@ -366,7 +366,7 @@ Documentación: un `/api/v1/docs` con Swagger o simplemente un markdown en el re
 | 8 | Rate limiting por tambo (0.3) | 0 | ✅ Hecho | — | Confiabilidad |
 | 9 | PWA + offline (2.1) | 2 | ✅ Hecho | — | Field usability |
 | 10 | Push notifications (2.2) | 2 | ✅ Hecho | — | Retención |
-| 11 | Reporte semanal (2.3) | 2 | ❌ Pendiente | — | Engagement pasivo |
+| 11 | Reporte semanal (2.3) | 2 | ✅ Hecho | — | Engagement pasivo |
 | 12 | API pública (3.3) | 3 | ❌ Pendiente | — | Integraciones |
 | 13 | Sentry APM (3.2) | 3 | ❌ Pendiente | +5 tambos activos (criterio de negocio, no de orden) | Monitoreo |
 | 14 | Billing / planes (0.1) | 0 | ❌ Pendiente — **a propósito, al final** | — | **Monetización** |
@@ -378,7 +378,9 @@ Documentación: un `/api/v1/docs` con Swagger o simplemente un markdown en el re
 
 **2.2 (Push notifications)** extendió esa base en vez de partir de cero: el mismo `sw.js` sumó los listeners `push`/`notificationclick`. Cubre los 3 disparadores del roadmap — stock crítico, stock bajo (enganchados en `utils/alertas.js`, mismo punto que ya disparaba el email) y consumo AM no registrado a las 10am hora local de cada tambo (`node-cron` in-process, nuevo — no había ningún scheduler en el backend antes de esto). Verificado con 34 tests de integración (incluida una mutación deliberada para confirmar que el test de `enviarPushATambo` detecta una regresión real) y una corrida en vivo con Playwright que registra una suscripción push real de punta a punta.
 
-**Lo próximo:** #11 (reporte semanal) o #12 (API pública) — sin bloqueos entre sí.
+**2.3 (Reporte semanal)** reutiliza toda la infraestructura de 2.2 en vez de agregar mecanismo nuevo: mismo `node-cron` in-process (segundo `cron.schedule` junto al de consumo AM), misma tabla `notificaciones_programadas_enviadas` para idempotencia (`tipo = 'reporte_semanal'`), mismo patrón de email HTML que `sendStockCriticoEmail`. Corre los lunes a las 8am **hora local de cada tambo**. Se ajustó el alcance original: sin el módulo de Ganado no hay forma confiable de mostrar "variación de cantidad de animales" semana a semana, así que el reporte muestra lotes activos con su cantidad actual, sin comparación histórica (decisión explícita, no un olvido). Verificado con 38 tests de integración + una corrida manual sembrando consumo real de 2 semanas distintas, confirmando que el cálculo de kg/costo semanal da exactamente el valor esperado y no mezcla la semana anterior.
+
+**Lo próximo:** #12 (API pública) o #13 (Sentry, si ya se justifica por volumen de tambos) — sin bloqueos entre sí. Con esto, Fase 2 queda completa.
 
 ---
 

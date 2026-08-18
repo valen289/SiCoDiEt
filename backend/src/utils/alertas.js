@@ -227,4 +227,5 @@ module.exports = {
   calcularEstadoActual,
   getNivelAlerta,
   verificarYGenerarAlertas,
+  obtenerDestinatariosAlerta,
 };

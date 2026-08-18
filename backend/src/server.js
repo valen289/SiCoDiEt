@@ -193,6 +193,7 @@ if (require.main === module) {
   const initDatabase = require('./scripts/initDb');
   const cron = require('node-cron');
   const { verificarConsumosAMPendientes } = require('./jobs/recordatorioConsumoAM');
+  const { enviarReportesSemanal } = require('./jobs/reporteSemanal');
 
   initDatabase()
     .catch(err => console.error('DB init no bloqueante:', err.message))
@@ -211,6 +212,12 @@ if (require.main === module) {
   // tambo/dia, asi que no hace falta afinar el cron a un horario exacto.
   cron.schedule('*/20 * * * *', () => {
     verificarConsumosAMPendientes().catch(err => console.error('Error en cron de consumo AM:', err));
+  });
+
+  // Mismo mecanismo: chequea cada 20 min si algun tambo llego al lunes 8am (su hora
+  // local) para mandar el resumen semanal. Idempotente por tambo/semana.
+  cron.schedule('*/20 * * * *', () => {
+    enviarReportesSemanal().catch(err => console.error('Error en cron de reporte semanal:', err));
   });
 }
 

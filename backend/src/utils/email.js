@@ -209,4 +209,75 @@ const sendInvitationEmail = async (email, link, rol) => {
   return enviarEmail({ to: email, subject, html });
 };
 
-module.exports = { sendPasswordResetEmail, sendStockCriticoEmail, sendTwoFactorCodeEmail, sendInvitationEmail, isEmailConfigured };
+function filaVariacion(pct) {
+  if (pct === null) return '';
+  const signo = pct >= 0 ? '+' : '';
+  const color = pct >= 0 ? '#c0392b' : '#2e7d32';
+  return ` <span style="color: ${color}; font-weight: 600;">(${signo}${pct.toFixed(0)}% vs. semana anterior)</span>`;
+}
+
+const sendReporteSemanalEmail = async (destinatarios, {
+  tamboNombre, periodoLabel, consumoTotalKg, costoTotal, variacionConsumoPct, variacionCostoPct, insumosBajos, lotes,
+}) => {
+  const appUrl = (process.env.FRONTEND_URL || 'http://localhost:3001').split(',')[0].trim();
+  const subject = `Reporte semanal — ${tamboNombre}`;
+
+  if (!isEmailConfigured()) {
+    console.log('[email] BREVO_API_KEY no configurada, no se envía email real. Contenido:');
+    console.log(`[email] Para: ${destinatarios} | Asunto: ${subject}`);
+    console.log(`[email] Consumo: ${consumoTotalKg.toFixed(1)} kg | Costo: US$ ${costoTotal.toFixed(2)}`);
+    return null;
+  }
+
+  const filasInsumos = insumosBajos.length > 0
+    ? insumosBajos.map((i) => `<li style="margin-bottom: 4px;">${i.nombre}: <strong>${i.dias_restantes} días</strong> restantes</li>`).join('')
+    : '<li>No hay insumos con pocos días restantes.</li>';
+
+  const filasLotes = lotes.length > 0
+    ? lotes.map((l) => `<li style="margin-bottom: 4px;">${l.nombre}: ${l.cantidad_animales} animales</li>`).join('')
+    : '<li>No hay lotes activos.</li>';
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="background: #2e7d32; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+        <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Sicodiet</h1>
+        <p style="color: rgba(255,255,255,0.8); margin: 8px 0 0; font-size: 14px;">Reporte semanal — ${tamboNombre}</p>
+      </div>
+      <div style="background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; border-top: none;">
+        <p style="color: #6c757d; font-size: 13px; margin: 0 0 20px;">Semana del ${periodoLabel}</p>
+
+        <div style="display: flex; gap: 12px; margin-bottom: 24px;">
+          <div style="flex: 1; background: #f8f9fa; border-radius: 8px; padding: 16px;">
+            <p style="color: #6c757d; font-size: 12px; margin: 0 0 4px; text-transform: uppercase;">Consumo total</p>
+            <p style="color: #212529; font-size: 20px; font-weight: 700; margin: 0;">${consumoTotalKg.toFixed(1)} kg</p>
+            <p style="font-size: 12px; margin: 4px 0 0;">${filaVariacion(variacionConsumoPct)}</p>
+          </div>
+          <div style="flex: 1; background: #f8f9fa; border-radius: 8px; padding: 16px;">
+            <p style="color: #6c757d; font-size: 12px; margin: 0 0 4px; text-transform: uppercase;">Costo total</p>
+            <p style="color: #212529; font-size: 20px; font-weight: 700; margin: 0;">US$ ${costoTotal.toFixed(2)}</p>
+            <p style="font-size: 12px; margin: 4px 0 0;">${filaVariacion(variacionCostoPct)}</p>
+          </div>
+        </div>
+
+        <h3 style="color: #212529; font-size: 15px; margin: 0 0 8px;">Insumos con menos días restantes</h3>
+        <ul style="color: #495057; font-size: 14px; padding-left: 20px; margin: 0 0 24px;">${filasInsumos}</ul>
+
+        <h3 style="color: #212529; font-size: 15px; margin: 0 0 8px;">Lotes activos</h3>
+        <ul style="color: #495057; font-size: 14px; padding-left: 20px; margin: 0 0 24px;">${filasLotes}</ul>
+
+        <div style="text-align: center; margin: 32px 0 0;">
+          <a href="${appUrl}/dashboard" style="display: inline-block; background: #2e7d32; color: #ffffff; padding: 12px 32px; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600;">
+            Ver dashboard completo
+          </a>
+        </div>
+      </div>
+      <div style="background: #f8f9fa; padding: 16px; text-align: center; border-radius: 0 0 8px 8px; border: 1px solid #e0e0e0; border-top: none;">
+        <p style="color: #6c757d; font-size: 12px; margin: 0;">© 2026 Sicodiet. Todos los derechos reservados.</p>
+      </div>
+    </div>
+  `;
+
+  return enviarEmail({ to: destinatarios, subject, html });
+};
+
+module.exports = { sendPasswordResetEmail, sendStockCriticoEmail, sendTwoFactorCodeEmail, sendInvitationEmail, sendReporteSemanalEmail, isEmailConfigured };

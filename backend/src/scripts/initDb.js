@@ -83,6 +83,7 @@ async function initDatabase() {
     console.log('Inicializando esquema de base de datos...');
 
     const sql = fs.readFileSync(sqlPath, 'utf8');
+    const isProduction = process.env.NODE_ENV === 'production';
 
     const statements = sql
       .split('\n')
@@ -92,7 +93,14 @@ async function initDatabase() {
       .replace(/USE\s+\w+\s*;/gi, '')
       .split(';')
       .map(s => s.trim())
-      .filter(s => s.length > 0);
+      .filter(s => s.length > 0)
+      // En producción, database.sql solo debe crear el esquema. Los INSERT del
+      // final ("Datos iniciales") son datos de demo para desarrollo local (tambo
+      // ficticio, insumos de ejemplo) e incluyen un usuario admin con contraseña
+      // hardcodeada — sembrarlo en la DB real sería una cuenta de administrador
+      // con credenciales públicas en el repo. Los tambos reales se crean vía
+      // POST /api/auth/register, no necesitan este seed.
+      .filter(s => !isProduction || !/^INSERT\s/i.test(s));
 
     for (const stmt of statements) {
       await pool.query(stmt);
