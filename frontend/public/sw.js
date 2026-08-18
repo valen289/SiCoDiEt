@@ -8,7 +8,7 @@
 // solo se suma como mejora progresiva: si el navegador soporta background sync,
 // intenta despertar a una pestaña abierta para que dispare la sincronización.
 
-const CACHE_VERSION = 'sicodiet-v1';
+const CACHE_VERSION = 'sicodiet-v2';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const API_CACHE = `${CACHE_VERSION}-api`;
 
