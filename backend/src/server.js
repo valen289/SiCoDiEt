@@ -29,6 +29,7 @@ const comprasRoutes = require('./routes/compras');
 const reportesRoutes = require('./routes/reportes');
 const exportarRoutes = require('./routes/exportar');
 const tamboRoutes = require('./routes/tambo');
+const notificacionesRoutes = require('./routes/notificaciones');
 
 const app = express();
 
@@ -143,6 +144,7 @@ app.use('/api/compras', comprasRoutes);
 app.use('/api/reportes', reportesRoutes);
 app.use('/api/exportar', exportarRoutes);
 app.use('/api/tambo', tamboRoutes);
+app.use('/api/notificaciones', notificacionesRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -189,6 +191,8 @@ const PORT = process.env.PORT || 3001;
 // su propia inicialización de base de datos contra una DB de test.
 if (require.main === module) {
   const initDatabase = require('./scripts/initDb');
+  const cron = require('node-cron');
+  const { verificarConsumosAMPendientes } = require('./jobs/recordatorioConsumoAM');
 
   initDatabase()
     .catch(err => console.error('DB init no bloqueante:', err.message))
@@ -201,6 +205,13 @@ if (require.main === module) {
         }
       });
     });
+
+  // Chequea cada 20 min si algun tambo llego a las 10am (su hora local) sin
+  // registrar el consumo del turno AM. La propia funcion es idempotente por
+  // tambo/dia, asi que no hace falta afinar el cron a un horario exacto.
+  cron.schedule('*/20 * * * *', () => {
+    verificarConsumosAMPendientes().catch(err => console.error('Error en cron de consumo AM:', err));
+  });
 }
 
 module.exports = app;

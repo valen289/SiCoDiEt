@@ -364,8 +364,8 @@ Documentación: un `/api/v1/docs` con Swagger o simplemente un markdown en el re
 | 6 | Tests de integración (1.5) | 1 | ✅ Hecho | — | Confianza al iterar |
 | 7 | UI perfil de tambo (2.4) | 2 | ✅ Hecho* | — | Profesionalismo |
 | 8 | Rate limiting por tambo (0.3) | 0 | ✅ Hecho | — | Confiabilidad |
-| 9 | PWA + offline (2.1) | 2 | ❌ Pendiente | — | Field usability |
-| 10 | Push notifications (2.2) | 2 | ❌ Pendiente | — | Retención |
+| 9 | PWA + offline (2.1) | 2 | ✅ Hecho | — | Field usability |
+| 10 | Push notifications (2.2) | 2 | ✅ Hecho | — | Retención |
 | 11 | Reporte semanal (2.3) | 2 | ❌ Pendiente | — | Engagement pasivo |
 | 12 | API pública (3.3) | 3 | ❌ Pendiente | — | Integraciones |
 | 13 | Sentry APM (3.2) | 3 | ❌ Pendiente | +5 tambos activos (criterio de negocio, no de orden) | Monitoreo |
@@ -374,7 +374,11 @@ Documentación: un `/api/v1/docs` con Swagger o simplemente un markdown en el re
 
 \* Perfil de tambo se implementó sin el selector de moneda (ver "Descartado" más arriba) — nombre, logo y zona horaria sí, con propagación real a las queries de negocio (`CURDATE()`/`CURTIME()`/`NOW()` del servidor reemplazados por la hora del tambo).
 
-**Lo próximo:** #9 (PWA + offline), #10 (push notifications) o #11 (reporte semanal) — sin bloqueos entre sí, por orden de preferencia de negocio.
+**2.1 (PWA/offline)** se implementó en paralelo (otra sesión) mientras se trabajaba 0.3: `sw.js`, `manifest.json`, `InstallBanner.jsx`, `offlineQueue.js`/`offlineSync.js` (cola de consumos en IndexedDB, reintento por evento `online` con Background Sync como mejora progresiva). Confirmado terminado y verificado en vivo por el usuario antes de seguir con 2.2.
+
+**2.2 (Push notifications)** extendió esa base en vez de partir de cero: el mismo `sw.js` sumó los listeners `push`/`notificationclick`. Cubre los 3 disparadores del roadmap — stock crítico, stock bajo (enganchados en `utils/alertas.js`, mismo punto que ya disparaba el email) y consumo AM no registrado a las 10am hora local de cada tambo (`node-cron` in-process, nuevo — no había ningún scheduler en el backend antes de esto). Verificado con 34 tests de integración (incluida una mutación deliberada para confirmar que el test de `enviarPushATambo` detecta una regresión real) y una corrida en vivo con Playwright que registra una suscripción push real de punta a punta.
+
+**Lo próximo:** #11 (reporte semanal) o #12 (API pública) — sin bloqueos entre sí.
 
 ---
 

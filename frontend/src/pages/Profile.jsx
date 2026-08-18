@@ -2,10 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../context/AlertContext';
 import api from '../services/api';
-import { Mail, Phone, Lock, Save, UserCog, Building2, LockKeyhole, Camera, Eye, Upload, Trash2 } from 'lucide-react';
+import { Mail, Phone, Lock, Save, UserCog, Building2, LockKeyhole, Camera, Eye, Upload, Trash2, Bell, BellOff } from 'lucide-react';
 import PasswordRulesHint from '../components/PasswordRulesHint';
 import { passwordStrength } from '../utils/passwordPolicy';
 import { resizeImageToDataUrl } from '../utils/resizeImage';
+import { isPushSupported, getSuscripcionActual, activarNotificaciones, desactivarNotificaciones } from '../utils/push';
 import '../styles/profile.css';
 
 const ROL_LABELS = {
@@ -54,6 +55,8 @@ export default function Profile() {
   const [photoLoading, setPhotoLoading] = useState(false);
   const uploadInputRef = useRef(null);
   const captureInputRef = useRef(null);
+  const [pushSubscrito, setPushSubscrito] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
 
   useEffect(() => {
     document.title = 'Mi Perfil - Sicodiet';
@@ -61,6 +64,30 @@ export default function Profile() {
       document.title = 'Sicodiet';
     };
   }, []);
+
+  useEffect(() => {
+    if (!isPushSupported()) return;
+    getSuscripcionActual().then((sub) => setPushSubscrito(Boolean(sub))).catch(() => {});
+  }, []);
+
+  const handleTogglePush = async () => {
+    setPushLoading(true);
+    try {
+      if (pushSubscrito) {
+        await desactivarNotificaciones();
+        setPushSubscrito(false);
+        success('Notificaciones desactivadas');
+      } else {
+        await activarNotificaciones();
+        setPushSubscrito(true);
+        success('Notificaciones activadas');
+      }
+    } catch (err) {
+      error(err.message || 'Error al cambiar el estado de las notificaciones');
+    } finally {
+      setPushLoading(false);
+    }
+  };
 
   const handlePhotoFile = async (e) => {
     const file = e.target.files?.[0];
@@ -284,6 +311,23 @@ export default function Profile() {
                 <span className="detail-value">{user?.tambo_nombre || 'No asignado'}</span>
               </div>
             </div>
+            {isPushSupported() && (
+              <div className="detail-item">
+                {pushSubscrito ? <Bell size={18} /> : <BellOff size={18} />}
+                <div>
+                  <span className="detail-label">Notificaciones push</span>
+                  <span className="detail-value">{pushSubscrito ? 'Activadas' : 'Desactivadas'}</span>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={handleTogglePush}
+                  disabled={pushLoading}
+                >
+                  {pushLoading ? '...' : pushSubscrito ? 'Desactivar' : 'Activar'}
+                </button>
+              </div>
+            )}
             <button className="btn btn-success btn-edit-profile" onClick={() => setEditing(true)}>
               <UserCog size={18} /> Editar Perfil
             </button>

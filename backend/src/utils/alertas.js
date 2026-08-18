@@ -1,13 +1,17 @@
 const pool = require('../config/database');
 const { sendStockCriticoEmail } = require('./email');
+const { enviarPushATambo } = require('./webpush');
 const { kgAUnidadNativa } = require('./conversionUnidades');
 
+// Devuelve {id, email} de dueno/encargado activos del tambo -- el id sirve para el
+// push (se busca por usuario_id en push_subscriptions), el email para sendStockCriticoEmail.
+// email puede venir null (usuarios sin email cargado); ambos canales filtran lo que necesitan.
 async function obtenerDestinatariosAlerta(tamboId, executor) {
   const [usuarios] = await executor(
-    "SELECT email FROM usuarios WHERE tambo_id = ? AND rol IN ('dueno', 'encargado') AND activo = TRUE AND email IS NOT NULL",
+    "SELECT id, email FROM usuarios WHERE tambo_id = ? AND rol IN ('dueno', 'encargado') AND activo = TRUE",
     [tamboId]
   );
-  return usuarios.map((u) => u.email);
+  return usuarios;
 }
 
 async function calcularConsumoEstimado(insumoId, executor = (sql, params) => pool.query(sql, params)) {
@@ -169,20 +173,28 @@ async function verificarYGenerarAlertas(insumoId, connection) {
           [insumoId, alerta.tipo, `${insumo.nombre}: ${alerta.label} - ${diasRestantes} ${alerta.mensaje} (stock: ${stockActual.toFixed(2)} ${insumo.unidad})`]
         );
 
-        if (alerta.tipo === 'stock_critico') {
-          obtenerDestinatariosAlerta(insumo.tambo_id, executor)
-            .then((destinatarios) => {
-              if (destinatarios.length > 0) {
-                return sendStockCriticoEmail(destinatarios, {
-                  nombreInsumo: insumo.nombre,
-                  diasRestantes,
-                  stockActual,
-                  unidad: insumo.unidad,
-                });
-              }
-            })
-            .catch((err) => console.error('Error enviando email de stock critico:', err));
-        }
+        // Push cubre stock_critico Y stock_bajo; el email (mas intrusivo) queda solo
+        // para stock_critico, como ya era. Ninguno de los dos bloquea el request.
+        obtenerDestinatariosAlerta(insumo.tambo_id, executor)
+          .then((destinatarios) => {
+            const conEmail = destinatarios.filter((d) => d.email);
+            if (alerta.tipo === 'stock_critico' && conEmail.length > 0) {
+              sendStockCriticoEmail(conEmail.map((d) => d.email), {
+                nombreInsumo: insumo.nombre,
+                diasRestantes,
+                stockActual,
+                unidad: insumo.unidad,
+              }).catch((err) => console.error('Error enviando email de stock critico:', err));
+            }
+
+            enviarPushATambo(insumo.tambo_id, ['dueno', 'encargado'], {
+              title: alerta.tipo === 'stock_critico' ? 'Stock crítico' : 'Stock bajo',
+              body: `${insumo.nombre}: ${diasRestantes} días restantes (stock: ${stockActual.toFixed(2)} ${insumo.unidad})`,
+              tag: `stock-${insumo.id}`,
+              url: '/alertas',
+            }).catch((err) => console.error('Error enviando push de stock:', err));
+          })
+          .catch((err) => console.error('Error obteniendo destinatarios de alerta:', err));
       }
     }
 
