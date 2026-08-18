@@ -22,7 +22,6 @@ const Actividades = lazy(() => import('./pages/Actividades'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Costos = lazy(() => import('./pages/Costos'));
 const Compras = lazy(() => import('./pages/Compras'));
-const Ganado = lazy(() => import('./pages/Ganado'));
 const Landing = lazy(() => import('./pages/Landing'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 
@@ -189,14 +188,6 @@ function AppRoutes() {
         }>
           <Route index element={<Compras />} />
         </Route>
-        <Route path="/ganado" element={
-          <DuenoEncargadoRoute>
-            <Layout />
-          </DuenoEncargadoRoute>
-        }>
-          <Route index element={<Ganado />} />
-        </Route>
-
         {/* Rutas para todos los roles autenticados */}
         <Route path="/consumos" element={
           <ProtectedRoute>

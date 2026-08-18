@@ -1,13 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../context/AlertContext';
 import logoFull from '../assets/logo-full.svg';
+import InstallBanner from './InstallBanner';
+import { OFFLINE_QUEUE_EVENT } from '../utils/offlineSync';
+import { contarPendientes } from '../utils/offlineQueue';
 import {
-  LogOut, Menu, X, User, Plus, Trash2,
+  LogOut, Menu, X, User, Plus, Trash2, WifiOff, RefreshCw,
   LayoutDashboard, Database, Package, FlaskConical, Tag,
   ClipboardList, Calculator, Bell, History, DollarSign,
-  ShoppingCart, Activity, UserCog, Users, LayoutGrid, Beef, Settings,
+  ShoppingCart, Activity, UserCog, Users, LayoutGrid, Settings,
 } from 'lucide-react';
 import '../styles/layout.css';
 
@@ -20,7 +23,6 @@ const NAV_ICONS = {
   sales:       FlaskConical,
   bolson:      Package,
   lotes:       Tag,
-  ganado:      Beef,
   consumos:    ClipboardList,
   dietas:      Calculator,
   alertas:     Bell,
@@ -47,7 +49,6 @@ const categorias = [
 
 const operacionesItems = [
   { path: '/lotes',    iconKey: 'lotes',    label: 'Lotes'    },
-  { path: '/ganado',   iconKey: 'ganado',   label: 'Ganado'   },
   { path: '/consumos', iconKey: 'consumos', label: 'Consumos' },
   { path: '/compras',  iconKey: 'compras',  label: 'Compras'  },
   { path: '/dietas',   iconKey: 'dietas',   label: 'Dietas'   },
@@ -236,6 +237,26 @@ export default function Layout() {
   const isDueno = user?.rol === 'dueno';
   const isTrabajador = user?.rol === 'trabajador';
 
+  const [online, setOnline] = useState(navigator.onLine);
+  const [pendientes, setPendientes] = useState(0);
+
+  useEffect(() => {
+    const handleOnline = () => setOnline(true);
+    const handleOffline = () => setOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    const handleQueueChange = (e) => setPendientes(e.detail.pendientes);
+    window.addEventListener(OFFLINE_QUEUE_EVENT, handleQueueChange);
+    contarPendientes().then(setPendientes).catch(() => {});
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener(OFFLINE_QUEUE_EVENT, handleQueueChange);
+    };
+  }, []);
+
   const handleLogout = async () => {
     const confirmed = await confirm({
       title: 'Cerrar Sesión',
@@ -291,6 +312,22 @@ export default function Layout() {
             <img src={logoFull} alt="Sicodiet" className="header-logo" />
           </div>
           <div className="header-right">
+            {!online && (
+              <span className="connection-pill connection-pill--offline">
+                <WifiOff size={14} />
+                <span className="connection-pill__text">
+                  Offline — tus consumos se sincronizarán cuando vuelva la señal
+                </span>
+              </span>
+            )}
+            {online && pendientes > 0 && (
+              <span className="connection-pill connection-pill--syncing">
+                <RefreshCw size={14} className="connection-pill__spin" />
+                <span className="connection-pill__text">
+                  Sincronizando {pendientes} consumo{pendientes !== 1 ? 's' : ''} pendiente{pendientes !== 1 ? 's' : ''}
+                </span>
+              </span>
+            )}
             <div className="user-info" onClick={handleUserClick} role="button" tabIndex={0} aria-label="Ir a perfil">
               {user?.foto ? (
                 <img src={user.foto} alt="" className="user-avatar-photo" />
@@ -377,6 +414,7 @@ export default function Layout() {
       {/* Main Content */}
       <main className="main-content">
         <div className="main-container">
+          <InstallBanner />
           <Outlet />
         </div>
       </main>

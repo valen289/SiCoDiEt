@@ -5,6 +5,8 @@ import { useSEO } from '../hooks/useSEO';
 import { Users, Package, Calendar, Milk, History, X, Sun, Moon, Plus, Trash2, AlertTriangle, TrendingDown, FileText } from 'lucide-react';
 import { compartirReportePdf } from '../utils/reportes';
 import { formatFecha } from '../utils/formatters';
+import { encolarConsumo } from '../utils/offlineQueue';
+import { registrarBackgroundSync } from '../utils/offlineSync';
 import '../styles/silos.css';
 import '../styles/consumos.css';
 
@@ -277,22 +279,33 @@ export default function Consumos() {
   const handleConfirmarConsumo = async () => {
     setShowConfirm(false);
     setLoading(true);
+    const payload = {
+      fecha: fechaConsumo,
+      turno,
+      lote_id: parseInt(selectedLote),
+      cantidad_animales: parseInt(cantidadVacas),
+      ingredientes: buildPayload(),
+      observacion: observacion || null,
+      porcentaje_sobra: porcentajeSobra !== '' ? parseFloat(porcentajeSobra) : null,
+    };
     try {
-      const res = await api.post('/insumos/consumo-diario', {
-        fecha: fechaConsumo,
-        turno,
-        lote_id: parseInt(selectedLote),
-        cantidad_animales: parseInt(cantidadVacas),
-        ingredientes: buildPayload(),
-        observacion: observacion || null,
-        porcentaje_sobra: porcentajeSobra !== '' ? parseFloat(porcentajeSobra) : null,
-      });
+      const res = await api.post('/insumos/consumo-diario', payload);
       success(res.data.message);
       setObservacion('');
       setPorcentajeSobra('');
       loadDietaActiva(selectedLote);
     } catch (err) {
-      error(err.response?.data?.error || 'Error al registrar consumo');
+      // Sin respuesta del servidor (offline/sin señal, no un error de negocio): no se
+      // pierde el registro -- se guarda local y se reintenta solo cuando vuelva la conexión.
+      if (!err.response) {
+        await encolarConsumo(payload);
+        registrarBackgroundSync();
+        success('Sin conexión: el consumo se guardó en este dispositivo y se enviará automáticamente cuando vuelva la señal.');
+        setObservacion('');
+        setPorcentajeSobra('');
+      } else {
+        error(err.response?.data?.error || 'Error al registrar consumo');
+      }
     } finally {
       setLoading(false);
     }

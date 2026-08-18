@@ -112,6 +112,114 @@
   text-transform: capitalize;
 }
 
+/* ─── Indicador de conexión ──────────────────────────────────────────────── */
+.connection-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.connection-pill--offline {
+  background: rgba(220, 53, 69, 0.12);
+  color: #dc3545;
+  border: 1px solid rgba(220, 53, 69, 0.3);
+}
+
+.connection-pill--syncing {
+  background: rgba(255, 193, 7, 0.15);
+  color: #a17400;
+  border: 1px solid rgba(255, 193, 7, 0.35);
+}
+
+.connection-pill__spin {
+  animation: connection-pill-spin 1.2s linear infinite;
+}
+
+@keyframes connection-pill-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 767px) {
+  .connection-pill__text {
+    display: none;
+  }
+
+  .connection-pill {
+    padding: 0.5rem;
+  }
+}
+
+/* ─── Banner de instalación de la app ────────────────────────────────────── */
+.install-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--primary-light);
+  border: 1px solid var(--primary);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.install-banner__icon {
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.install-banner__text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.install-banner__text strong {
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.install-banner__text span {
+  font-size: 0.78rem;
+  color: var(--text-light);
+}
+
+.install-banner__btn {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 0.4rem;
+  padding: 0.45rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.install-banner__btn:hover {
+  background: var(--primary-dark);
+}
+
+.install-banner__close {
+  background: none;
+  border: none;
+  color: var(--text-light);
+  padding: 0.25rem;
+  flex-shrink: 0;
+  display: flex;
+}
+
+@media (max-width: 575px) {
+  .install-banner__text span {
+    display: none;
+  }
+}
+
 .logout-btn {
   display: flex;
   align-items: center;
