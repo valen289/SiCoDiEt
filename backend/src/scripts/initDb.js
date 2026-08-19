@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const pool = require('../config/database');
+const backfillCedulaEncryption = require('./backfillCedulaEncryption');
 
 async function runMigrations(markAllApplied = false) {
   await pool.query(`
@@ -71,6 +72,7 @@ async function initDatabase() {
     if (rows.length > 0) {
       console.log('Base de datos ya inicializada, aplicando migraciones pendientes...');
       await runMigrations(false);
+      await backfillCedulaEncryption();
       return;
     }
 
@@ -110,6 +112,7 @@ async function initDatabase() {
     // database.sql no incluye todas las migraciones (ej. categoria de insumos,
     // proveedores/compras) — hay que correrlas de verdad, no solo marcarlas.
     await runMigrations(false);
+    await backfillCedulaEncryption();
   } catch (err) {
     console.error('Error al inicializar la base de datos:', err.message);
     throw err;

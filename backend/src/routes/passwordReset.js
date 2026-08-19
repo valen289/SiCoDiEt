@@ -6,10 +6,11 @@ const pool = require('../config/database');
 const { body, validationResult } = require('express-validator');
 const { sendPasswordResetEmail } = require('../utils/email');
 const { PASSWORD_REGEX } = require('../utils/passwordPolicy');
+const requireCaptcha = require('../middleware/captcha');
 
 const TOKEN_EXPIRY_HOURS = parseInt(process.env.RESET_TOKEN_EXPIRY) || 1;
 
-router.post('/forgot-password', [
+router.post('/forgot-password', requireCaptcha, [
   body('email').isEmail().withMessage('Email invalido'),
 ], async (req, res) => {
   try {

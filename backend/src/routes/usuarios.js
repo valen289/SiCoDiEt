@@ -10,6 +10,7 @@ const { logActividad } = require('../utils/actividad');
 const { buildUpdateSet } = require('../utils/queryBuilder');
 const { PASSWORD_REGEX } = require('../utils/passwordPolicy');
 const { sendInvitationEmail } = require('../utils/email');
+const { encryptCedula, decryptCedula, hashCedula } = require('../utils/cedulaCrypto');
 
 router.use(authenticateToken);
 router.use(tamboLimiter);
@@ -23,7 +24,7 @@ router.get('/', soloDueno, async (req, res) => {
       'SELECT id, cedula, nombre, email, telefono, rol, activo, fecha_creacion, ultimo_acceso FROM usuarios WHERE tambo_id = ? ORDER BY nombre ASC',
       [req.user.tambo_id]
     );
-    res.json({ usuarios });
+    res.json({ usuarios: usuarios.map(u => ({ ...u, cedula: decryptCedula(u.cedula) })) });
   } catch (error) {
     console.error('Error obteniendo usuarios:', error);
     res.status(500).json({ error: 'Error al obtener usuarios' });
@@ -58,6 +59,7 @@ router.get('/:id', soloDueno, async (req, res) => {
     if (users.length === 0) {
       return res.status(404).json({ error: 'Usuario no encontrado' });
     }
+    users[0].cedula = decryptCedula(users[0].cedula);
     res.json({ usuario: users[0] });
   } catch (error) {
     console.error('Error obteniendo usuario:', error);
@@ -80,15 +82,16 @@ router.post('/', soloDueno, [
 
     const { cedula, nombre, password, email, telefono, rol = 'trabajador' } = req.body;
 
-    const [existing] = await pool.query('SELECT id FROM usuarios WHERE cedula = ?', [cedula]);
+    const cedulaHash = hashCedula(cedula);
+    const [existing] = await pool.query('SELECT id FROM usuarios WHERE cedula_hash = ?', [cedulaHash]);
     if (existing.length > 0) {
       return res.status(400).json({ error: 'Ya existe un usuario con esa cédula' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const [result] = await pool.query(
-      'INSERT INTO usuarios (tambo_id, cedula, nombre, password, email, telefono, rol) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [req.user.tambo_id, cedula, nombre, hashedPassword, email || null, telefono || null, rol]
+      'INSERT INTO usuarios (tambo_id, cedula, cedula_hash, nombre, password, email, telefono, rol) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [req.user.tambo_id, encryptCedula(cedula), cedulaHash, nombre, hashedPassword, email || null, telefono || null, rol]
     );
 
     await logActividad(pool, {

@@ -6,6 +6,7 @@ import api from '../services/api';
 import Footer from '../components/Footer';
 import PhoneInputField from '../components/PhoneInputField';
 import PasswordRulesHint from '../components/PasswordRulesHint';
+import TurnstileWidget from '../components/TurnstileWidget';
 import { passwordStrength } from '../utils/passwordPolicy';
 import logoFull from '../assets/logo-full.svg';
 import '../styles/login.css';
@@ -37,6 +38,7 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState('');
   const { register } = useAuth();
   const navigate = useNavigate();
 
@@ -78,6 +80,7 @@ export default function Register() {
         email: form.email,
         telefono: form.telefono,
         password: form.password,
+        captchaToken,
       };
       if (inviteToken) {
         payload.invitation_token = inviteToken;
@@ -213,6 +216,8 @@ export default function Register() {
                 </button>
               </div>
             </div>
+
+            <TurnstileWidget onVerify={setCaptchaToken} />
 
             <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
               {loading ? 'Registrando...' : 'Registrarse'}

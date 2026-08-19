@@ -22,6 +22,9 @@ services:
       - EMAIL_USER=${EMAIL_USER:-}
       - EMAIL_PASS=${EMAIL_PASS:-}
       - EMAIL_FROM=${EMAIL_FROM:-"Sicodiet" <noreply@sicodiet.com>}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
+      - CEDULA_HASH_KEY=${CEDULA_HASH_KEY:-}
+      - TURNSTILE_SECRET_KEY=${TURNSTILE_SECRET_KEY:-}
     depends_on:
       db:
         condition: service_healthy

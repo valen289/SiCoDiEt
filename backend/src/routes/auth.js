@@ -9,10 +9,12 @@ const { buildUpdateSet } = require('../utils/queryBuilder');
 const { PASSWORD_REGEX } = require('../utils/passwordPolicy');
 const { sendTwoFactorCodeEmail } = require('../utils/email');
 const tamboLimiter = require('../middleware/tamboLimiter');
+const requireCaptcha = require('../middleware/captcha');
+const { encryptCedula, decryptCedula, hashCedula } = require('../utils/cedulaCrypto');
 
 const TWO_FACTOR_CODE_EXPIRY_MINUTES = 10;
 
-router.post('/register', [
+router.post('/register', requireCaptcha, [
   body('cedula').matches(/^[0-9]{8}$/).withMessage('Cedula invalida, debe tener 8 digitos'),
   body('nombre').notEmpty().withMessage('Nombre requerido'),
   body('email').isEmail().withMessage('Email invalido, es necesario para la verificación en dos pasos'),
@@ -29,7 +31,8 @@ router.post('/register', [
     let rol;
     let tambo_id;
 
-    const [existing] = await pool.query('SELECT id FROM usuarios WHERE cedula = ?', [cedula]);
+    const cedulaHash = hashCedula(cedula);
+    const [existing] = await pool.query('SELECT id FROM usuarios WHERE cedula_hash = ?', [cedulaHash]);
     if (existing.length > 0) {
       return res.status(400).json({ error: 'Ya existe un usuario con esa cedula' });
     }
@@ -56,8 +59,8 @@ router.post('/register', [
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const [result] = await pool.query(
-      'INSERT INTO usuarios (tambo_id, cedula, nombre, password, email, telefono, rol) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [tambo_id, cedula, nombre, hashedPassword, email || null, telefono || null, rol]
+      'INSERT INTO usuarios (tambo_id, cedula, cedula_hash, nombre, password, email, telefono, rol) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [tambo_id, encryptCedula(cedula), cedulaHash, nombre, hashedPassword, email || null, telefono || null, rol]
     );
 
     if (invitation_token) {
@@ -115,8 +118,8 @@ router.post('/login', [
               t.nombre AS tambo_nombre, t.zona_horaria AS tambo_zona_horaria, t.logo AS tambo_logo
        FROM usuarios u
        JOIN tambos t ON u.tambo_id = t.id
-       WHERE u.cedula = ? AND u.activo = TRUE`,
-      [cedula]
+       WHERE u.cedula_hash = ? AND u.activo = TRUE`,
+      [hashCedula(cedula)]
     );
 
     if (users.length === 0) {
@@ -124,6 +127,7 @@ router.post('/login', [
     }
 
     const user = users[0];
+    user.cedula = decryptCedula(user.cedula);
 
     if (user.bloqueado_hasta && new Date(user.bloqueado_hasta) > new Date()) {
       const minutosRestantes = Math.ceil((new Date(user.bloqueado_hasta) - new Date()) / 60000);
@@ -224,6 +228,7 @@ router.post('/verify-2fa', [
     if (!user) {
       return res.status(401).json({ error: 'Usuario no encontrado' });
     }
+    user.cedula = decryptCedula(user.cedula);
 
     if (!user.two_factor_code_hash || !user.two_factor_code_expires || new Date(user.two_factor_code_expires) < new Date()) {
       return res.status(400).json({ error: 'El código expiró, iniciá sesión nuevamente' });
@@ -301,6 +306,7 @@ router.get('/me', require('../middleware/auth').authenticateToken, tamboLimiter,
       return res.status(404).json({ error: 'Usuario no encontrado' });
     }
 
+    users[0].cedula = decryptCedula(users[0].cedula);
     res.json({ user: users[0] });
   } catch (error) {
     console.error('Error obteniendo usuario:', error);
@@ -369,6 +375,7 @@ router.put('/profile', require('../middleware/auth').authenticateToken, tamboLim
       [req.user.id]
     );
 
+    users[0].cedula = decryptCedula(users[0].cedula);
     res.json({
       message: 'Perfil actualizado exitosamente',
       user: users[0]

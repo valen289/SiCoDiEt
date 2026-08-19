@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../services/api';
 import { Mail, ArrowLeft, CheckCircle } from 'lucide-react';
 import Footer from '../components/Footer';
+import TurnstileWidget from '../components/TurnstileWidget';
 import logoFull from '../assets/logo-full.svg';
 import '../styles/login.css';
 
@@ -11,6 +12,7 @@ export default function ForgotPassword() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState('');
 
   useEffect(() => {
     document.title = 'Recuperar Contraseña - Sicodiet';
@@ -24,7 +26,7 @@ export default function ForgotPassword() {
     setLoading(true);
 
     try {
-      await api.post('/auth/forgot-password', { email });
+      await api.post('/auth/forgot-password', { email, captchaToken });
       setSuccess('Si el email existe en nuestro sistema, recibirás un enlace para restablecer tu contraseña.');
       setEmail('');
     } catch (err) {
@@ -68,6 +70,8 @@ export default function ForgotPassword() {
                   required
                 />
               </div>
+
+              <TurnstileWidget onVerify={setCaptchaToken} />
 
               <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
                 {loading ? 'Enviando...' : 'Enviar enlace'}

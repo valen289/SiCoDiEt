@@ -33,11 +33,29 @@ const notificacionesRoutes = require('./routes/notificaciones');
 
 const app = express();
 
-// Railway corre detras de un unico proxy reverso: confiar en ese hop para que
-// express-rate-limit lea la IP real del cliente via X-Forwarded-For.
-app.set('trust proxy', 1);
+// api.sicodiet.com pasa por Cloudflare (proxied) antes de llegar a Railway, que a su
+// vez tiene su propio proxy reverso interno -- son 2 saltos confiables entre el cliente
+// real y este proceso. Con esto express-rate-limit lee la IP real del cliente via
+// X-Forwarded-For en vez de la de Cloudflare. El dominio *.up.railway.app sigue activo
+// en paralelo (1 solo salto) para llamadas directas -- en ese caso puntual la IP
+// detectada puede quedar mal, pero no es tráfico real de usuarios (el frontend ya
+// apunta a api.sicodiet.com), así que no vale la pena una lógica más compleja por eso.
+app.set('trust proxy', 2);
 
 const isProduction = process.env.NODE_ENV === 'production';
+
+// Railway ya sirve el dominio publico solo por HTTPS, pero un cliente que insista
+// en http:// (link viejo, bookmark, bot) llega igual al proceso -- Railway termina
+// TLS y reenvia por http internamente. x-forwarded-proto (confiable por el
+// trust proxy de arriba) es la unica forma de saber si el pedido original fue https.
+if (isProduction) {
+  app.use((req, res, next) => {
+    if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
+      return next();
+    }
+    res.redirect(301, `https://${req.headers.host}${req.originalUrl}`);
+  });
+}
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -121,7 +139,10 @@ app.use(cors(corsOptions));
 
 app.use(helmet({
   contentSecurityPolicy: isProduction ? undefined : false,
-  crossOriginEmbedderPolicy: false
+  crossOriginEmbedderPolicy: false,
+  // Sin esto, un navegador que ya vio el sitio en http:// local (dev) puede quedar
+  // recordando forzar https ahi tambien -- se manda solo en produccion.
+  hsts: isProduction ? { maxAge: 31536000, includeSubDomains: true, preload: true } : false
 }));
 app.use(compression({ threshold: 1024 }));
 app.use(limiter);

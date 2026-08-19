@@ -11,6 +11,8 @@ process.env.DB_PASSWORD = process.env.DB_PASSWORD || 'testroot';
 process.env.DB_NAME = process.env.DB_NAME || 'gestion_tambo_test';
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'test_secret_do_not_use_in_prod';
 process.env.JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1h';
+process.env.ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || '0'.repeat(64);
+process.env.CEDULA_HASH_KEY = process.env.CEDULA_HASH_KEY || 'test_cedula_hash_key_do_not_use_in_prod';
 // BREVO_API_KEY queda sin definir a propósito: los emails "se envían" en modo
 // no-op (solo console.log), igual que en cualquier entorno de dev sin Brevo.
 
@@ -19,6 +21,7 @@ const bcrypt = require('bcryptjs');
 const pool = require('../../../config/database');
 const app = require('../../../server');
 const initDatabase = require('../../../scripts/initDb');
+const { encryptCedula, hashCedula } = require('../../../utils/cedulaCrypto');
 
 let cached = null;
 
@@ -61,8 +64,8 @@ async function crearUsuario({ tamboId, rol = 'dueno', cedula, email = null, pass
   const hashed = await bcrypt.hash(password, 4); // costo bajo: son tests, no producción
   const cedulaFinal = cedula || cedulaAlAzar();
   const [result] = await pool.query(
-    'INSERT INTO usuarios (tambo_id, cedula, nombre, password, email, rol) VALUES (?, ?, ?, ?, ?, ?)',
-    [tamboId, cedulaFinal, nombre || `Usuario ${rol}`, hashed, email, rol]
+    'INSERT INTO usuarios (tambo_id, cedula, cedula_hash, nombre, password, email, rol) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [tamboId, encryptCedula(cedulaFinal), hashCedula(cedulaFinal), nombre || `Usuario ${rol}`, hashed, email, rol]
   );
   return { id: result.insertId, cedula: cedulaFinal, tambo_id: tamboId, rol, password, nombre: nombre || `Usuario ${rol}` };
 }

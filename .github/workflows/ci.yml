@@ -21,6 +21,11 @@ jobs:
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
       - run: npm test
+      # Reporta vulnerabilidades de dependencias (alta/critica) en cada push; no bloquea
+      # el merge porque algunas requieren un bump semver-major (ej. exceljs) que no es
+      # seguro aplicar a ciegas -- Dependabot abre los PRs de actualizacion aparte.
+      - run: npm audit --audit-level=high
+        continue-on-error: true
 
   frontend-build:
     runs-on: ubuntu-latest
@@ -39,4 +44,6 @@ jobs:
       # El lint tiene ~34 errores preexistentes (no relacionados a un cambio puntual) que todavia
       # no se limpiaron; se reporta pero no bloquea el merge hasta que se resuelvan.
       - run: npm run lint
+        continue-on-error: true
+      - run: npm audit --audit-level=high
         continue-on-error: true
