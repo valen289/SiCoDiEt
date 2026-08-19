@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../context/AlertContext';
 import api from '../services/api';
-import { Building2, Save, Upload, Clock } from 'lucide-react';
+import { Building2, Save, Upload, Clock, Trash2, Lock } from 'lucide-react';
 import { resizeImageToDataUrl } from '../utils/resizeImage';
 import '../styles/profile.css';
 
@@ -14,8 +15,9 @@ const ZONAS_HORARIAS = [
 ];
 
 export default function Configuracion() {
-  const { user, updateUser } = useAuth();
-  const { success, error } = useAlert();
+  const { user, updateUser, logout } = useAuth();
+  const { success, error, confirm } = useAlert();
+  const navigate = useNavigate();
   const [form, setForm] = useState({
     nombre: user?.tambo_nombre || '',
     zona_horaria: user?.tambo_zona_horaria || 'America/Montevideo',
@@ -24,6 +26,10 @@ export default function Configuracion() {
   const [saving, setSaving] = useState(false);
   const [logoLoading, setLogoLoading] = useState(false);
   const logoInputRef = useRef(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     document.title = 'Configuración - Sicodiet';
@@ -73,6 +79,37 @@ export default function Configuracion() {
       error(err.response?.data?.errors?.[0]?.msg || err.response?.data?.error || 'Error al actualizar la configuración');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleEliminarClick = async () => {
+    const confirmado = await confirm({
+      type: 'warning',
+      title: 'Eliminar establecimiento',
+      message: 'Esta acción es permanente: se van a borrar todos los usuarios y todos los datos del establecimiento (insumos, lotes, consumos, dietas, compras, etc.). No se puede deshacer. ¿Querés continuar?',
+      confirmText: 'Sí, continuar',
+      cancelText: 'Cancelar',
+    });
+    if (confirmado) {
+      setDeleteError('');
+      setDeletePassword('');
+      setDeleteModalOpen(true);
+    }
+  };
+
+  const handleConfirmarEliminar = async (e) => {
+    e.preventDefault();
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      await api.delete('/tambo', { data: { password: deletePassword } });
+      success('Establecimiento eliminado');
+      logout();
+      navigate('/login');
+    } catch (err) {
+      setDeleteError(err.response?.data?.errors?.[0]?.msg || err.response?.data?.error || 'Error al eliminar el establecimiento');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -149,6 +186,61 @@ export default function Configuracion() {
           </div>
         </form>
       </div>
+
+      <div className="profile-container mt-3">
+        <div className="p-4 border border-danger rounded bg-white">
+          <h3 className="h6 text-danger d-flex align-items-center gap-2 mb-2">
+            <Trash2 size={18} /> Zona de peligro
+          </h3>
+          <p className="text-muted small mb-3">
+            Eliminar el establecimiento borra permanentemente todos sus usuarios y todos sus datos
+            (insumos, lotes, consumos, dietas, compras, etc.). No se puede deshacer.
+          </p>
+          <button type="button" className="btn btn-outline-danger" onClick={handleEliminarClick}>
+            <Trash2 size={16} /> Eliminar establecimiento
+          </button>
+        </div>
+      </div>
+
+      {deleteModalOpen && (
+        <div className="modal-overlay" onClick={() => !deleting && setDeleteModalOpen(false)}>
+          <div className="modal-content p-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="h5 text-danger d-flex align-items-center gap-2 mb-3">
+              <Lock size={18} /> Confirmar eliminación
+            </h3>
+            <p className="text-muted small mb-3">
+              Ingresá tu contraseña para eliminar <strong>{user?.tambo_nombre}</strong> de forma permanente.
+            </p>
+            <form onSubmit={handleConfirmarEliminar}>
+              <div className="form-group mb-3">
+                <input
+                  type="password"
+                  className={`form-control ${deleteError ? 'is-invalid' : ''}`}
+                  placeholder="Tu contraseña"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  autoFocus
+                  required
+                />
+                {deleteError && <span className="form-error">{deleteError}</span>}
+              </div>
+              <div className="form-actions d-flex gap-2">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  disabled={deleting}
+                  onClick={() => setDeleteModalOpen(false)}
+                >
+                  Cancelar
+                </button>
+                <button type="submit" className="btn btn-danger" disabled={deleting || !deletePassword}>
+                  {deleting ? 'Eliminando...' : 'Confirmar eliminación'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
