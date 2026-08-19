@@ -162,3 +162,84 @@ test('el dueño de B (token distinto) puede seguir usando su tambo con normalida
   assert.equal(res.body.insumos.length, 1);
   assert.equal(res.body.insumos[0].nombre, 'Insumo B');
 });
+
+// Regresión: los tests de arriba insertan datos directo por SQL (siempre con tambo_id
+// explícito), así que nunca hubieran detectado que POST /insumos/:id/cargar y
+// POST /insumos/consumo-diario insertaban en historial_cargas_alimentos, consumo_diario,
+// movimientos_stock y alertas SIN columna tambo_id -- la fila caía en el DEFAULT 1 de la
+// columna sin importar el tambo real, y esas filas huérfanas después bloqueaban el propio
+// DELETE /api/tambo por FK contra insumos. Este test pasa por las rutas reales para que
+// esa clase de bug no pueda volver a colarse sin que un test lo note.
+test('borrar un tambo con datos creados via las rutas reales (carga de stock + consumo diario + dieta) no queda bloqueado por FK', async (t) => {
+  if (!ctx.available) return t.skip('DB de test no disponible');
+
+  const tamboC = await crearTambo('Tambo C - flujo real');
+  const duenoC = await crearUsuario({ tamboId: tamboC, rol: 'dueno', password: 'Password1!' });
+  const tokenC = generarToken(duenoC);
+
+  const insumoRes = await request(app)
+    .post('/api/insumos')
+    .set('Authorization', `Bearer ${tokenC}`)
+    .send({ nombre: 'Fardo C', tipo_insumo: 'fardo', unidad: 'unidades', capacidad_maxima: 100, stock_actual: 5, stock_minimo: 50 });
+  assert.equal(insumoRes.status, 201);
+  const insumoId = insumoRes.body.insumoId;
+
+  const loteRes = await request(app)
+    .post('/api/lotes')
+    .set('Authorization', `Bearer ${tokenC}`)
+    .send({ nombre: 'Lote C', tipo_animal: 'Vaca lechera', cantidad_animales: 15, objetivo_productivo: 'leche' });
+  assert.equal(loteRes.status, 201);
+  const loteId = loteRes.body.loteId;
+
+  // Carga de stock -- genera historial_cargas_alimentos, consumo_diario y movimientos_stock.
+  const cargarRes = await request(app)
+    .post(`/api/insumos/${insumoId}/cargar`)
+    .set('Authorization', `Bearer ${tokenC}`)
+    .send({ cantidad: 10 });
+  assert.equal(cargarRes.status, 200);
+
+  await request(app).put(`/api/dietas/costos/${insumoId}`).set('Authorization', `Bearer ${tokenC}`).send({ precio_por_kg: 0.5 });
+  await request(app).put(`/api/dietas/parametros/${insumoId}`).set('Authorization', `Bearer ${tokenC}`)
+    .send({ materia_seca_porcentaje: 90, energia_mcal_por_kg: 2, proteina_porcentaje: 15, fibra_porcentaje: 20 });
+
+  const dietaRes = await request(app)
+    .post('/api/dietas')
+    .set('Authorization', `Bearer ${tokenC}`)
+    .send({
+      nombre: 'Dieta C', lote_id: loteId,
+      ingredientes: [{ insumo_id: insumoId, cantidad_kg: 2, porcentaje_am: 50 }],
+      produccion_leche_esperada: 20, precio_leche_por_litro: 0.45,
+    });
+  assert.equal(dietaRes.status, 201);
+
+  // Consumo diario -- stock bajo capacidad/minimo fuerza una alerta de stock crítico,
+  // que es exactamente donde apareció el bug original.
+  const consumoRes = await request(app)
+    .post('/api/insumos/consumo-diario')
+    .set('Authorization', `Bearer ${tokenC}`)
+    .send({
+      fecha: '2026-08-19', turno: 'AM', lote_id: loteId, cantidad_animales: 15,
+      ingredientes: [{ insumo_id: insumoId, cantidad_kg: 5, origen_cantidad: 'manual' }],
+      observacion: 'test', porcentaje_sobra: 5,
+    });
+  assert.equal(consumoRes.status, 200);
+
+  // Todas las filas generadas por las rutas de arriba deben quedar atribuidas al tambo C,
+  // nunca al DEFAULT de la columna (tambo 1).
+  for (const tabla of ['historial_cargas_alimentos', 'consumo_diario', 'movimientos_stock', 'alertas']) {
+    const [filas] = await pool.query(`SELECT id, tambo_id FROM ${tabla} WHERE insumo_id = ?`, [insumoId]);
+    assert.ok(filas.length > 0, `${tabla} deberia tener al menos una fila para este insumo`);
+    for (const fila of filas) {
+      assert.equal(fila.tambo_id, tamboC, `${tabla}.id=${fila.id} deberia tener tambo_id=${tamboC}, no ${fila.tambo_id}`);
+    }
+  }
+
+  const delRes = await request(app)
+    .delete('/api/tambo')
+    .set('Authorization', `Bearer ${tokenC}`)
+    .send({ password: 'Password1!' });
+  assert.equal(delRes.status, 200);
+
+  const [[tamboCheck]] = await pool.query('SELECT id FROM tambos WHERE id = ?', [tamboC]);
+  assert.equal(tamboCheck, undefined);
+});

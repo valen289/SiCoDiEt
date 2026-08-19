@@ -221,19 +221,23 @@ router.post('/:id/cargar', duenoEncargado, [
         [nuevoStock, insumoId]
       );
 
+      // tambo_id explicito en las 3 -- sin esto cae en el DEFAULT 1 de la columna y la
+      // fila queda mal atribuida a otro tambo (mismo bug ya encontrado y corregido en
+      // utils/alertas.js): invisible para el tambo real, filtra al tambo 1, y despues
+      // bloquea el borrado del tambo real por FK contra insumos.
       await connection.query(
-        'INSERT INTO historial_cargas_alimentos (tipo_alimento, insumo_id, usuario_id, cantidad, comprobante_entrega, fecha, hora, observaciones) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [insumo.tipo_insumo, insumoId, req.user.id, cantidad, comprobante_entrega || null, fechaHoy, horaAhora, observaciones || null]
+        'INSERT INTO historial_cargas_alimentos (tambo_id, tipo_alimento, insumo_id, usuario_id, cantidad, comprobante_entrega, fecha, hora, observaciones) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [req.user.tambo_id, insumo.tipo_insumo, insumoId, req.user.id, cantidad, comprobante_entrega || null, fechaHoy, horaAhora, observaciones || null]
       );
 
       await connection.query(
-        'INSERT INTO consumo_diario (insumo_id, usuario_id, cantidad, fecha, hora, tipo_movimiento, observaciones) VALUES (?, ?, ?, ?, ?, "ingreso", ?)',
-        [insumoId, req.user.id, cantidad, fechaHoy, horaAhora, observaciones || null]
+        'INSERT INTO consumo_diario (tambo_id, insumo_id, usuario_id, cantidad, fecha, hora, tipo_movimiento, observaciones) VALUES (?, ?, ?, ?, ?, ?, "ingreso", ?)',
+        [req.user.tambo_id, insumoId, req.user.id, cantidad, fechaHoy, horaAhora, observaciones || null]
       );
 
       await connection.query(
-        'INSERT INTO movimientos_stock (insumo_id, usuario_id, tipo, cantidad, stock_anterior, stock_posterior, comprobante_entrega, observaciones, fecha, hora) VALUES (?, ?, "ingreso", ?, ?, ?, ?, ?, ?, ?)',
-        [insumoId, req.user.id, cantidad, stockAnterior, nuevoStock, comprobante_entrega || null, observaciones || null, fechaHoy, horaAhora]
+        'INSERT INTO movimientos_stock (tambo_id, insumo_id, usuario_id, tipo, cantidad, stock_anterior, stock_posterior, comprobante_entrega, observaciones, fecha, hora) VALUES (?, ?, ?, "ingreso", ?, ?, ?, ?, ?, ?, ?)',
+        [req.user.tambo_id, insumoId, req.user.id, cantidad, stockAnterior, nuevoStock, comprobante_entrega || null, observaciones || null, fechaHoy, horaAhora]
       );
 
       await verificarYGenerarAlertas(insumoId, connection);

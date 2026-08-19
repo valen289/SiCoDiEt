@@ -168,9 +168,15 @@ async function verificarYGenerarAlertas(insumoId, connection) {
       );
 
       if (alertasExistentes.length === 0) {
+        // tambo_id explicito: sin esto, la columna cae en su DEFAULT 1 y la alerta
+        // queda mal atribuida al tambo 1 para cualquier insumo de otro tambo -- fuga
+        // de datos entre tenants (tambo 1 termina viendo alertas ajenas) y ademas deja
+        // filas huerfanas que despues bloquean el borrado de ESE tambo por FK (la
+        // alerta nunca se limpia porque "DELETE FROM alertas WHERE tambo_id = <real>"
+        // no la encuentra, al estar guardada bajo tambo_id = 1).
         await executor(
-          'INSERT INTO alertas (insumo_id, tipo, mensaje) VALUES (?, ?, ?)',
-          [insumoId, alerta.tipo, `${insumo.nombre}: ${alerta.label} - ${diasRestantes} ${alerta.mensaje} (stock: ${stockActual.toFixed(2)} ${insumo.unidad})`]
+          'INSERT INTO alertas (tambo_id, insumo_id, tipo, mensaje) VALUES (?, ?, ?, ?)',
+          [insumo.tambo_id, insumoId, alerta.tipo, `${insumo.nombre}: ${alerta.label} - ${diasRestantes} ${alerta.mensaje} (stock: ${stockActual.toFixed(2)} ${insumo.unidad})`]
         );
 
         // Push cubre stock_critico Y stock_bajo; el email (mas intrusivo) queda solo
