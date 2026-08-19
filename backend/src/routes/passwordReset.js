@@ -28,11 +28,12 @@ router.post('/forgot-password', [
       // necesite el hash lento+salado de bcrypt). Usamos SHA-256 para poder buscarlo directo por
       // igualdad en el SELECT de abajo, en vez de cargar todos los tokens vigentes en memoria.
       const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
-      const expiresAt = new Date(Date.now() + TOKEN_EXPIRY_HOURS * 60 * 60 * 1000);
 
+      // Calculado con el reloj de MySQL (no Date.now() de Node) -- ver el mismo fix
+      // en usuarios.js (invitaciones) y auth.js (2FA) para el detalle completo.
       await pool.query(
-        'INSERT INTO password_reset_tokens (email, token, expires_at) VALUES (?, ?, ?)',
-        [email, hashedToken, expiresAt]
+        'INSERT INTO password_reset_tokens (email, token, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL ? HOUR))',
+        [email, hashedToken, TOKEN_EXPIRY_HOURS]
       );
 
       try {

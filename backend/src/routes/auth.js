@@ -159,11 +159,14 @@ router.post('/login', [
 
     const code = crypto.randomInt(0, 1000000).toString().padStart(6, '0');
     const codeHash = crypto.createHash('sha256').update(code).digest('hex');
-    const expiresAt = new Date(Date.now() + TWO_FACTOR_CODE_EXPIRY_MINUTES * 60 * 1000);
 
+    // Calculado con el reloj de MySQL (no Date.now() de Node) -- con una ventana de
+    // solo unos minutos, cualquier desfasaje entre el reloj de Node y el de MySQL
+    // puede dejar el código vencido casi al instante. Ver el mismo fix en
+    // usuarios.js (invitaciones) y passwordReset.js para el detalle completo.
     await pool.query(
-      'UPDATE usuarios SET two_factor_code_hash = ?, two_factor_code_expires = ? WHERE id = ?',
-      [codeHash, expiresAt, user.id]
+      'UPDATE usuarios SET two_factor_code_hash = ?, two_factor_code_expires = DATE_ADD(NOW(), INTERVAL ? MINUTE) WHERE id = ?',
+      [codeHash, TWO_FACTOR_CODE_EXPIRY_MINUTES, user.id]
     );
 
     try {

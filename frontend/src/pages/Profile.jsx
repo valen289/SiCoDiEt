@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../context/AlertContext';
 import api from '../services/api';
-import { Mail, Phone, Lock, Save, UserCog, Building2, LockKeyhole, Camera, Eye, Upload, Trash2, Bell, BellOff } from 'lucide-react';
+import { Mail, Phone, Lock, Save, UserCog, Building2, LockKeyhole, Camera, Eye, EyeOff, Upload, Trash2, Bell, BellOff } from 'lucide-react';
 import PasswordRulesHint from '../components/PasswordRulesHint';
 import { passwordStrength } from '../utils/passwordPolicy';
 import { resizeImageToDataUrl } from '../utils/resizeImage';
@@ -50,6 +50,7 @@ export default function Profile() {
   });
   const [formErrors, setFormErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [verPassword, setVerPassword] = useState(false);
   const [photoMenuOpen, setPhotoMenuOpen] = useState(false);
   const [viewingPhoto, setViewingPhoto] = useState(false);
   const [photoLoading, setPhotoLoading] = useState(false);
@@ -375,25 +376,35 @@ export default function Profile() {
               <label className="form-label">
                 <Lock size={16} /> Contraseña actual
               </label>
-              <input
-                type="password"
-                className={`form-control ${formErrors.currentPassword ? 'is-invalid' : ''}`}
-                value={form.currentPassword}
-                onChange={(e) => setForm({ ...form, currentPassword: e.target.value })}
-                placeholder="Requerida solo para cambiar la contraseña"
-              />
+              <div className="input-group">
+                <input
+                  type={verPassword ? 'text' : 'password'}
+                  className={`form-control ${formErrors.currentPassword ? 'is-invalid' : ''}`}
+                  value={form.currentPassword}
+                  onChange={(e) => setForm({ ...form, currentPassword: e.target.value })}
+                  placeholder="Requerida solo para cambiar la contraseña"
+                />
+                <button type="button" className="btn btn-outline-secondary" onClick={() => setVerPassword(v => !v)}>
+                  {verPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
               {formErrors.currentPassword && <span className="form-error">{formErrors.currentPassword}</span>}
             </div>
             <div className="form-group">
               <label className="form-label">
                 <Lock size={16} /> Nueva Contraseña (opcional)
               </label>
-              <input
-                type="password"
-                className={`form-control ${formErrors.password ? 'is-invalid' : ''}`}
-                value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
-              />
+              <div className="input-group">
+                <input
+                  type={verPassword ? 'text' : 'password'}
+                  className={`form-control ${formErrors.password ? 'is-invalid' : ''}`}
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                />
+                <button type="button" className="btn btn-outline-secondary" onClick={() => setVerPassword(v => !v)}>
+                  {verPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
               <PasswordRulesHint />
               {strength && (
                 <div className="password-strength">
@@ -410,13 +421,18 @@ export default function Profile() {
                 <label className="form-label">
                   <Lock size={16} /> Confirmar Contraseña
                 </label>
-                <input
-                  type="password"
-                  className={`form-control ${formErrors.confirmPassword ? 'is-invalid' : ''}`}
-                  value={form.confirmPassword}
-                  onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
-                  placeholder="Repetir contraseña"
-                />
+                <div className="input-group">
+                  <input
+                    type={verPassword ? 'text' : 'password'}
+                    className={`form-control ${formErrors.confirmPassword ? 'is-invalid' : ''}`}
+                    value={form.confirmPassword}
+                    onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
+                    placeholder="Repetir contraseña"
+                  />
+                  <button type="button" className="btn btn-outline-secondary" onClick={() => setVerPassword(v => !v)}>
+                    {verPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
                 {formErrors.confirmPassword && <span className="form-error">{formErrors.confirmPassword}</span>}
               </div>
             )}

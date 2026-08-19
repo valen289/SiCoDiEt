@@ -211,11 +211,20 @@ router.post('/invitacion', soloDueno, [
 
     const { rol = 'trabajador', email } = req.body;
     const token = crypto.randomBytes(32).toString('hex');
-    const expiracion = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-    await pool.query(
-      'INSERT INTO invitaciones (tambo_id, token, rol, creado_por, fecha_expiracion, email) VALUES (?, ?, ?, ?, ?, ?)',
-      [req.user.tambo_id, token, rol, req.user.id, expiracion, email || null]
+    // La expiración se calcula con el reloj de MySQL (DATE_ADD(NOW(), ...)), no con
+    // Date.now() de Node -- si el reloj/zona horaria del proceso Node y el del server
+    // de MySQL no coinciden exactamente, comparar un valor calculado en JS contra
+    // "fecha_expiracion > NOW()" puede dar una ventana mucho más corta (o ya vencida)
+    // que los 7 días reales. Calculándolo del lado de MySQL, ambos lados de esa
+    // comparación (acá y en /auth/invitacion, /auth/register) vienen del mismo reloj.
+    const [result] = await pool.query(
+      'INSERT INTO invitaciones (tambo_id, token, rol, creado_por, fecha_expiracion, email) VALUES (?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 7 DAY), ?)',
+      [req.user.tambo_id, token, rol, req.user.id, email || null]
+    );
+    const [[{ fecha_expiracion: expiracion }]] = await pool.query(
+      'SELECT fecha_expiracion FROM invitaciones WHERE id = ?',
+      [result.insertId]
     );
 
     let emailEnviado = false;

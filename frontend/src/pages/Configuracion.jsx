@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../context/AlertContext';
 import api from '../services/api';
-import { Building2, Save, Upload, Clock, Trash2, Lock } from 'lucide-react';
+import { Building2, Save, Upload, Clock, Trash2, Lock, Eye, EyeOff } from 'lucide-react';
 import { resizeImageToDataUrl } from '../utils/resizeImage';
 import '../styles/profile.css';
 
@@ -30,6 +30,7 @@ export default function Configuracion() {
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteError, setDeleteError] = useState('');
   const [deleting, setDeleting] = useState(false);
+  const [verPassword, setVerPassword] = useState(false);
 
   useEffect(() => {
     document.title = 'Configuración - Sicodiet';
@@ -213,15 +214,20 @@ export default function Configuracion() {
             </p>
             <form onSubmit={handleConfirmarEliminar}>
               <div className="form-group mb-3">
-                <input
-                  type="password"
-                  className={`form-control ${deleteError ? 'is-invalid' : ''}`}
-                  placeholder="Tu contraseña"
-                  value={deletePassword}
-                  onChange={(e) => setDeletePassword(e.target.value)}
-                  autoFocus
-                  required
-                />
+                <div className="input-group">
+                  <input
+                    type={verPassword ? 'text' : 'password'}
+                    className={`form-control ${deleteError ? 'is-invalid' : ''}`}
+                    placeholder="Tu contraseña"
+                    value={deletePassword}
+                    onChange={(e) => setDeletePassword(e.target.value)}
+                    autoFocus
+                    required
+                  />
+                  <button type="button" className="btn btn-outline-secondary" onClick={() => setVerPassword(v => !v)}>
+                    {verPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
                 {deleteError && <span className="form-error">{deleteError}</span>}
               </div>
               <div className="form-actions d-flex gap-2">

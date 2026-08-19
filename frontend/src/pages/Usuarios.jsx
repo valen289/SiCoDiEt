@@ -458,13 +458,18 @@ export default function Usuarios() {
                 {!editingUser && (
                   <div className="mb-3">
                     <label className="form-label">Contraseña</label>
-                    <input
-                      type="password"
-                      className="form-control"
-                      value={form.password}
-                      onChange={e => setForm(prev => ({ ...prev, password: e.target.value }))}
-                      required
-                    />
+                    <div className="input-group">
+                      <input
+                        type={verPassword ? 'text' : 'password'}
+                        className="form-control"
+                        value={form.password}
+                        onChange={e => setForm(prev => ({ ...prev, password: e.target.value }))}
+                        required
+                      />
+                      <button type="button" className="btn btn-outline-secondary" onClick={() => setVerPassword(v => !v)}>
+                        {verPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
                     <PasswordRulesHint />
                     {form.password && (() => {
                       const strength = passwordStrength(form.password);
