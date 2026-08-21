@@ -47,3 +47,14 @@ jobs:
         continue-on-error: true
       - run: npm audit --audit-level=high
         continue-on-error: true
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # Escanea todo el historial en busca de secretos commiteados por error (API keys,
+      # JWT_SECRET, ENCRYPTION_KEY, etc.). A diferencia del audit de arriba, esto SI
+      # bloquea el merge -- un secreto filtrado es un incidente, no algo para revisar despues.
+      - run: docker run --rm -v "${{ github.workspace }}:/repo" zricethezav/gitleaks:latest detect --source /repo --verbose --redact
