@@ -22,7 +22,7 @@
     "express-validator": "^7.0.1",
     "helmet": "^8.2.0",
     "jsonwebtoken": "^9.0.2",
-    "mysql2": "^3.9.0",
+    "mysql2": "^3.23.3",
     "node-cron": "^4.6.0",
     "pdfmake": "^0.3.11",
     "web-push": "^3.6.7"
